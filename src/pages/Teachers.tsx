@@ -7,8 +7,7 @@ import {
   MoreHorizontal,
   Mail,
   Phone,
-  BookOpen,
-  Award
+  BookOpen
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -30,20 +29,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { TeacherDialog, type Teacher } from "@/components/dialogs/TeacherDialog";
+import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
+import { toast } from "sonner";
 
-interface Teacher {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  faculty: string;
-  department: string;
-  title: "prof" | "assoc_prof" | "asst_prof" | "lecturer";
-  coursesCount: number;
-  status: "active" | "pending" | "inactive";
-}
-
-const teachers: Teacher[] = [
+const initialTeachers: Teacher[] = [
   {
     id: "1",
     name: "Dr. John Smith",
@@ -119,7 +109,17 @@ function getInitials(name: string) {
   return name.split(" ").map(n => n[0]).join("").toUpperCase();
 }
 
-function TeacherCard({ teacher }: { teacher: Teacher }) {
+function TeacherCard({ 
+  teacher, 
+  onEdit, 
+  onDelete,
+  onApprove 
+}: { 
+  teacher: Teacher;
+  onEdit: () => void;
+  onDelete: () => void;
+  onApprove: () => void;
+}) {
   return (
     <div className="data-card p-5 hover:shadow-elevated transition-all">
       <div className="flex items-start justify-between">
@@ -167,14 +167,14 @@ function TeacherCard({ teacher }: { teacher: Teacher }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-popover">
-            <DropdownMenuItem>Edit Profile</DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>Edit Profile</DropdownMenuItem>
             <DropdownMenuItem>Manage Courses</DropdownMenuItem>
             <DropdownMenuItem>View Schedule</DropdownMenuItem>
             <DropdownMenuSeparator />
             {teacher.status === "pending" && (
-              <DropdownMenuItem className="text-success">Approve</DropdownMenuItem>
+              <DropdownMenuItem onClick={onApprove} className="text-success">Approve</DropdownMenuItem>
             )}
-            <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
+            <DropdownMenuItem onClick={onDelete} className="text-destructive">Deactivate</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -183,8 +183,14 @@ function TeacherCard({ teacher }: { teacher: Teacher }) {
 }
 
 export default function Teachers() {
+  const [teachers, setTeachers] = useState<Teacher[]>(initialTeachers);
   const [searchQuery, setSearchQuery] = useState("");
   const [facultyFilter, setFacultyFilter] = useState("all");
+  
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingTeacherId, setDeletingTeacherId] = useState<string | null>(null);
 
   const filteredTeachers = teachers.filter((teacher) => {
     const matchesSearch = 
@@ -194,13 +200,45 @@ export default function Teachers() {
     return matchesSearch && matchesFaculty;
   });
 
+  const handleSave = (data: Omit<Teacher, "id" | "coursesCount"> & { id?: string }) => {
+    if (data.id) {
+      setTeachers(prev => prev.map(t => t.id === data.id ? { ...t, ...data } as Teacher : t));
+      toast.success("Teacher updated successfully");
+    } else {
+      const newTeacher: Teacher = {
+        ...data,
+        id: `teacher-${Date.now()}`,
+        coursesCount: 0,
+      };
+      setTeachers(prev => [newTeacher, ...prev]);
+      toast.success("Teacher added successfully");
+    }
+  };
+
+  const handleDelete = () => {
+    if (deletingTeacherId) {
+      setTeachers(prev => prev.filter(t => t.id !== deletingTeacherId));
+      toast.success("Teacher deactivated");
+      setDeleteDialogOpen(false);
+      setDeletingTeacherId(null);
+    }
+  };
+
+  const handleApprove = (teacherId: string) => {
+    setTeachers(prev => prev.map(t => t.id === teacherId ? { ...t, status: "active" as const } : t));
+    toast.success("Teacher approved");
+  };
+
   return (
     <div className="page-container">
       <PageHeader 
         title="Teachers" 
         description="Manage teaching staff and course assignments"
         actions={
-          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button 
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            onClick={() => { setEditingTeacher(null); setDialogOpen(true); }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Teacher
           </Button>
@@ -255,9 +293,30 @@ export default function Teachers() {
       {/* Teachers Grid */}
       <div className="space-y-3">
         {filteredTeachers.map((teacher) => (
-          <TeacherCard key={teacher.id} teacher={teacher} />
+          <TeacherCard 
+            key={teacher.id} 
+            teacher={teacher}
+            onEdit={() => { setEditingTeacher(teacher); setDialogOpen(true); }}
+            onDelete={() => { setDeletingTeacherId(teacher.id); setDeleteDialogOpen(true); }}
+            onApprove={() => handleApprove(teacher.id)}
+          />
         ))}
       </div>
+
+      <TeacherDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        teacher={editingTeacher}
+        onSave={handleSave}
+      />
+
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Deactivate Teacher"
+        description="Are you sure you want to deactivate this teacher? They will be removed from all course assignments."
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

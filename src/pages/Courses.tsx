@@ -8,7 +8,8 @@ import {
   Link2,
   Users,
   Clock,
-  GraduationCap
+  GraduationCap,
+  GitBranch
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -29,22 +30,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { CourseDialog, type Course, type CourseRule } from "@/components/dialogs/CourseDialog";
+import { RuleDialog } from "@/components/dialogs/RuleDialog";
+import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
+import { toast } from "sonner";
 
-interface Course {
-  id: string;
-  code: string;
-  name: string;
-  faculty: string;
-  programme: string;
-  ects: number;
-  semester: number;
-  teachers: string[];
-  status: "active" | "draft" | "archived";
-  hasPrerequisites: boolean;
-  prerequisiteCount: number;
-}
-
-const courses: Course[] = [
+const initialCourses: Course[] = [
   {
     id: "1",
     code: "CS101",
@@ -55,8 +46,7 @@ const courses: Course[] = [
     semester: 1,
     teachers: ["Dr. John Smith", "Prof. Maria Garcia"],
     status: "active",
-    hasPrerequisites: false,
-    prerequisiteCount: 0,
+    rules: [],
   },
   {
     id: "2",
@@ -68,8 +58,10 @@ const courses: Course[] = [
     semester: 3,
     teachers: ["Dr. John Smith"],
     status: "active",
-    hasPrerequisites: true,
-    prerequisiteCount: 2,
+    rules: [
+      { id: "r1", type: "prerequisite", operator: "and", value: "CS101", label: "CS101 - Introduction to Programming" },
+      { id: "r2", type: "prerequisite", operator: "and", value: "MA101", label: "MA101 - Calculus I" },
+    ],
   },
   {
     id: "3",
@@ -81,8 +73,10 @@ const courses: Course[] = [
     semester: 5,
     teachers: ["Prof. Anna Johnson"],
     status: "active",
-    hasPrerequisites: true,
-    prerequisiteCount: 3,
+    rules: [
+      { id: "r3", type: "prerequisite", operator: "and", value: "CS201", label: "CS201 - Data Structures and Algorithms" },
+      { id: "r4", type: "ects_min", operator: "and", value: "60", label: "Minimum 60 ECTS credits" },
+    ],
   },
   {
     id: "4",
@@ -94,8 +88,7 @@ const courses: Course[] = [
     semester: 1,
     teachers: ["Prof. David Lee"],
     status: "active",
-    hasPrerequisites: false,
-    prerequisiteCount: 0,
+    rules: [],
   },
   {
     id: "5",
@@ -107,12 +100,25 @@ const courses: Course[] = [
     semester: 1,
     teachers: ["Dr. Sarah Chen"],
     status: "draft",
-    hasPrerequisites: true,
-    prerequisiteCount: 4,
+    rules: [
+      { id: "r5", type: "ects_min", operator: "and", value: "180", label: "Minimum 180 ECTS credits" },
+      { id: "r6", type: "prerequisite", operator: "and", value: "CS301", label: "CS301 - Database Systems" },
+      { id: "r7", type: "prerequisite", operator: "or", value: "MA101", label: "MA101 - Calculus I" },
+    ],
   },
 ];
 
-function CourseCard({ course }: { course: Course }) {
+function CourseCard({ 
+  course, 
+  onEdit, 
+  onDelete,
+  onConfigureRules 
+}: { 
+  course: Course;
+  onEdit: () => void;
+  onDelete: () => void;
+  onConfigureRules: () => void;
+}) {
   return (
     <div className="data-card p-5 hover:shadow-elevated transition-all">
       <div className="flex items-start justify-between">
@@ -151,11 +157,11 @@ function CourseCard({ course }: { course: Course }) {
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span>{course.teachers.length} teacher{course.teachers.length !== 1 && "s"}</span>
               </div>
-              {course.hasPrerequisites && (
+              {course.rules.length > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <Link2 className="h-4 w-4 text-accent" />
+                  <GitBranch className="h-4 w-4 text-accent" />
                   <span className="text-accent font-medium">
-                    {course.prerequisiteCount} prerequisite{course.prerequisiteCount !== 1 && "s"}
+                    {course.rules.length} rule{course.rules.length !== 1 && "s"}
                   </span>
                 </div>
               )}
@@ -170,12 +176,15 @@ function CourseCard({ course }: { course: Course }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-popover">
-            <DropdownMenuItem>Edit Course</DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>Edit Course</DropdownMenuItem>
             <DropdownMenuItem>Manage Teachers</DropdownMenuItem>
-            <DropdownMenuItem>Configure Prerequisites</DropdownMenuItem>
+            <DropdownMenuItem onClick={onConfigureRules}>
+              <GitBranch className="h-4 w-4 mr-2" />
+              Configure Rules
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>View Enrollment</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">Archive Course</DropdownMenuItem>
+            <DropdownMenuItem onClick={onDelete} className="text-destructive">Archive Course</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -184,8 +193,17 @@ function CourseCard({ course }: { course: Course }) {
 }
 
 export default function Courses() {
+  const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [searchQuery, setSearchQuery] = useState("");
   const [facultyFilter, setFacultyFilter] = useState("all");
+  
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
+  
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  const [rulesCourse, setRulesCourse] = useState<Course | null>(null);
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch = 
@@ -195,13 +213,44 @@ export default function Courses() {
     return matchesSearch && matchesFaculty;
   });
 
+  const handleSave = (data: Omit<Course, "id"> & { id?: string }) => {
+    if (data.id) {
+      setCourses(prev => prev.map(c => c.id === data.id ? { ...c, ...data } as Course : c));
+      toast.success("Course updated successfully");
+    } else {
+      const newCourse: Course = {
+        ...data,
+        id: `course-${Date.now()}`,
+      };
+      setCourses(prev => [newCourse, ...prev]);
+      toast.success("Course created successfully");
+    }
+  };
+
+  const handleDelete = () => {
+    if (deletingCourseId) {
+      setCourses(prev => prev.filter(c => c.id !== deletingCourseId));
+      toast.success("Course archived");
+      setDeleteDialogOpen(false);
+      setDeletingCourseId(null);
+    }
+  };
+
+  const handleSaveRules = (courseId: string, rules: CourseRule[]) => {
+    setCourses(prev => prev.map(c => c.id === courseId ? { ...c, rules } : c));
+    toast.success("Rules saved successfully");
+  };
+
   return (
     <div className="page-container">
       <PageHeader 
         title="Courses" 
-        description="Manage courses, assignments, and prerequisites"
+        description="Manage courses, assignments, and enrollment rules"
         actions={
-          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button 
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            onClick={() => { setEditingCourse(null); setDialogOpen(true); }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Course
           </Button>
@@ -244,8 +293,8 @@ export default function Courses() {
           <p className="text-sm text-muted-foreground">Active</p>
         </div>
         <div className="data-card p-4 text-center">
-          <p className="text-2xl font-semibold">{courses.filter(c => c.hasPrerequisites).length}</p>
-          <p className="text-sm text-muted-foreground">With Prerequisites</p>
+          <p className="text-2xl font-semibold">{courses.filter(c => c.rules.length > 0).length}</p>
+          <p className="text-sm text-muted-foreground">With Rules</p>
         </div>
         <div className="data-card p-4 text-center">
           <p className="text-2xl font-semibold">{courses.reduce((acc, c) => acc + c.ects, 0)}</p>
@@ -256,9 +305,40 @@ export default function Courses() {
       {/* Courses Grid */}
       <div className="space-y-3">
         {filteredCourses.map((course) => (
-          <CourseCard key={course.id} course={course} />
+          <CourseCard 
+            key={course.id} 
+            course={course}
+            onEdit={() => { setEditingCourse(course); setDialogOpen(true); }}
+            onDelete={() => { setDeletingCourseId(course.id); setDeleteDialogOpen(true); }}
+            onConfigureRules={() => { setRulesCourse(course); setRuleDialogOpen(true); }}
+          />
         ))}
       </div>
+
+      <CourseDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        course={editingCourse}
+        onSave={handleSave}
+      />
+
+      {rulesCourse && (
+        <RuleDialog
+          open={ruleDialogOpen}
+          onOpenChange={setRuleDialogOpen}
+          course={rulesCourse}
+          allCourses={courses}
+          onSave={handleSaveRules}
+        />
+      )}
+
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Archive Course"
+        description="Are you sure you want to archive this course? Students will no longer be able to enroll."
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

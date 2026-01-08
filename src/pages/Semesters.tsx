@@ -6,36 +6,17 @@ import {
   ChevronRight,
   Edit2,
   Building2,
-  GraduationCap
+  Trash2
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SemesterDialog, FacultyOverrideDialog, type Semester, type FacultyOverride } from "@/components/dialogs/SemesterDialog";
+import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
+import { toast } from "sonner";
 
-interface FacultyOverride {
-  facultyId: string;
-  facultyName: string;
-  enrollmentStart: string;
-  enrollmentEnd: string;
-  lateEnrollmentEnd: string;
-  studyCycles: string[];
-}
-
-interface Semester {
-  id: string;
-  name: string;
-  academicYear: string;
-  startDate: string;
-  endDate: string;
-  enrollmentStart: string;
-  enrollmentEnd: string;
-  lateEnrollmentEnd: string;
-  status: "active" | "pending" | "archived";
-  facultyOverrides: FacultyOverride[];
-}
-
-const semesters: Semester[] = [
+const initialSemesters: Semester[] = [
   {
     id: "1",
     name: "Winter Semester",
@@ -91,12 +72,25 @@ const semesters: Semester[] = [
   },
 ];
 
-function SemesterCard({ semester }: { semester: Semester }) {
+function SemesterCard({ 
+  semester, 
+  onEdit, 
+  onDelete,
+  onAddOverride,
+  onEditOverride,
+  onDeleteOverride 
+}: { 
+  semester: Semester;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAddOverride: () => void;
+  onEditOverride: (override: FacultyOverride) => void;
+  onDeleteOverride: (facultyId: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="data-card overflow-hidden">
-      {/* Master Semester Header */}
       <div 
         className="p-5 cursor-pointer hover:bg-muted/30 transition-colors"
         onClick={() => setExpanded(!expanded)}
@@ -129,8 +123,11 @@ function SemesterCard({ semester }: { semester: Semester }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
               <Edit2 className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive hover:text-destructive">
+              <Trash2 className="h-4 w-4" />
             </Button>
             <div className="p-2">
               {expanded ? (
@@ -150,13 +147,12 @@ function SemesterCard({ semester }: { semester: Semester }) {
         )}
       </div>
 
-      {/* Faculty Overrides */}
       {expanded && (
         <div className="border-t bg-muted/20">
           <div className="p-4 border-b bg-muted/30">
             <div className="flex items-center justify-between">
               <h4 className="font-medium text-sm">Faculty Overrides</h4>
-              <Button size="sm" variant="outline" className="h-8">
+              <Button size="sm" variant="outline" className="h-8" onClick={onAddOverride}>
                 <Plus className="h-3.5 w-3.5 mr-1" />
                 Add Override
               </Button>
@@ -203,9 +199,19 @@ function SemesterCard({ semester }: { semester: Semester }) {
                         </div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => onEditOverride(override)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => onDeleteOverride(override.facultyId)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -218,13 +224,79 @@ function SemesterCard({ semester }: { semester: Semester }) {
 }
 
 export default function Semesters() {
+  const [semesters, setSemesters] = useState<Semester[]>(initialSemesters);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingSemester, setEditingSemester] = useState<Semester | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingSemesterId, setDeletingSemesterId] = useState<string | null>(null);
+  
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
+  const [editingOverride, setEditingOverride] = useState<FacultyOverride | null>(null);
+  const [overrideSemesterId, setOverrideSemesterId] = useState<string | null>(null);
+
+  const handleSave = (data: Omit<Semester, "id"> & { id?: string }) => {
+    if (data.id) {
+      setSemesters(prev => prev.map(s => s.id === data.id ? { ...s, ...data } as Semester : s));
+      toast.success("Semester updated successfully");
+    } else {
+      const newSemester: Semester = {
+        ...data,
+        id: `sem-${Date.now()}`,
+        facultyOverrides: [],
+      };
+      setSemesters(prev => [newSemester, ...prev]);
+      toast.success("Semester created successfully");
+    }
+  };
+
+  const handleDelete = () => {
+    if (deletingSemesterId) {
+      setSemesters(prev => prev.filter(s => s.id !== deletingSemesterId));
+      toast.success("Semester deleted");
+      setDeleteDialogOpen(false);
+      setDeletingSemesterId(null);
+    }
+  };
+
+  const handleSaveOverride = (override: FacultyOverride) => {
+    if (overrideSemesterId) {
+      setSemesters(prev => prev.map(s => {
+        if (s.id === overrideSemesterId) {
+          const existingIndex = s.facultyOverrides.findIndex(o => o.facultyId === override.facultyId);
+          if (existingIndex >= 0) {
+            const newOverrides = [...s.facultyOverrides];
+            newOverrides[existingIndex] = override;
+            return { ...s, facultyOverrides: newOverrides };
+          } else {
+            return { ...s, facultyOverrides: [...s.facultyOverrides, override] };
+          }
+        }
+        return s;
+      }));
+      toast.success(editingOverride ? "Override updated" : "Override added");
+    }
+  };
+
+  const handleDeleteOverride = (semesterId: string, facultyId: string) => {
+    setSemesters(prev => prev.map(s => {
+      if (s.id === semesterId) {
+        return { ...s, facultyOverrides: s.facultyOverrides.filter(o => o.facultyId !== facultyId) };
+      }
+      return s;
+    }));
+    toast.success("Override removed");
+  };
+
   return (
     <div className="page-container">
       <PageHeader 
         title="Semesters" 
         description="Manage academic semesters and faculty-specific enrollment periods"
         actions={
-          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button 
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            onClick={() => { setEditingSemester(null); setDialogOpen(true); }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Semester
           </Button>
@@ -233,9 +305,44 @@ export default function Semesters() {
 
       <div className="space-y-4">
         {semesters.map((semester) => (
-          <SemesterCard key={semester.id} semester={semester} />
+          <SemesterCard 
+            key={semester.id} 
+            semester={semester}
+            onEdit={() => { setEditingSemester(semester); setDialogOpen(true); }}
+            onDelete={() => { setDeletingSemesterId(semester.id); setDeleteDialogOpen(true); }}
+            onAddOverride={() => { setOverrideSemesterId(semester.id); setEditingOverride(null); setOverrideDialogOpen(true); }}
+            onEditOverride={(override) => { setOverrideSemesterId(semester.id); setEditingOverride(override); setOverrideDialogOpen(true); }}
+            onDeleteOverride={(facultyId) => handleDeleteOverride(semester.id, facultyId)}
+          />
         ))}
       </div>
+
+      <SemesterDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        semester={editingSemester}
+        onSave={handleSave}
+      />
+
+      <FacultyOverrideDialog
+        open={overrideDialogOpen}
+        onOpenChange={setOverrideDialogOpen}
+        override={editingOverride}
+        onSave={handleSaveOverride}
+        existingFacultyIds={
+          overrideSemesterId 
+            ? semesters.find(s => s.id === overrideSemesterId)?.facultyOverrides.map(o => o.facultyId) || []
+            : []
+        }
+      />
+
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Semester"
+        description="Are you sure you want to delete this semester? This action cannot be undone."
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

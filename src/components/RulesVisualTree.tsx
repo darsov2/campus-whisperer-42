@@ -1,11 +1,11 @@
-import { GitBranch, ArrowRight, Check, AlertTriangle } from "lucide-react";
+import { ArrowRight, Check, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ProgrammeCourseRule } from "./dialogs/ProgrammeCourseDialog";
+import type { ProgrammeCourseRules, RuleGroup, RuleCondition } from "./dialogs/ProgrammeCourseDialog";
 
 interface RulesVisualTreeProps {
   courseCode: string;
   courseName: string;
-  rules: ProgrammeCourseRule[];
+  rules: ProgrammeCourseRules;
 }
 
 const ruleTypeLabels: Record<string, string> = {
@@ -38,8 +38,66 @@ const ruleTypeColors: Record<string, { bg: string; border: string; text: string 
   },
 };
 
+function ConditionNode({ condition }: { condition: RuleCondition }) {
+  const colors = ruleTypeColors[condition.type];
+  return (
+    <div className={cn(
+      "px-3 py-2 rounded-lg border-2 text-sm",
+      colors.bg,
+      colors.border
+    )}>
+      <div className={cn("text-xs font-medium mb-0.5", colors.text)}>
+        {ruleTypeLabels[condition.type]}
+      </div>
+      <div className="font-medium text-foreground">
+        {condition.value || "[not set]"}
+      </div>
+    </div>
+  );
+}
+
+function GroupNode({ group, isLast }: { group: RuleGroup; isLast: boolean }) {
+  if (group.conditions.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className={cn(
+        "px-3 py-2 rounded-lg border-2 border-dashed",
+        "bg-muted/30 border-muted-foreground/30"
+      )}>
+        <div className="flex items-center gap-2 mb-2">
+          <Layers className="h-3 w-3 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">
+            {group.operator === "and" ? "All of" : "Any of"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {group.conditions.map((condition, index) => (
+            <div key={condition.id} className="flex items-center gap-2">
+              {index > 0 && (
+                <span className={cn(
+                  "px-2 py-0.5 text-xs font-bold rounded",
+                  group.operator === "and" 
+                    ? "bg-accent/20 text-accent" 
+                    : "bg-warning/20 text-warning"
+                )}>
+                  {group.operator.toUpperCase()}
+                </span>
+              )}
+              <ConditionNode condition={condition} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function RulesVisualTree({ courseCode, courseName, rules }: RulesVisualTreeProps) {
-  if (rules.length === 0) {
+  // Handle both new and legacy formats
+  const hasGroups = rules && 'groups' in rules && rules.groups.length > 0;
+  
+  if (!hasGroups) {
     return (
       <div className="flex items-center gap-4 p-4">
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -54,63 +112,68 @@ export function RulesVisualTree({ courseCode, courseName, rules }: RulesVisualTr
     );
   }
 
-  // Group rules by operator for visualization
-  const groupedRules: { operator: "and" | "or"; rules: ProgrammeCourseRule[] }[] = [];
-  let currentGroup: ProgrammeCourseRule[] = [];
-  let currentOperator: "and" | "or" = "and";
+  const nonEmptyGroups = rules.groups.filter(g => g.conditions.length > 0);
 
-  rules.forEach((rule, index) => {
-    if (index === 0) {
-      currentGroup.push(rule);
-      currentOperator = rule.operator;
-    } else if (rule.operator === currentOperator) {
-      currentGroup.push(rule);
-    } else {
-      groupedRules.push({ operator: currentOperator, rules: currentGroup });
-      currentGroup = [rule];
-      currentOperator = rule.operator;
-    }
-  });
-  if (currentGroup.length > 0) {
-    groupedRules.push({ operator: currentOperator, rules: currentGroup });
+  if (nonEmptyGroups.length === 0) {
+    return (
+      <div className="flex items-center gap-4 p-4">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Check className="h-5 w-5 text-success" />
+          <span>No prerequisites - Open enrollment</span>
+        </div>
+        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+        <div className="px-4 py-2 rounded-lg bg-success/10 border border-success/30 text-success font-medium">
+          {courseCode}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="p-4 overflow-x-auto">
       <div className="flex items-center gap-3 min-w-max">
         {/* Rules visualization */}
-        <div className="flex items-center gap-2">
-          {rules.map((rule, index) => {
-            const colors = ruleTypeColors[rule.type];
-            return (
-              <div key={rule.id} className="flex items-center gap-2">
-                {index > 0 && (
+        <div className="flex items-center gap-3">
+          {nonEmptyGroups.length === 1 ? (
+            // Single group - show conditions directly
+            <div className="flex items-center gap-2">
+              {nonEmptyGroups[0].conditions.map((condition, index) => (
+                <div key={condition.id} className="flex items-center gap-2">
+                  {index > 0 && (
+                    <span className={cn(
+                      "px-2 py-0.5 text-xs font-bold rounded",
+                      nonEmptyGroups[0].operator === "and" 
+                        ? "bg-accent/20 text-accent" 
+                        : "bg-warning/20 text-warning"
+                    )}>
+                      {nonEmptyGroups[0].operator.toUpperCase()}
+                    </span>
+                  )}
+                  <ConditionNode condition={condition} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Multiple groups - show grouped structure
+            nonEmptyGroups.map((group, groupIndex) => (
+              <div key={group.id} className="flex items-center gap-2">
+                {groupIndex > 0 && (
                   <span className={cn(
-                    "px-2 py-0.5 text-xs font-bold rounded",
-                    rule.operator === "and" 
+                    "px-3 py-1 text-sm font-bold rounded-full",
+                    rules.groupOperator === "and" 
                       ? "bg-accent/20 text-accent" 
                       : "bg-warning/20 text-warning"
                   )}>
-                    {rule.operator.toUpperCase()}
+                    {rules.groupOperator.toUpperCase()}
                   </span>
                 )}
-                <div className={cn(
-                  "px-3 py-2 rounded-lg border-2 text-sm",
-                  colors.bg,
-                  colors.border
-                )}>
-                  <div className={cn("text-xs font-medium mb-0.5", colors.text)}>
-                    {ruleTypeLabels[rule.type]}
-                  </div>
-                  <div className="font-medium text-foreground">
-                    {rule.type === "prerequisite" || rule.type === "corequisite" 
-                      ? rule.value 
-                      : rule.value}
-                  </div>
-                </div>
+                <GroupNode 
+                  group={group} 
+                  isLast={groupIndex === nonEmptyGroups.length - 1} 
+                />
               </div>
-            );
-          })}
+            ))
+          )}
         </div>
 
         {/* Arrow */}

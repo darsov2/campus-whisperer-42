@@ -10,7 +10,6 @@ import {
   Clock,
   Award,
   GitBranch,
-  ChevronRight,
   Eye,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -44,6 +43,8 @@ import {
   ProgrammeCourseDialog,
   type ProgrammeCourse,
   type BaseCourse,
+  type ProgrammeCourseRules,
+  createEmptyRules,
 } from "@/components/dialogs/ProgrammeCourseDialog";
 import { ProgrammeCourseRuleDialog } from "@/components/dialogs/ProgrammeCourseRuleDialog";
 import { RulesVisualTree } from "@/components/RulesVisualTree";
@@ -68,6 +69,12 @@ interface ProgrammeWithCourses extends Programme {
   courses: ProgrammeCourse[];
 }
 
+// Helper to count total conditions in new rules format
+function countConditions(rules: ProgrammeCourseRules): number {
+  if (!rules || !rules.groups) return 0;
+  return rules.groups.reduce((acc, g) => acc + g.conditions.length, 0);
+}
+
 const initialProgrammes: ProgrammeWithCourses[] = [
   {
     id: "1",
@@ -90,7 +97,7 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         ects: 6,
         semester: 1,
         type: "mandatory",
-        rules: [],
+        rules: createEmptyRules(),
       },
       {
         id: "pc2",
@@ -100,15 +107,23 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         ects: 3,
         semester: 1,
         type: "mandatory",
-        rules: [
-          {
-            id: "r1",
-            type: "corequisite",
-            operator: "and",
-            value: "CS101",
-            label: "CS101 - Introduction to Programming",
-          },
-        ],
+        rules: {
+          groupOperator: "and",
+          groups: [
+            {
+              id: "g1",
+              operator: "and",
+              conditions: [
+                {
+                  id: "c1",
+                  type: "corequisite",
+                  value: "CS101",
+                  label: "CS101 - Introduction to Programming",
+                },
+              ],
+            },
+          ],
+        },
       },
       {
         id: "pc3",
@@ -118,22 +133,47 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         ects: 6,
         semester: 3,
         type: "mandatory",
-        rules: [
-          {
-            id: "r2",
-            type: "prerequisite",
-            operator: "and",
-            value: "CS101",
-            label: "CS101 - Introduction to Programming",
-          },
-          {
-            id: "r3",
-            type: "prerequisite",
-            operator: "and",
-            value: "MA101",
-            label: "MA101 - Calculus I",
-          },
-        ],
+        rules: {
+          groupOperator: "or",
+          groups: [
+            {
+              id: "g1",
+              operator: "and",
+              conditions: [
+                {
+                  id: "c1",
+                  type: "prerequisite",
+                  value: "CS101",
+                  label: "CS101 - Introduction to Programming",
+                },
+                {
+                  id: "c2",
+                  type: "prerequisite",
+                  value: "MA101",
+                  label: "MA101 - Calculus I",
+                },
+              ],
+            },
+            {
+              id: "g2",
+              operator: "and",
+              conditions: [
+                {
+                  id: "c3",
+                  type: "ects_min",
+                  value: "100",
+                  label: "Minimum 100 ECTS credits",
+                },
+                {
+                  id: "c4",
+                  type: "prerequisite",
+                  value: "CS102",
+                  label: "CS102 - Programming Lab",
+                },
+              ],
+            },
+          ],
+        },
       },
       {
         id: "pc4",
@@ -143,7 +183,7 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         ects: 7,
         semester: 1,
         type: "mandatory",
-        rules: [],
+        rules: createEmptyRules(),
       },
       {
         id: "pc5",
@@ -153,22 +193,41 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         ects: 5,
         semester: 5,
         type: "mandatory",
-        rules: [
-          {
-            id: "r4",
-            type: "prerequisite",
-            operator: "and",
-            value: "CS201",
-            label: "CS201 - Data Structures and Algorithms",
-          },
-          {
-            id: "r5",
-            type: "ects_min",
-            operator: "and",
-            value: "60",
-            label: "Minimum 60 ECTS credits",
-          },
-        ],
+        rules: {
+          groupOperator: "and",
+          groups: [
+            {
+              id: "g1",
+              operator: "or",
+              conditions: [
+                {
+                  id: "c1",
+                  type: "prerequisite",
+                  value: "CS201",
+                  label: "CS201 - Data Structures and Algorithms",
+                },
+                {
+                  id: "c2",
+                  type: "prerequisite",
+                  value: "CS202",
+                  label: "CS202 - Operating Systems",
+                },
+              ],
+            },
+            {
+              id: "g2",
+              operator: "and",
+              conditions: [
+                {
+                  id: "c3",
+                  type: "ects_min",
+                  value: "60",
+                  label: "Minimum 60 ECTS credits",
+                },
+              ],
+            },
+          ],
+        },
       },
     ],
   },
@@ -193,15 +252,23 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         ects: 6,
         semester: 1,
         type: "mandatory",
-        rules: [
-          {
-            id: "r6",
-            type: "ects_min",
-            operator: "and",
-            value: "180",
-            label: "Minimum 180 ECTS credits",
-          },
-        ],
+        rules: {
+          groupOperator: "and",
+          groups: [
+            {
+              id: "g1",
+              operator: "and",
+              conditions: [
+                {
+                  id: "c1",
+                  type: "ects_min",
+                  value: "180",
+                  label: "Minimum 180 ECTS credits",
+                },
+              ],
+            },
+          ],
+        },
       },
       {
         id: "pc7",
@@ -211,7 +278,7 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         ects: 5,
         semester: 1,
         type: "elective",
-        rules: [],
+        rules: createEmptyRules(),
       },
     ],
   },
@@ -236,7 +303,7 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         ects: 7,
         semester: 1,
         type: "mandatory",
-        rules: [],
+        rules: createEmptyRules(),
       },
       {
         id: "pc9",
@@ -246,7 +313,7 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         ects: 6,
         semester: 1,
         type: "mandatory",
-        rules: [],
+        rules: createEmptyRules(),
       },
     ],
   },
@@ -281,7 +348,7 @@ function ProgrammeCard({
       new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
   const rulesCount = programme.courses.reduce(
-    (acc, c) => acc + c.rules.length,
+    (acc, c) => acc + countConditions(c.rules),
     0
   );
 
@@ -345,7 +412,7 @@ function ProgrammeCard({
                 <div className="flex items-center gap-1.5">
                   <GitBranch className="h-4 w-4 text-accent" />
                   <span className="text-accent font-medium">
-                    {rulesCount} rules
+                    {rulesCount} conditions
                   </span>
                 </div>
               )}
@@ -526,7 +593,7 @@ export default function Programmes() {
 
   const handleSaveRules = (
     programmeCourseId: string,
-    rules: ProgrammeCourse["rules"]
+    rules: ProgrammeCourseRules
   ) => {
     if (!selectedProgramme) return;
 
@@ -552,6 +619,12 @@ export default function Programmes() {
           }
         : null
     );
+    
+    // Update visual rules if showing
+    if (visualRulesCourse?.id === programmeCourseId) {
+      setVisualRulesCourse(prev => prev ? { ...prev, rules } : null);
+    }
+    
     toast.success("Rules saved successfully");
   };
 
@@ -735,122 +808,125 @@ export default function Programmes() {
               <div className="space-y-3">
                 {selectedProgramme?.courses
                   .sort((a, b) => a.semester - b.semester)
-                  .map((course) => (
-                    <div key={course.id} className="space-y-2">
-                      <div className="p-4 border rounded-lg bg-card">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
-                                {course.courseCode}
-                              </span>
-                              <span className="font-medium">
-                                {course.courseName}
-                              </span>
-                              <span
-                                className={cn(
-                                  "text-xs px-2 py-0.5 rounded",
-                                  course.type === "mandatory"
-                                    ? "bg-accent/20 text-accent"
-                                    : "bg-info/20 text-info"
-                                )}
-                              >
-                                {course.type === "mandatory"
-                                  ? "Mandatory"
-                                  : "Elective"}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                              <span>Semester {course.semester}</span>
-                              <span>{course.ects} ECTS</span>
-                              {course.rules.length > 0 && (
-                                <span className="text-accent font-medium flex items-center gap-1">
-                                  <GitBranch className="h-3 w-3" />
-                                  {course.rules.length} rule
-                                  {course.rules.length !== 1 && "s"}
+                  .map((course) => {
+                    const conditionsCount = countConditions(course.rules);
+                    return (
+                      <div key={course.id} className="space-y-2">
+                        <div className="p-4 border rounded-lg bg-card">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
+                                  {course.courseCode}
                                 </span>
-                              )}
+                                <span className="font-medium">
+                                  {course.courseName}
+                                </span>
+                                <span
+                                  className={cn(
+                                    "text-xs px-2 py-0.5 rounded",
+                                    course.type === "mandatory"
+                                      ? "bg-accent/20 text-accent"
+                                      : "bg-info/20 text-info"
+                                  )}
+                                >
+                                  {course.type === "mandatory"
+                                    ? "Mandatory"
+                                    : "Elective"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                <span>Semester {course.semester}</span>
+                                <span>{course.ects} ECTS</span>
+                                {conditionsCount > 0 && (
+                                  <span className="text-accent font-medium flex items-center gap-1">
+                                    <GitBranch className="h-3 w-3" />
+                                    {conditionsCount} condition
+                                    {conditionsCount !== 1 && "s"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setVisualRulesCourse(
+                                    visualRulesCourse?.id === course.id
+                                      ? null
+                                      : course
+                                  );
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setRulesCourse(course);
+                                  setRuleDialogOpen(true);
+                                }}
+                              >
+                                <GitBranch className="h-4 w-4" />
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="bg-popover"
+                                >
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setEditingProgrammeCourse(course);
+                                      setProgrammeCourseDialogOpen(true);
+                                    }}
+                                  >
+                                    Edit Settings
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setRulesCourse(course);
+                                      setRuleDialogOpen(true);
+                                    }}
+                                  >
+                                    <GitBranch className="h-4 w-4 mr-2" />
+                                    Configure Rules
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => {
+                                      setDeletingCourseId(course.id);
+                                      setDeleteCourseDialogOpen(true);
+                                    }}
+                                  >
+                                    Remove from Programme
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setVisualRulesCourse(
-                                  visualRulesCourse?.id === course.id
-                                    ? null
-                                    : course
-                                );
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setRulesCourse(course);
-                                setRuleDialogOpen(true);
-                              }}
-                            >
-                              <GitBranch className="h-4 w-4" />
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className="bg-popover"
-                              >
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setEditingProgrammeCourse(course);
-                                    setProgrammeCourseDialogOpen(true);
-                                  }}
-                                >
-                                  Edit Settings
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setRulesCourse(course);
-                                    setRuleDialogOpen(true);
-                                  }}
-                                >
-                                  <GitBranch className="h-4 w-4 mr-2" />
-                                  Configure Rules
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => {
-                                    setDeletingCourseId(course.id);
-                                    setDeleteCourseDialogOpen(true);
-                                  }}
-                                >
-                                  Remove from Programme
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
                         </div>
-                      </div>
 
-                      {/* Visual Rules Tree */}
-                      {visualRulesCourse?.id === course.id && (
-                        <div className="ml-4 border-l-2 border-accent/30 bg-muted/20 rounded-r-lg">
-                          <RulesVisualTree
-                            courseCode={course.courseCode}
-                            courseName={course.courseName}
-                            rules={course.rules}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        {/* Visual Rules Tree */}
+                        {visualRulesCourse?.id === course.id && (
+                          <div className="ml-4 border-l-2 border-accent/30 bg-muted/20 rounded-r-lg">
+                            <RulesVisualTree
+                              courseCode={course.courseCode}
+                              courseName={course.courseName}
+                              rules={course.rules}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             )}
           </div>

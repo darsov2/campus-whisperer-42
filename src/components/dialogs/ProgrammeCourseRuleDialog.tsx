@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GitBranch, Plus, Trash2 } from "lucide-react";
+import { GitBranch, Plus, Trash2, Layers } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,14 +19,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { ProgrammeCourse, ProgrammeCourseRule } from "./ProgrammeCourseDialog";
+import type { 
+  ProgrammeCourse, 
+  ProgrammeCourseRules, 
+  RuleGroup, 
+  RuleCondition,
+  createEmptyRules 
+} from "./ProgrammeCourseDialog";
 
 interface ProgrammeCourseRuleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   programmeCourse: ProgrammeCourse;
   allProgrammeCourses: ProgrammeCourse[];
-  onSave: (programmeCourseId: string, rules: ProgrammeCourseRule[]) => void;
+  onSave: (programmeCourseId: string, rules: ProgrammeCourseRules) => void;
 }
 
 const ruleTypeLabels: Record<string, string> = {
@@ -36,6 +42,36 @@ const ruleTypeLabels: Record<string, string> = {
   semester_min: "Minimum semester",
 };
 
+const conditionTypeColors: Record<string, { bg: string; border: string; text: string }> = {
+  prerequisite: {
+    bg: "bg-accent/10",
+    border: "border-accent/40",
+    text: "text-accent",
+  },
+  corequisite: {
+    bg: "bg-info/10",
+    border: "border-info/40",
+    text: "text-info",
+  },
+  ects_min: {
+    bg: "bg-warning/10",
+    border: "border-warning/40",
+    text: "text-warning",
+  },
+  semester_min: {
+    bg: "bg-success/10",
+    border: "border-success/40",
+    text: "text-success",
+  },
+};
+
+function createEmptyRulesInternal(): ProgrammeCourseRules {
+  return {
+    groupOperator: "and",
+    groups: [],
+  };
+}
+
 export function ProgrammeCourseRuleDialog({
   open,
   onOpenChange,
@@ -43,56 +79,121 @@ export function ProgrammeCourseRuleDialog({
   allProgrammeCourses,
   onSave,
 }: ProgrammeCourseRuleDialogProps) {
-  const [rules, setRules] = useState<ProgrammeCourseRule[]>([]);
+  const [rules, setRules] = useState<ProgrammeCourseRules>(createEmptyRulesInternal());
 
   useEffect(() => {
     if (programmeCourse) {
-      setRules(programmeCourse.rules || []);
+      // Handle both new and legacy rule formats
+      if (programmeCourse.rules && 'groups' in programmeCourse.rules) {
+        setRules(programmeCourse.rules);
+      } else {
+        setRules(createEmptyRulesInternal());
+      }
     }
   }, [programmeCourse, open]);
 
-  const addRule = () => {
-    const newRule: ProgrammeCourseRule = {
-      id: `rule-${Date.now()}`,
+  const addGroup = () => {
+    const newGroup: RuleGroup = {
+      id: `group-${Date.now()}`,
+      operator: "and",
+      conditions: [],
+    };
+    setRules((prev) => ({
+      ...prev,
+      groups: [...prev.groups, newGroup],
+    }));
+  };
+
+  const removeGroup = (groupId: string) => {
+    setRules((prev) => ({
+      ...prev,
+      groups: prev.groups.filter((g) => g.id !== groupId),
+    }));
+  };
+
+  const updateGroupOperator = (groupId: string, operator: "and" | "or") => {
+    setRules((prev) => ({
+      ...prev,
+      groups: prev.groups.map((g) =>
+        g.id === groupId ? { ...g, operator } : g
+      ),
+    }));
+  };
+
+  const addCondition = (groupId: string) => {
+    const newCondition: RuleCondition = {
+      id: `cond-${Date.now()}`,
       type: "prerequisite",
-      operator: rules.length > 0 ? "and" : "and",
       value: "",
       label: "",
     };
-    setRules([...rules, newRule]);
+    setRules((prev) => ({
+      ...prev,
+      groups: prev.groups.map((g) =>
+        g.id === groupId
+          ? { ...g, conditions: [...g.conditions, newCondition] }
+          : g
+      ),
+    }));
   };
 
-  const updateRule = (index: number, updates: Partial<ProgrammeCourseRule>) => {
-    const newRules = [...rules];
-    newRules[index] = { ...newRules[index], ...updates };
-
-    // Auto-update label based on type and value
-    if (updates.value !== undefined || updates.type !== undefined) {
-      const rule = newRules[index];
-      if (rule.type === "prerequisite" || rule.type === "corequisite") {
-        const targetCourse = allProgrammeCourses.find(
-          (c) => c.courseCode === rule.value
-        );
-        if (targetCourse) {
-          newRules[index].label = `${targetCourse.courseCode} - ${targetCourse.courseName}`;
-        }
-      } else if (rule.type === "ects_min") {
-        newRules[index].label = `Minimum ${rule.value} ECTS credits`;
-      } else if (rule.type === "semester_min") {
-        newRules[index].label = `Minimum semester ${rule.value}`;
-      }
-    }
-
-    setRules(newRules);
+  const updateCondition = (
+    groupId: string,
+    conditionId: string,
+    updates: Partial<RuleCondition>
+  ) => {
+    setRules((prev) => ({
+      ...prev,
+      groups: prev.groups.map((g) =>
+        g.id === groupId
+          ? {
+              ...g,
+              conditions: g.conditions.map((c) => {
+                if (c.id !== conditionId) return c;
+                const updated = { ...c, ...updates };
+                
+                // Auto-update label
+                if (updates.value !== undefined || updates.type !== undefined) {
+                  if (updated.type === "prerequisite" || updated.type === "corequisite") {
+                    const targetCourse = allProgrammeCourses.find(
+                      (pc) => pc.courseCode === updated.value
+                    );
+                    if (targetCourse) {
+                      updated.label = `${targetCourse.courseCode} - ${targetCourse.courseName}`;
+                    }
+                  } else if (updated.type === "ects_min") {
+                    updated.label = `Minimum ${updated.value} ECTS credits`;
+                  } else if (updated.type === "semester_min") {
+                    updated.label = `Minimum semester ${updated.value}`;
+                  }
+                }
+                return updated;
+              }),
+            }
+          : g
+      ),
+    }));
   };
 
-  const removeRule = (index: number) => {
-    setRules(rules.filter((_, i) => i !== index));
+  const removeCondition = (groupId: string, conditionId: string) => {
+    setRules((prev) => ({
+      ...prev,
+      groups: prev.groups.map((g) =>
+        g.id === groupId
+          ? { ...g, conditions: g.conditions.filter((c) => c.id !== conditionId) }
+          : g
+      ),
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(programmeCourse.id, rules);
+    // Clean up empty groups
+    const cleanedRules: ProgrammeCourseRules = {
+      ...rules,
+      groups: rules.groups.filter((g) => g.conditions.length > 0),
+    };
+    onSave(programmeCourse.id, cleanedRules);
     onOpenChange(false);
   };
 
@@ -100,174 +201,338 @@ export function ProgrammeCourseRuleDialog({
     (c) => c.id !== programmeCourse.id
   );
 
+  const totalConditions = rules.groups.reduce(
+    (acc, g) => acc + g.conditions.length,
+    0
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitBranch className="h-5 w-5 text-accent" />
             Configure Rules for {programmeCourse.courseCode}
           </DialogTitle>
           <DialogDescription>
-            Define prerequisites, corequisites, and other enrollment conditions
-            for <strong>{programmeCourse.courseName}</strong> in this programme
+            Create rule groups with AND/OR logic for{" "}
+            <strong>{programmeCourse.courseName}</strong>. Groups are connected by{" "}
+            <strong className="text-accent">{rules.groupOperator.toUpperCase()}</strong>.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-3">
-            {rules.length === 0 ? (
+          {/* Group Operator */}
+          {rules.groups.length > 1 && (
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border">
+              <span className="text-sm font-medium">Connect groups with:</span>
+              <Select
+                value={rules.groupOperator}
+                onValueChange={(value: "and" | "or") =>
+                  setRules((prev) => ({ ...prev, groupOperator: value }))
+                }
+              >
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="and">AND</SelectItem>
+                  <SelectItem value="or">OR</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground">
+                {rules.groupOperator === "and"
+                  ? "All groups must be satisfied"
+                  : "At least one group must be satisfied"}
+              </span>
+            </div>
+          )}
+
+          {/* Rule Groups */}
+          <div className="space-y-4">
+            {rules.groups.length === 0 ? (
               <div className="text-center py-8 border border-dashed rounded-lg bg-muted/20">
-                <GitBranch className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No rules configured</p>
-                <p className="text-sm text-muted-foreground">
-                  Add conditions that students must meet to enroll in this
-                  course
+                <Layers className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">No rule groups configured</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Add groups of conditions that students must meet to enroll
                 </p>
+                <Button type="button" variant="outline" onClick={addGroup}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Rule Group
+                </Button>
               </div>
             ) : (
-              rules.map((rule, index) => (
-                <div key={rule.id} className="space-y-3">
-                  {index > 0 && (
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 border-t" />
-                      <Select
-                        value={rule.operator}
-                        onValueChange={(value: "and" | "or") =>
-                          updateRule(index, { operator: value })
-                        }
+              rules.groups.map((group, groupIndex) => (
+                <div key={group.id} className="space-y-2">
+                  {/* Group Separator */}
+                  {groupIndex > 0 && (
+                    <div className="flex items-center gap-2 py-2">
+                      <div className="flex-1 border-t border-dashed" />
+                      <span
+                        className={cn(
+                          "px-3 py-1 text-sm font-bold rounded-full",
+                          rules.groupOperator === "and"
+                            ? "bg-accent/20 text-accent"
+                            : "bg-warning/20 text-warning"
+                        )}
                       >
-                        <SelectTrigger className="w-20 h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="and">AND</SelectItem>
-                          <SelectItem value="or">OR</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="flex-1 border-t" />
+                        {rules.groupOperator.toUpperCase()}
+                      </span>
+                      <div className="flex-1 border-t border-dashed" />
                     </div>
                   )}
 
-                  <div
-                    className={cn(
-                      "p-4 rounded-lg border bg-card",
-                      rule.type === "prerequisite" &&
-                        "border-l-4 border-l-accent",
-                      rule.type === "corequisite" && "border-l-4 border-l-info",
-                      (rule.type === "ects_min" ||
-                        rule.type === "semester_min") &&
-                        "border-l-4 border-l-warning"
-                    )}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="flex-1 grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">
-                            Condition Type
-                          </Label>
+                  {/* Group Card */}
+                  <div className="border-2 rounded-lg overflow-hidden">
+                    {/* Group Header */}
+                    <div className="flex items-center justify-between p-3 bg-muted/30 border-b">
+                      <div className="flex items-center gap-3">
+                        <Layers className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">
+                          Group {groupIndex + 1}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            Conditions connected by:
+                          </span>
                           <Select
-                            value={rule.type}
-                            onValueChange={(
-                              value: ProgrammeCourseRule["type"]
-                            ) => updateRule(index, { type: value, value: "" })}
+                            value={group.operator}
+                            onValueChange={(value: "and" | "or") =>
+                              updateGroupOperator(group.id, value)
+                            }
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="w-20 h-7 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="prerequisite">
-                                Must have passed (Prerequisite)
-                              </SelectItem>
-                              <SelectItem value="corequisite">
-                                Must be enrolled in (Corequisite)
-                              </SelectItem>
-                              <SelectItem value="ects_min">
-                                Minimum ECTS credits
-                              </SelectItem>
-                              <SelectItem value="semester_min">
-                                Minimum semester
-                              </SelectItem>
+                              <SelectItem value="and">AND</SelectItem>
+                              <SelectItem value="or">OR</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">
-                            {rule.type === "prerequisite" ||
-                            rule.type === "corequisite"
-                              ? "Course"
-                              : "Value"}
-                          </Label>
-                          {rule.type === "prerequisite" ||
-                          rule.type === "corequisite" ? (
-                            <Select
-                              value={rule.value}
-                              onValueChange={(value) =>
-                                updateRule(index, { value })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select course..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availablePrerequisites.map((c) => (
-                                  <SelectItem key={c.id} value={c.courseCode}>
-                                    {c.courseCode} - {c.courseName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Input
-                              type="number"
-                              min={1}
-                              placeholder={
-                                rule.type === "ects_min" ? "e.g. 60" : "e.g. 3"
-                              }
-                              value={rule.value}
-                              onChange={(e) =>
-                                updateRule(index, { value: e.target.value })
-                              }
-                            />
-                          )}
-                        </div>
                       </div>
-
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeRule(index)}
+                        onClick={() => removeGroup(group.id)}
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
 
-                    {rule.label && (
-                      <div className="mt-3 pt-3 border-t text-sm text-muted-foreground">
-                        <span className="font-medium">
-                          {ruleTypeLabels[rule.type]}:
-                        </span>{" "}
-                        {rule.label}
-                      </div>
-                    )}
+                    {/* Conditions */}
+                    <div className="p-3 space-y-3">
+                      {group.conditions.length === 0 ? (
+                        <div className="text-center py-4 text-sm text-muted-foreground">
+                          No conditions in this group
+                        </div>
+                      ) : (
+                        group.conditions.map((condition, condIndex) => {
+                          const colors = conditionTypeColors[condition.type];
+                          return (
+                            <div key={condition.id} className="space-y-2">
+                              {condIndex > 0 && (
+                                <div className="flex justify-center">
+                                  <span
+                                    className={cn(
+                                      "px-2 py-0.5 text-xs font-bold rounded",
+                                      group.operator === "and"
+                                        ? "bg-accent/20 text-accent"
+                                        : "bg-warning/20 text-warning"
+                                    )}
+                                  >
+                                    {group.operator.toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div
+                                className={cn(
+                                  "p-3 rounded-lg border-l-4",
+                                  colors.bg,
+                                  colors.border
+                                )}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="flex-1 grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                      <Label className="text-xs text-muted-foreground">
+                                        Condition Type
+                                      </Label>
+                                      <Select
+                                        value={condition.type}
+                                        onValueChange={(
+                                          value: RuleCondition["type"]
+                                        ) =>
+                                          updateCondition(group.id, condition.id, {
+                                            type: value,
+                                            value: "",
+                                          })
+                                        }
+                                      >
+                                        <SelectTrigger className="h-9">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="prerequisite">
+                                            Must have passed
+                                          </SelectItem>
+                                          <SelectItem value="corequisite">
+                                            Must be enrolled in
+                                          </SelectItem>
+                                          <SelectItem value="ects_min">
+                                            Minimum ECTS
+                                          </SelectItem>
+                                          <SelectItem value="semester_min">
+                                            Minimum semester
+                                          </SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      <Label className="text-xs text-muted-foreground">
+                                        {condition.type === "prerequisite" ||
+                                        condition.type === "corequisite"
+                                          ? "Course"
+                                          : "Value"}
+                                      </Label>
+                                      {condition.type === "prerequisite" ||
+                                      condition.type === "corequisite" ? (
+                                        <Select
+                                          value={condition.value}
+                                          onValueChange={(value) =>
+                                            updateCondition(
+                                              group.id,
+                                              condition.id,
+                                              { value }
+                                            )
+                                          }
+                                        >
+                                          <SelectTrigger className="h-9">
+                                            <SelectValue placeholder="Select course..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {availablePrerequisites.map((c) => (
+                                              <SelectItem
+                                                key={c.id}
+                                                value={c.courseCode}
+                                              >
+                                                {c.courseCode} - {c.courseName}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      ) : (
+                                        <Input
+                                          type="number"
+                                          min={1}
+                                          className="h-9"
+                                          placeholder={
+                                            condition.type === "ects_min"
+                                              ? "e.g. 60"
+                                              : "e.g. 3"
+                                          }
+                                          value={condition.value}
+                                          onChange={(e) =>
+                                            updateCondition(
+                                              group.id,
+                                              condition.id,
+                                              { value: e.target.value }
+                                            )
+                                          }
+                                        />
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      removeCondition(group.id, condition.id)
+                                    }
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-4"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+
+                                {condition.label && (
+                                  <div className="mt-2 pt-2 border-t text-xs text-muted-foreground">
+                                    <span className="font-medium">
+                                      {ruleTypeLabels[condition.type]}:
+                                    </span>{" "}
+                                    {condition.label}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addCondition(group.id)}
+                        className="w-full"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Condition to Group
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))
             )}
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addRule}
-            className="w-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Condition
-          </Button>
+          {rules.groups.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addGroup}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Another Rule Group
+            </Button>
+          )}
+
+          {/* Summary */}
+          {totalConditions > 0 && (
+            <div className="p-3 bg-muted/30 rounded-lg text-sm">
+              <span className="font-medium">Summary: </span>
+              {rules.groups.map((g, i) => (
+                <span key={g.id}>
+                  {i > 0 && (
+                    <span className="font-bold text-accent mx-1">
+                      {rules.groupOperator.toUpperCase()}
+                    </span>
+                  )}
+                  <span className="text-muted-foreground">(</span>
+                  {g.conditions.map((c, j) => (
+                    <span key={c.id}>
+                      {j > 0 && (
+                        <span className="font-medium mx-1">
+                          {g.operator.toUpperCase()}
+                        </span>
+                      )}
+                      <span className={conditionTypeColors[c.type].text}>
+                        {c.value || "[empty]"}
+                      </span>
+                    </span>
+                  ))}
+                  <span className="text-muted-foreground">)</span>
+                </span>
+              ))}
+            </div>
+          )}
 
           <DialogFooter>
             <Button

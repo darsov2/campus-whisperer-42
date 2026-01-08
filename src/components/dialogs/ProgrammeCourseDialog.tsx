@@ -27,6 +27,27 @@ export interface BaseCourse {
   ects: number;
 }
 
+// Single rule condition
+export interface RuleCondition {
+  id: string;
+  type: "prerequisite" | "corequisite" | "ects_min" | "semester_min";
+  value: string;
+  label: string;
+}
+
+// A group of conditions connected by the same operator
+export interface RuleGroup {
+  id: string;
+  operator: "and" | "or";
+  conditions: RuleCondition[];
+}
+
+// The entire rule structure: groups connected by operators
+export interface ProgrammeCourseRules {
+  groupOperator: "and" | "or"; // How groups are connected
+  groups: RuleGroup[];
+}
+
 export interface ProgrammeCourse {
   id: string;
   courseId: string;
@@ -35,9 +56,10 @@ export interface ProgrammeCourse {
   ects: number;
   semester: number;
   type: "mandatory" | "elective";
-  rules: ProgrammeCourseRule[];
+  rules: ProgrammeCourseRules;
 }
 
+// Legacy rule format for backwards compatibility
 export interface ProgrammeCourseRule {
   id: string;
   type: "prerequisite" | "corequisite" | "ects_min" | "semester_min";
@@ -53,6 +75,14 @@ interface ProgrammeCourseDialogProps {
   programmeCourse?: ProgrammeCourse | null;
   availableCourses: BaseCourse[];
   onSave: (programmeCourse: Omit<ProgrammeCourse, "id"> & { id?: string }) => void;
+}
+
+// Helper to create empty rules structure
+export function createEmptyRules(): ProgrammeCourseRules {
+  return {
+    groupOperator: "and",
+    groups: [],
+  };
 }
 
 export function ProgrammeCourseDialog({
@@ -97,7 +127,7 @@ export function ProgrammeCourseDialog({
       ects: selectedCourse.ects,
       semester: formData.semester,
       type: formData.type,
-      rules: programmeCourse?.rules || [],
+      rules: programmeCourse?.rules || createEmptyRules(),
     });
     onOpenChange(false);
   };

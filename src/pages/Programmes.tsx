@@ -31,12 +31,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ProgrammeDialog, type Programme } from "@/components/dialogs/ProgrammeDialog";
 import {
@@ -765,27 +766,21 @@ export default function Programmes() {
         onConfirm={handleDelete}
       />
 
-      {/* Course Management Sheet */}
-      <Sheet open={courseSheetOpen} onOpenChange={setCourseSheetOpen}>
-        <SheetContent className="sm:max-w-2xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-accent" />
-              {selectedProgramme?.name} - {selectedProgramme?.code}
-            </SheetTitle>
-            <SheetDescription>
-              Manage courses linked to this programme and configure enrollment
-              rules
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-4">
+      {/* Course Management Full-Screen Modal */}
+      <Dialog open={courseSheetOpen} onOpenChange={setCourseSheetOpen}>
+        <DialogContent className="max-w-[90vw] w-full h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium">
-                Programme Courses ({selectedProgramme?.courses.length || 0})
-              </h4>
+              <div>
+                <DialogTitle className="flex items-center gap-2 text-xl">
+                  <BookOpen className="h-6 w-6 text-accent" />
+                  {selectedProgramme?.name} - {selectedProgramme?.code}
+                </DialogTitle>
+                <DialogDescription className="mt-1">
+                  Manage courses linked to this programme and configure enrollment rules
+                </DialogDescription>
+              </div>
               <Button
-                size="sm"
                 onClick={() => {
                   setEditingProgrammeCourse(null);
                   setProgrammeCourseDialogOpen(true);
@@ -795,143 +790,209 @@ export default function Programmes() {
                 Add Course
               </Button>
             </div>
-
-            {selectedProgramme?.courses.length === 0 ? (
-              <div className="text-center py-8 border border-dashed rounded-lg bg-muted/20">
-                <BookOpen className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No courses linked</p>
-                <p className="text-sm text-muted-foreground">
-                  Add courses from the catalog to this programme
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {selectedProgramme?.courses
-                  .sort((a, b) => a.semester - b.semester)
-                  .map((course) => {
-                    const conditionsCount = countConditions(course.rules);
-                    return (
-                      <div key={course.id} className="space-y-2">
-                        <div className="p-4 border rounded-lg bg-card">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
-                                  {course.courseCode}
-                                </span>
-                                <span className="font-medium">
-                                  {course.courseName}
-                                </span>
-                                <span
-                                  className={cn(
-                                    "text-xs px-2 py-0.5 rounded",
-                                    course.type === "mandatory"
-                                      ? "bg-accent/20 text-accent"
-                                      : "bg-info/20 text-info"
-                                  )}
-                                >
-                                  {course.type === "mandatory"
-                                    ? "Mandatory"
-                                    : "Elective"}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                <span>Semester {course.semester}</span>
-                                <span>{course.ects} ECTS</span>
-                                {conditionsCount > 0 && (
-                                  <span className="text-accent font-medium flex items-center gap-1">
-                                    <GitBranch className="h-3 w-3" />
-                                    {conditionsCount} condition
-                                    {conditionsCount !== 1 && "s"}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setVisualRulesCourse(
-                                    visualRulesCourse?.id === course.id
-                                      ? null
-                                      : course
-                                  );
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setRulesCourse(course);
-                                  setRuleDialogOpen(true);
-                                }}
-                              >
-                                <GitBranch className="h-4 w-4" />
-                              </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align="end"
-                                  className="bg-popover"
-                                >
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setEditingProgrammeCourse(course);
-                                      setProgrammeCourseDialogOpen(true);
-                                    }}
-                                  >
-                                    Edit Settings
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setRulesCourse(course);
-                                      setRuleDialogOpen(true);
-                                    }}
-                                  >
-                                    <GitBranch className="h-4 w-4 mr-2" />
-                                    Configure Rules
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    className="text-destructive"
-                                    onClick={() => {
-                                      setDeletingCourseId(course.id);
-                                      setDeleteCourseDialogOpen(true);
-                                    }}
-                                  >
-                                    Remove from Programme
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Visual Rules Tree */}
-                        {visualRulesCourse?.id === course.id && (
-                          <div className="ml-4 border-l-2 border-accent/30 bg-muted/20 rounded-r-lg">
-                            <RulesVisualTree
-                              courseCode={course.courseCode}
-                              courseName={course.courseName}
-                              rules={course.rules}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+            
+            {/* Summary Stats */}
+            {selectedProgramme && selectedProgramme.courses.length > 0 && (
+              <div className="flex items-center gap-6 mt-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Total:</span>
+                  <span className="font-medium">{selectedProgramme.courses.length} courses</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Mandatory:</span>
+                  <span className="font-medium text-accent">
+                    {selectedProgramme.courses.filter(c => c.type === "mandatory").length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Elective:</span>
+                  <span className="font-medium text-info">
+                    {selectedProgramme.courses.filter(c => c.type === "elective").length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">ECTS:</span>
+                  <span className="font-medium">
+                    {selectedProgramme.courses.reduce((acc, c) => acc + c.ects, 0)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Semesters:</span>
+                  <span className="font-medium">
+                    {new Set(selectedProgramme.courses.map(c => c.semester)).size}
+                  </span>
+                </div>
               </div>
             )}
-          </div>
-        </SheetContent>
-      </Sheet>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 px-6">
+            <div className="py-6">
+              {selectedProgramme?.courses.length === 0 ? (
+                <div className="text-center py-16 border border-dashed rounded-lg bg-muted/20">
+                  <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-lg text-muted-foreground">No courses linked</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Add courses from the catalog to this programme
+                  </p>
+                  <Button
+                    className="mt-4"
+                    onClick={() => {
+                      setEditingProgrammeCourse(null);
+                      setProgrammeCourseDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First Course
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Group courses by semester */}
+                  {Array.from(new Set(selectedProgramme?.courses.map(c => c.semester))).sort((a, b) => a - b).map(semester => (
+                    <div key={semester} className="space-y-3">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Semester {semester}
+                        <span className="text-xs font-normal">
+                          ({selectedProgramme?.courses.filter(c => c.semester === semester).length} courses,{" "}
+                          {selectedProgramme?.courses.filter(c => c.semester === semester).reduce((acc, c) => acc + c.ects, 0)} ECTS)
+                        </span>
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        {selectedProgramme?.courses
+                          .filter(c => c.semester === semester)
+                          .sort((a, b) => a.courseCode.localeCompare(b.courseCode))
+                          .map((course) => {
+                            const conditionsCount = countConditions(course.rules);
+                            return (
+                              <div key={course.id} className="space-y-2">
+                                <div className="p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded shrink-0">
+                                          {course.courseCode}
+                                        </span>
+                                        <span className="font-medium truncate">
+                                          {course.courseName}
+                                        </span>
+                                        <span
+                                          className={cn(
+                                            "text-xs px-2 py-0.5 rounded shrink-0",
+                                            course.type === "mandatory"
+                                              ? "bg-accent/20 text-accent"
+                                              : "bg-info/20 text-info"
+                                          )}
+                                        >
+                                          {course.type === "mandatory"
+                                            ? "Mandatory"
+                                            : "Elective"}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                        <span>{course.ects} ECTS</span>
+                                        {conditionsCount > 0 && (
+                                          <span className="text-accent font-medium flex items-center gap-1">
+                                            <GitBranch className="h-3 w-3" />
+                                            {conditionsCount} condition
+                                            {conditionsCount !== 1 && "s"}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setVisualRulesCourse(
+                                            visualRulesCourse?.id === course.id
+                                              ? null
+                                              : course
+                                          );
+                                        }}
+                                        title="View rules"
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setRulesCourse(course);
+                                          setRuleDialogOpen(true);
+                                        }}
+                                        title="Configure rules"
+                                      >
+                                        <GitBranch className="h-4 w-4" />
+                                      </Button>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="sm">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                          align="end"
+                                          className="bg-popover"
+                                        >
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setEditingProgrammeCourse(course);
+                                              setProgrammeCourseDialogOpen(true);
+                                            }}
+                                          >
+                                            Edit Settings
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setRulesCourse(course);
+                                              setRuleDialogOpen(true);
+                                            }}
+                                          >
+                                            <GitBranch className="h-4 w-4 mr-2" />
+                                            Configure Rules
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem
+                                            className="text-destructive"
+                                            onClick={() => {
+                                              setDeletingCourseId(course.id);
+                                              setDeleteCourseDialogOpen(true);
+                                            }}
+                                          >
+                                            Remove from Programme
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Visual Rules Tree */}
+                                {visualRulesCourse?.id === course.id && (
+                                  <div className="ml-4 border-l-2 border-accent/30 bg-muted/20 rounded-r-lg">
+                                    <RulesVisualTree
+                                      courseCode={course.courseCode}
+                                      courseName={course.courseName}
+                                      rules={course.rules}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* Programme Course Dialog */}
       {selectedProgramme && (

@@ -13,6 +13,9 @@ import {
   Building2,
   FileCheck,
   Workflow,
+  UserCircle,
+  Receipt,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +33,9 @@ const navigation = [
   { name: "Courses", href: "/courses", icon: BookOpen },
   { name: "Course Overview", href: "/course-programmes", icon: Network },
   { name: "Teachers", href: "/teachers", icon: Users },
+  { name: "Students", href: "/students", icon: UserCircle },
+  { name: "Fee Quotes", href: "/quotes", icon: Receipt },
+  { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Rule Engine", href: "/rules", icon: Workflow },
   { name: "Accreditations", href: "/accreditations", icon: FileCheck },
 ];

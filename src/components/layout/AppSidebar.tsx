@@ -28,6 +28,7 @@ const navigation = [
   { name: "Faculties", href: "/faculties", icon: Building2 },
   { name: "Study Programmes", href: "/programmes", icon: GraduationCap },
   { name: "Courses", href: "/courses", icon: BookOpen },
+  { name: "Course Overview", href: "/course-programmes", icon: Network },
   { name: "Teachers", href: "/teachers", icon: Users },
   { name: "Rule Engine", href: "/rules", icon: Workflow },
   { name: "Accreditations", href: "/accreditations", icon: FileCheck },

@@ -9,6 +9,8 @@ import Semesters from "./pages/Semesters";
 import Faculties from "./pages/Faculties";
 import Programmes from "./pages/Programmes";
 import Courses from "./pages/Courses";
+import CourseTeachers from "./pages/CourseTeachers";
+import CourseProgrammes from "./pages/CourseProgrammes";
 import Teachers from "./pages/Teachers";
 import RuleEngine from "./pages/RuleEngine";
 import Accreditations from "./pages/Accreditations";
@@ -30,6 +32,8 @@ const App = () => (
             <Route path="/faculties" element={<Faculties />} />
             <Route path="/programmes" element={<Programmes />} />
             <Route path="/courses" element={<Courses />} />
+            <Route path="/courses/:courseId/teachers" element={<CourseTeachers />} />
+            <Route path="/course-programmes" element={<CourseProgrammes />} />
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/rules" element={<RuleEngine />} />
             <Route path="/accreditations" element={<Accreditations />} />

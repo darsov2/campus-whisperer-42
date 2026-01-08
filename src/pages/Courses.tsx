@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Plus,
@@ -7,6 +8,7 @@ import {
   MoreHorizontal,
   Users,
   GraduationCap,
+  ExternalLink,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -128,11 +130,13 @@ function CourseCard({
   onEdit,
   onDelete,
   onManageTeachers,
+  onViewTeachersPage,
 }: {
   course: BaseCourse;
   onEdit: () => void;
   onDelete: () => void;
   onManageTeachers: () => void;
+  onViewTeachersPage: () => void;
 }) {
   return (
     <div className="data-card p-5 hover:shadow-elevated transition-all">
@@ -218,7 +222,11 @@ function CourseCard({
             <DropdownMenuItem onClick={onEdit}>Edit Course</DropdownMenuItem>
             <DropdownMenuItem onClick={onManageTeachers}>
               <Users className="h-4 w-4 mr-2" />
-              Manage Teachers
+              Quick Assign Teachers
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onViewTeachersPage}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Full Teachers Page
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-destructive">
@@ -232,6 +240,7 @@ function CourseCard({
 }
 
 export default function Courses() {
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<BaseCourse[]>(initialCourses);
   const [searchQuery, setSearchQuery] = useState("");
   const [facultyFilter, setFacultyFilter] = useState("all");
@@ -377,6 +386,9 @@ export default function Courses() {
             onManageTeachers={() => {
               setTeachersCourse(course);
               setTeachersDialogOpen(true);
+            }}
+            onViewTeachersPage={() => {
+              navigate(`/courses/${course.id}/teachers`);
             }}
           />
         ))}

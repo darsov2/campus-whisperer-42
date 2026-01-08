@@ -98,6 +98,7 @@ export function ProgrammeCourseDialog({
   const [formData, setFormData] = useState({
     semester: 1,
     type: "mandatory" as ProgrammeCourse["type"],
+    ects: 6,
   });
 
   useEffect(() => {
@@ -107,13 +108,21 @@ export function ProgrammeCourseDialog({
       setFormData({
         semester: programmeCourse.semester,
         type: programmeCourse.type,
+        ects: programmeCourse.ects,
       });
     } else {
       setSelectedCourse(null);
-      setFormData({ semester: 1, type: "mandatory" });
+      setFormData({ semester: 1, type: "mandatory", ects: 6 });
     }
     setSearchQuery("");
   }, [programmeCourse, availableCourses, open]);
+
+  // Update ECTS when course is selected (use default from catalog)
+  useEffect(() => {
+    if (selectedCourse && !programmeCourse) {
+      setFormData(prev => ({ ...prev, ects: selectedCourse.ects }));
+    }
+  }, [selectedCourse, programmeCourse]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,7 +133,7 @@ export function ProgrammeCourseDialog({
       courseId: selectedCourse.id,
       courseCode: selectedCourse.code,
       courseName: selectedCourse.name,
-      ects: selectedCourse.ects,
+      ects: formData.ects,
       semester: formData.semester,
       type: formData.type,
       rules: programmeCourse?.rules || createEmptyRules(),
@@ -227,7 +236,7 @@ export function ProgrammeCourseDialog({
 
           {selectedCourse && (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="semester">Semester</Label>
                   <Input
@@ -244,6 +253,31 @@ export function ProgrammeCourseDialog({
                     }
                     required
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ects">
+                    ECTS Credits
+                    {selectedCourse.ects !== formData.ects && (
+                      <span className="text-xs text-warning ml-1">(modified)</span>
+                    )}
+                  </Label>
+                  <Input
+                    id="ects"
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={formData.ects}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        ects: parseInt(e.target.value) || 1,
+                      }))
+                    }
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Catalog default: {selectedCourse.ects} ECTS
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type">Course Type</Label>

@@ -1,7 +1,7 @@
+import { useState } from "react";
 import { 
   FileCheck, 
   Plus, 
-  Calendar,
   AlertTriangle,
   CheckCircle2,
   Clock,
@@ -11,20 +11,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
+import { AccreditationDialog, type Accreditation } from "@/components/dialogs/AccreditationDialog";
+import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
+import { toast } from "sonner";
 
-interface Accreditation {
-  id: string;
-  programmeName: string;
-  programmeCode: string;
-  faculty: string;
-  agency: string;
-  validFrom: string;
-  validUntil: string;
-  status: "valid" | "expiring" | "expired" | "pending";
-  documents: number;
-}
-
-const accreditations: Accreditation[] = [
+const initialAccreditations: Accreditation[] = [
   {
     id: "1",
     programmeName: "Computer Science BSc",
@@ -95,7 +86,15 @@ const statusConfig = {
   pending: { icon: Clock, color: "text-info", bg: "bg-info/10", label: "Pending" },
 };
 
-function AccreditationCard({ accreditation }: { accreditation: Accreditation }) {
+function AccreditationCard({ 
+  accreditation, 
+  onEdit, 
+  onDelete 
+}: { 
+  accreditation: Accreditation;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const config = statusConfig[accreditation.status];
   const StatusIcon = config.icon;
   const timeRemaining = getTimeRemaining(accreditation.validUntil);
@@ -165,8 +164,8 @@ function AccreditationCard({ accreditation }: { accreditation: Accreditation }) 
       </div>
 
       <div className="flex gap-2 mt-4 pt-4 border-t">
-        <Button variant="outline" size="sm" className="flex-1">
-          View Documents
+        <Button variant="outline" size="sm" className="flex-1" onClick={onEdit}>
+          Edit Details
         </Button>
         <Button variant="outline" size="sm">
           <ExternalLink className="h-4 w-4" />
@@ -177,9 +176,39 @@ function AccreditationCard({ accreditation }: { accreditation: Accreditation }) 
 }
 
 export default function Accreditations() {
+  const [accreditations, setAccreditations] = useState<Accreditation[]>(initialAccreditations);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingAccreditation, setEditingAccreditation] = useState<Accreditation | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingAccreditationId, setDeletingAccreditationId] = useState<string | null>(null);
+
   const validCount = accreditations.filter(a => a.status === "valid").length;
   const expiringCount = accreditations.filter(a => a.status === "expiring").length;
   const pendingCount = accreditations.filter(a => a.status === "pending").length;
+
+  const handleSave = (data: Omit<Accreditation, "id" | "documents"> & { id?: string }) => {
+    if (data.id) {
+      setAccreditations(prev => prev.map(a => a.id === data.id ? { ...a, ...data } as Accreditation : a));
+      toast.success("Accreditation updated successfully");
+    } else {
+      const newAccreditation: Accreditation = {
+        ...data,
+        id: `acc-${Date.now()}`,
+        documents: 0,
+      };
+      setAccreditations(prev => [newAccreditation, ...prev]);
+      toast.success("Accreditation created successfully");
+    }
+  };
+
+  const handleDelete = () => {
+    if (deletingAccreditationId) {
+      setAccreditations(prev => prev.filter(a => a.id !== deletingAccreditationId));
+      toast.success("Accreditation deleted");
+      setDeleteDialogOpen(false);
+      setDeletingAccreditationId(null);
+    }
+  };
 
   return (
     <div className="page-container">
@@ -187,7 +216,10 @@ export default function Accreditations() {
         title="Accreditations" 
         description="Track programme accreditations and renewal deadlines"
         actions={
-          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button 
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            onClick={() => { setEditingAccreditation(null); setDialogOpen(true); }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Accreditation
           </Button>
@@ -245,9 +277,29 @@ export default function Accreditations() {
       {/* Accreditations Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {accreditations.map((accreditation) => (
-          <AccreditationCard key={accreditation.id} accreditation={accreditation} />
+          <AccreditationCard 
+            key={accreditation.id} 
+            accreditation={accreditation}
+            onEdit={() => { setEditingAccreditation(accreditation); setDialogOpen(true); }}
+            onDelete={() => { setDeletingAccreditationId(accreditation.id); setDeleteDialogOpen(true); }}
+          />
         ))}
       </div>
+
+      <AccreditationDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        accreditation={editingAccreditation}
+        onSave={handleSave}
+      />
+
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Accreditation"
+        description="Are you sure you want to delete this accreditation record?"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

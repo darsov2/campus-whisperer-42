@@ -29,22 +29,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { ProgrammeDialog, type Programme } from "@/components/dialogs/ProgrammeDialog";
+import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
+import { toast } from "sonner";
 
-interface Programme {
-  id: string;
-  name: string;
-  code: string;
-  faculty: string;
-  degree: "bachelor" | "master" | "doctorate";
-  duration: number;
-  totalEcts: number;
-  coursesCount: number;
-  studentsEnrolled: number;
-  status: "active" | "draft" | "archived";
-  accreditedUntil: string;
-}
-
-const programmes: Programme[] = [
+const initialProgrammes: Programme[] = [
   {
     id: "1",
     name: "Computer Science",
@@ -124,7 +113,15 @@ const degreeColors = {
   doctorate: "bg-warning/10 text-warning",
 };
 
-function ProgrammeCard({ programme }: { programme: Programme }) {
+function ProgrammeCard({ 
+  programme, 
+  onEdit, 
+  onDelete 
+}: { 
+  programme: Programme;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const isAccreditationExpiring = programme.accreditedUntil && 
     new Date(programme.accreditedUntil) < new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
@@ -190,12 +187,12 @@ function ProgrammeCard({ programme }: { programme: Programme }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-popover">
-            <DropdownMenuItem>Edit Programme</DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>Edit Programme</DropdownMenuItem>
             <DropdownMenuItem>Manage Courses</DropdownMenuItem>
             <DropdownMenuItem>View Curriculum</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Accreditation Details</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
+            <DropdownMenuItem onClick={onDelete} className="text-destructive">Archive</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -204,8 +201,14 @@ function ProgrammeCard({ programme }: { programme: Programme }) {
 }
 
 export default function Programmes() {
+  const [programmes, setProgrammes] = useState<Programme[]>(initialProgrammes);
   const [searchQuery, setSearchQuery] = useState("");
   const [degreeFilter, setDegreeFilter] = useState("all");
+  
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProgramme, setEditingProgramme] = useState<Programme | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingProgrammeId, setDeletingProgrammeId] = useState<string | null>(null);
 
   const filteredProgrammes = programmes.filter((programme) => {
     const matchesSearch = 
@@ -215,13 +218,41 @@ export default function Programmes() {
     return matchesSearch && matchesDegree;
   });
 
+  const handleSave = (data: Omit<Programme, "id" | "coursesCount" | "studentsEnrolled"> & { id?: string }) => {
+    if (data.id) {
+      setProgrammes(prev => prev.map(p => p.id === data.id ? { ...p, ...data } as Programme : p));
+      toast.success("Programme updated successfully");
+    } else {
+      const newProgramme: Programme = {
+        ...data,
+        id: `prog-${Date.now()}`,
+        coursesCount: 0,
+        studentsEnrolled: 0,
+      };
+      setProgrammes(prev => [newProgramme, ...prev]);
+      toast.success("Programme created successfully");
+    }
+  };
+
+  const handleDelete = () => {
+    if (deletingProgrammeId) {
+      setProgrammes(prev => prev.filter(p => p.id !== deletingProgrammeId));
+      toast.success("Programme archived");
+      setDeleteDialogOpen(false);
+      setDeletingProgrammeId(null);
+    }
+  };
+
   return (
     <div className="page-container">
       <PageHeader 
         title="Study Programmes" 
         description="Manage degree programmes, curricula, and accreditations"
         actions={
-          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button 
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            onClick={() => { setEditingProgramme(null); setDialogOpen(true); }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Programme
           </Button>
@@ -276,9 +307,29 @@ export default function Programmes() {
       {/* Programmes Grid */}
       <div className="space-y-3">
         {filteredProgrammes.map((programme) => (
-          <ProgrammeCard key={programme.id} programme={programme} />
+          <ProgrammeCard 
+            key={programme.id} 
+            programme={programme}
+            onEdit={() => { setEditingProgramme(programme); setDialogOpen(true); }}
+            onDelete={() => { setDeletingProgrammeId(programme.id); setDeleteDialogOpen(true); }}
+          />
         ))}
       </div>
+
+      <ProgrammeDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        programme={editingProgramme}
+        onSave={handleSave}
+      />
+
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Archive Programme"
+        description="Are you sure you want to archive this programme? No new students will be able to enroll."
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

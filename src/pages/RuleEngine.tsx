@@ -1,139 +1,139 @@
 import { useState } from "react";
 import { 
-  Workflow, 
+  BookOpen,
   Plus, 
   Search,
   ChevronRight,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  ArrowRight,
   GitBranch,
-  Zap
+  ArrowRight,
+  Filter
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { RuleDialog } from "@/components/dialogs/RuleDialog";
+import type { Course, CourseRule } from "@/components/dialogs/CourseDialog";
+import { toast } from "sonner";
 
-interface Rule {
-  id: string;
-  name: string;
-  description: string;
-  targetCourse: string;
-  targetCourseCode: string;
-  type: "prerequisite" | "corequisite" | "ects" | "custom";
-  conditions: Condition[];
-  status: "active" | "draft" | "inactive";
-  priority: number;
-}
-
-interface Condition {
-  id: string;
-  type: "course_passed" | "course_enrolled" | "ects_min" | "ects_max" | "semester_min";
-  operator: "and" | "or";
-  value: string;
-  label: string;
-}
-
-const rules: Rule[] = [
+// Shared course data with rules
+const initialCourses: Course[] = [
   {
     id: "1",
-    name: "CS201 Prerequisites",
-    description: "Students must complete introductory courses before enrolling in Data Structures",
-    targetCourse: "Data Structures and Algorithms",
-    targetCourseCode: "CS201",
-    type: "prerequisite",
+    code: "CS101",
+    name: "Introduction to Programming",
+    faculty: "Faculty of Computer Science",
+    programme: "Computer Science BSc",
+    ects: 6,
+    semester: 1,
+    teachers: ["Dr. John Smith", "Prof. Maria Garcia"],
     status: "active",
-    priority: 1,
-    conditions: [
-      { id: "c1", type: "course_passed", operator: "and", value: "CS101", label: "CS101 - Intro to Programming" },
-      { id: "c2", type: "course_passed", operator: "and", value: "MA101", label: "MA101 - Calculus I" },
-    ],
+    rules: [],
   },
   {
     id: "2",
-    name: "CS301 Prerequisites",
-    description: "Database Systems requires programming and math foundations",
-    targetCourse: "Database Systems",
-    targetCourseCode: "CS301",
-    type: "prerequisite",
+    code: "CS201",
+    name: "Data Structures and Algorithms",
+    faculty: "Faculty of Computer Science",
+    programme: "Computer Science BSc",
+    ects: 6,
+    semester: 3,
+    teachers: ["Dr. John Smith"],
     status: "active",
-    priority: 1,
-    conditions: [
-      { id: "c3", type: "course_passed", operator: "and", value: "CS201", label: "CS201 - Data Structures" },
-      { id: "c4", type: "ects_min", operator: "and", value: "60", label: "Minimum 60 ECTS credits" },
+    rules: [
+      { id: "r1", type: "prerequisite", operator: "and", value: "CS101", label: "CS101 - Introduction to Programming" },
+      { id: "r2", type: "prerequisite", operator: "and", value: "MA101", label: "MA101 - Calculus I" },
     ],
   },
   {
     id: "3",
-    name: "Master's Entry Requirements",
-    description: "Entry requirements for CS Master's programme",
-    targetCourse: "Machine Learning",
-    targetCourseCode: "CS401",
-    type: "ects",
+    code: "CS301",
+    name: "Database Systems",
+    faculty: "Faculty of Computer Science",
+    programme: "Computer Science BSc",
+    ects: 5,
+    semester: 5,
+    teachers: ["Prof. Anna Johnson"],
     status: "active",
-    priority: 2,
-    conditions: [
-      { id: "c5", type: "ects_min", operator: "and", value: "180", label: "Bachelor's degree (180 ECTS)" },
-      { id: "c6", type: "course_passed", operator: "and", value: "CS301", label: "CS301 - Database Systems" },
-      { id: "c7", type: "course_passed", operator: "or", value: "MA301", label: "MA301 - Linear Algebra" },
+    rules: [
+      { id: "r3", type: "prerequisite", operator: "and", value: "CS201", label: "CS201 - Data Structures and Algorithms" },
+      { id: "r4", type: "ects_min", operator: "and", value: "60", label: "Minimum 60 ECTS credits" },
     ],
   },
   {
     id: "4",
-    name: "Lab Course Corequisite",
-    description: "Programming Lab must be taken alongside the main course",
-    targetCourse: "Programming Lab",
-    targetCourseCode: "CS102",
-    type: "corequisite",
-    status: "draft",
-    priority: 1,
-    conditions: [
-      { id: "c8", type: "course_enrolled", operator: "and", value: "CS101", label: "CS101 - Intro to Programming" },
+    code: "MA101",
+    name: "Calculus I",
+    faculty: "Faculty of Natural Sciences",
+    programme: "Mathematics BSc",
+    ects: 7,
+    semester: 1,
+    teachers: ["Prof. David Lee"],
+    status: "active",
+    rules: [],
+  },
+  {
+    id: "5",
+    code: "CS401",
+    name: "Machine Learning",
+    faculty: "Faculty of Computer Science",
+    programme: "Computer Science MSc",
+    ects: 6,
+    semester: 1,
+    teachers: ["Dr. Sarah Chen"],
+    status: "active",
+    rules: [
+      { id: "r5", type: "ects_min", operator: "and", value: "180", label: "Minimum 180 ECTS credits" },
+      { id: "r6", type: "prerequisite", operator: "and", value: "CS301", label: "CS301 - Database Systems" },
+      { id: "r7", type: "prerequisite", operator: "or", value: "MA101", label: "MA101 - Calculus I" },
+    ],
+  },
+  {
+    id: "6",
+    code: "CS102",
+    name: "Programming Lab",
+    faculty: "Faculty of Computer Science",
+    programme: "Computer Science BSc",
+    ects: 3,
+    semester: 1,
+    teachers: ["Dr. John Smith"],
+    status: "active",
+    rules: [
+      { id: "r8", type: "corequisite", operator: "and", value: "CS101", label: "CS101 - Introduction to Programming" },
     ],
   },
 ];
 
-const ruleTypeIcons = {
-  prerequisite: GitBranch,
-  corequisite: Zap,
-  ects: CheckCircle2,
-  custom: Workflow,
-};
-
-const ruleTypeLabels = {
+const ruleTypeLabels: Record<string, string> = {
   prerequisite: "Prerequisite",
   corequisite: "Corequisite",
-  ects: "ECTS Requirement",
-  custom: "Custom Rule",
+  ects_min: "Min ECTS",
+  semester_min: "Min Semester",
 };
 
-function ConditionNode({ condition, isLast }: { condition: Condition; isLast: boolean }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className={cn(
-        "dependency-node",
-        condition.type === "course_passed" && "dependency-node-required",
-        condition.type === "course_enrolled" && "dependency-node-optional",
-        (condition.type === "ects_min" || condition.type === "ects_max" || condition.type === "semester_min") && "border-info/50 bg-info/5 text-info"
-      )}>
-        {condition.label}
-      </div>
-      {!isLast && (
-        <span className="text-xs font-medium text-muted-foreground uppercase px-2 py-1 bg-muted rounded">
-          {condition.operator}
-        </span>
-      )}
-    </div>
-  );
-}
+const ruleTypeColors: Record<string, string> = {
+  prerequisite: "bg-accent/10 text-accent border-accent/30",
+  corequisite: "bg-info/10 text-info border-info/30",
+  ects_min: "bg-warning/10 text-warning border-warning/30",
+  semester_min: "bg-success/10 text-success border-success/30",
+};
 
-function RuleCard({ rule }: { rule: Rule }) {
+function CourseRuleCard({ 
+  course, 
+  onConfigureRules 
+}: { 
+  course: Course;
+  onConfigureRules: () => void;
+}) {
   const [expanded, setExpanded] = useState(false);
-  const TypeIcon = ruleTypeIcons[rule.type];
 
   return (
     <div className="data-card overflow-hidden">
@@ -143,55 +143,94 @@ function RuleCard({ rule }: { rule: Rule }) {
       >
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
-            <div className="p-3 rounded-lg bg-accent/10">
-              <TypeIcon className="h-5 w-5 text-accent" />
+            <div className={cn(
+              "p-3 rounded-lg",
+              course.rules.length > 0 ? "bg-accent/10" : "bg-muted"
+            )}>
+              <BookOpen className={cn(
+                "h-5 w-5",
+                course.rules.length > 0 ? "text-accent" : "text-muted-foreground"
+              )} />
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h3 className="font-semibold">{rule.name}</h3>
-                <StatusBadge status={rule.status} />
-                <span className="text-xs bg-muted px-2 py-0.5 rounded">
-                  Priority: {rule.priority}
+                <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
+                  {course.code}
                 </span>
+                <h3 className="font-semibold">{course.name}</h3>
+                <StatusBadge status={course.status} />
               </div>
-              <p className="text-sm text-muted-foreground mt-1">{rule.description}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-sm font-medium">Target:</span>
-                <span className="font-mono text-sm bg-primary/10 text-primary px-2 py-0.5 rounded">
-                  {rule.targetCourseCode}
-                </span>
-                <span className="text-sm text-muted-foreground">{rule.targetCourse}</span>
-              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                {course.faculty} • {course.ects} ECTS • Semester {course.semester}
+              </p>
+              
+              {course.rules.length > 0 && (
+                <div className="flex items-center gap-2 mt-3">
+                  <GitBranch className="h-4 w-4 text-accent" />
+                  <span className="text-sm font-medium text-accent">
+                    {course.rules.length} enrollment rule{course.rules.length !== 1 && "s"}
+                  </span>
+                  <div className="flex gap-1 ml-2">
+                    {Array.from(new Set(course.rules.map(r => r.type))).map(type => (
+                      <span 
+                        key={type} 
+                        className={cn("px-2 py-0.5 text-xs rounded-full border", ruleTypeColors[type])}
+                      >
+                        {ruleTypeLabels[type]}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {course.rules.length === 0 && (
+                <p className="text-sm text-muted-foreground mt-3 italic">
+                  No enrollment rules - any student can enroll
+                </p>
+              )}
             </div>
           </div>
-          <ChevronRight className={cn(
-            "h-5 w-5 text-muted-foreground transition-transform",
-            expanded && "rotate-90"
-          )} />
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => { e.stopPropagation(); onConfigureRules(); }}
+            >
+              <GitBranch className="h-4 w-4 mr-2" />
+              {course.rules.length > 0 ? "Edit Rules" : "Add Rules"}
+            </Button>
+            <ChevronRight className={cn(
+              "h-5 w-5 text-muted-foreground transition-transform",
+              expanded && "rotate-90"
+            )} />
+          </div>
         </div>
       </div>
 
-      {expanded && (
+      {expanded && course.rules.length > 0 && (
         <div className="border-t bg-muted/20 p-5">
-          <h4 className="font-medium text-sm mb-4">Rule Conditions</h4>
+          <h4 className="font-medium text-sm mb-4">Enrollment Conditions</h4>
           <div className="flex items-center flex-wrap gap-3">
-            <div className="text-sm text-muted-foreground mr-2">Student must:</div>
-            {rule.conditions.map((condition, index) => (
-              <ConditionNode 
-                key={condition.id} 
-                condition={condition} 
-                isLast={index === rule.conditions.length - 1}
-              />
+            <div className="text-sm text-muted-foreground mr-2">To enroll, student must:</div>
+            {course.rules.map((rule, index) => (
+              <div key={rule.id} className="flex items-center gap-2">
+                {index > 0 && (
+                  <span className="text-xs font-medium text-muted-foreground uppercase px-2 py-1 bg-muted rounded">
+                    {rule.operator}
+                  </span>
+                )}
+                <div className={cn(
+                  "px-3 py-1.5 rounded-lg border text-sm",
+                  ruleTypeColors[rule.type]
+                )}>
+                  <span className="font-medium">{ruleTypeLabels[rule.type]}:</span> {rule.label}
+                </div>
+              </div>
             ))}
             <ArrowRight className="h-4 w-4 text-muted-foreground mx-2" />
-            <div className="dependency-node dependency-node-passed">
-              Can enroll in {rule.targetCourseCode}
+            <div className="px-3 py-1.5 rounded-lg bg-success/10 text-success border border-success/30 text-sm font-medium">
+              Can enroll in {course.code}
             </div>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <Button size="sm" variant="outline">Edit Rule</Button>
-            <Button size="sm" variant="outline">Test Rule</Button>
-            <Button size="sm" variant="outline" className="text-destructive">Disable</Button>
           </div>
         </div>
       )}
@@ -200,118 +239,134 @@ function RuleCard({ rule }: { rule: Rule }) {
 }
 
 export default function RuleEngine() {
+  const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
-  const filteredRules = rules.filter((rule) =>
-    rule.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    rule.targetCourseCode.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCourses = courses.filter((course) => {
+    const matchesSearch = 
+      course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.code.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (filterType === "all") return matchesSearch;
+    if (filterType === "with-rules") return matchesSearch && course.rules.length > 0;
+    if (filterType === "no-rules") return matchesSearch && course.rules.length === 0;
+    return matchesSearch && course.rules.some(r => r.type === filterType);
+  });
+
+  const handleSaveRules = (courseId: string, rules: CourseRule[]) => {
+    setCourses(prev => prev.map(c => c.id === courseId ? { ...c, rules } : c));
+    toast.success("Rules saved successfully");
+  };
+
+  const coursesWithRules = courses.filter(c => c.rules.length > 0).length;
+  const totalRules = courses.reduce((acc, c) => acc + c.rules.length, 0);
 
   return (
     <div className="page-container">
       <PageHeader 
         title="Rule Engine" 
-        description="Configure enrollment rules, prerequisites, and dependency trees"
-        actions={
-          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Plus className="h-4 w-4 mr-2" />
-            New Rule
-          </Button>
-        }
+        description="Configure enrollment rules, prerequisites, and dependencies for each course"
       />
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="data-card p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-accent/10">
-              <Workflow className="h-5 w-5 text-accent" />
+            <div className="p-2 rounded-lg bg-muted">
+              <BookOpen className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{rules.length}</p>
-              <p className="text-sm text-muted-foreground">Total Rules</p>
+              <p className="text-2xl font-semibold">{courses.length}</p>
+              <p className="text-sm text-muted-foreground">Total Courses</p>
+            </div>
+          </div>
+        </div>
+        <div className="data-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-accent/10">
+              <GitBranch className="h-5 w-5 text-accent" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{coursesWithRules}</p>
+              <p className="text-sm text-muted-foreground">With Rules</p>
             </div>
           </div>
         </div>
         <div className="data-card p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-success/10">
-              <CheckCircle2 className="h-5 w-5 text-success" />
+              <BookOpen className="h-5 w-5 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{rules.filter(r => r.status === "active").length}</p>
-              <p className="text-sm text-muted-foreground">Active</p>
+              <p className="text-2xl font-semibold">{courses.length - coursesWithRules}</p>
+              <p className="text-sm text-muted-foreground">Open Enrollment</p>
             </div>
           </div>
         </div>
         <div className="data-card p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-warning/10">
-              <AlertTriangle className="h-5 w-5 text-warning" />
+            <div className="p-2 rounded-lg bg-info/10">
+              <GitBranch className="h-5 w-5 text-info" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{rules.filter(r => r.status === "draft").length}</p>
-              <p className="text-sm text-muted-foreground">Draft</p>
-            </div>
-          </div>
-        </div>
-        <div className="data-card p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-muted">
-              <XCircle className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{rules.filter(r => r.status === "inactive").length}</p>
-              <p className="text-sm text-muted-foreground">Inactive</p>
+              <p className="text-2xl font-semibold">{totalRules}</p>
+              <p className="text-sm text-muted-foreground">Total Rules</p>
             </div>
           </div>
         </div>
       </div>
 
-      <Tabs defaultValue="all" className="space-y-4">
-        <div className="flex items-center justify-between">
-          <TabsList className="bg-muted">
-            <TabsTrigger value="all">All Rules</TabsTrigger>
-            <TabsTrigger value="prerequisite">Prerequisites</TabsTrigger>
-            <TabsTrigger value="corequisite">Corequisites</TabsTrigger>
-            <TabsTrigger value="ects">ECTS</TabsTrigger>
-          </TabsList>
-          
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search rules..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+      {/* Filters */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search courses..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[200px]">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Filter by rules" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover">
+            <SelectItem value="all">All Courses</SelectItem>
+            <SelectItem value="with-rules">With Rules</SelectItem>
+            <SelectItem value="no-rules">No Rules</SelectItem>
+            <SelectItem value="prerequisite">Prerequisites</SelectItem>
+            <SelectItem value="corequisite">Corequisites</SelectItem>
+            <SelectItem value="ects_min">ECTS Requirements</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        <TabsContent value="all" className="space-y-3">
-          {filteredRules.map((rule) => (
-            <RuleCard key={rule.id} rule={rule} />
-          ))}
-        </TabsContent>
-        
-        <TabsContent value="prerequisite" className="space-y-3">
-          {filteredRules.filter(r => r.type === "prerequisite").map((rule) => (
-            <RuleCard key={rule.id} rule={rule} />
-          ))}
-        </TabsContent>
-        
-        <TabsContent value="corequisite" className="space-y-3">
-          {filteredRules.filter(r => r.type === "corequisite").map((rule) => (
-            <RuleCard key={rule.id} rule={rule} />
-          ))}
-        </TabsContent>
-        
-        <TabsContent value="ects" className="space-y-3">
-          {filteredRules.filter(r => r.type === "ects").map((rule) => (
-            <RuleCard key={rule.id} rule={rule} />
-          ))}
-        </TabsContent>
-      </Tabs>
+      {/* Course List */}
+      <div className="space-y-3">
+        {filteredCourses.map((course) => (
+          <CourseRuleCard 
+            key={course.id} 
+            course={course}
+            onConfigureRules={() => { setSelectedCourse(course); setRuleDialogOpen(true); }}
+          />
+        ))}
+      </div>
+
+      {selectedCourse && (
+        <RuleDialog
+          open={ruleDialogOpen}
+          onOpenChange={setRuleDialogOpen}
+          course={selectedCourse}
+          allCourses={courses}
+          onSave={handleSaveRules}
+        />
+      )}
     </div>
   );
 }

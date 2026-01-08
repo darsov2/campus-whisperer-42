@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { 
   Building2, 
   Plus, 
@@ -16,21 +17,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { FacultyDialog, type Faculty } from "@/components/dialogs/FacultyDialog";
+import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
+import { toast } from "sonner";
 
-interface Faculty {
-  id: string;
-  name: string;
-  code: string;
-  dean: string;
-  programmesCount: number;
-  coursesCount: number;
-  teachersCount: number;
-  studentsCount: number;
-  status: "active" | "inactive";
-}
-
-const faculties: Faculty[] = [
+const initialFaculties: Faculty[] = [
   {
     id: "1",
     name: "Faculty of Computer Science",
@@ -77,7 +68,15 @@ const faculties: Faculty[] = [
   },
 ];
 
-function FacultyCard({ faculty }: { faculty: Faculty }) {
+function FacultyCard({ 
+  faculty, 
+  onEdit, 
+  onDelete 
+}: { 
+  faculty: Faculty;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   return (
     <div className="data-card overflow-hidden">
       <div className="p-6">
@@ -103,11 +102,11 @@ function FacultyCard({ faculty }: { faculty: Faculty }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-popover">
-              <DropdownMenuItem>Edit Faculty</DropdownMenuItem>
+              <DropdownMenuItem onClick={onEdit}>Edit Faculty</DropdownMenuItem>
               <DropdownMenuItem>Manage Departments</DropdownMenuItem>
               <DropdownMenuItem>View Reports</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
+              <DropdownMenuItem onClick={onDelete} className="text-destructive">Deactivate</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -148,13 +147,49 @@ function FacultyCard({ faculty }: { faculty: Faculty }) {
 }
 
 export default function Faculties() {
+  const [faculties, setFaculties] = useState<Faculty[]>(initialFaculties);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingFacultyId, setDeletingFacultyId] = useState<string | null>(null);
+
+  const handleSave = (data: Omit<Faculty, "id" | "programmesCount" | "coursesCount" | "teachersCount" | "studentsCount"> & { id?: string }) => {
+    if (data.id) {
+      setFaculties(prev => prev.map(f => f.id === data.id ? { ...f, ...data } as Faculty : f));
+      toast.success("Faculty updated successfully");
+    } else {
+      const newFaculty: Faculty = {
+        ...data,
+        id: `fac-${Date.now()}`,
+        programmesCount: 0,
+        coursesCount: 0,
+        teachersCount: 0,
+        studentsCount: 0,
+      };
+      setFaculties(prev => [newFaculty, ...prev]);
+      toast.success("Faculty added successfully");
+    }
+  };
+
+  const handleDelete = () => {
+    if (deletingFacultyId) {
+      setFaculties(prev => prev.filter(f => f.id !== deletingFacultyId));
+      toast.success("Faculty deactivated");
+      setDeleteDialogOpen(false);
+      setDeletingFacultyId(null);
+    }
+  };
+
   return (
     <div className="page-container">
       <PageHeader 
         title="Faculties" 
         description="Manage faculties and their departments"
         actions={
-          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button 
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            onClick={() => { setEditingFaculty(null); setDialogOpen(true); }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Faculty
           </Button>
@@ -184,9 +219,29 @@ export default function Faculties() {
       {/* Faculties Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {faculties.map((faculty) => (
-          <FacultyCard key={faculty.id} faculty={faculty} />
+          <FacultyCard 
+            key={faculty.id} 
+            faculty={faculty}
+            onEdit={() => { setEditingFaculty(faculty); setDialogOpen(true); }}
+            onDelete={() => { setDeletingFacultyId(faculty.id); setDeleteDialogOpen(true); }}
+          />
         ))}
       </div>
+
+      <FacultyDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        faculty={editingFaculty}
+        onSave={handleSave}
+      />
+
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Deactivate Faculty"
+        description="Are you sure you want to deactivate this faculty? All associated programmes and courses will be affected."
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

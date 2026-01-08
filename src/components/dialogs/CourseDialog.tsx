@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -40,11 +41,22 @@ export interface Course {
   rules: CourseRule[];
 }
 
+// Base course for catalog (simplified)
+export interface BaseCourse {
+  id: string;
+  code: string;
+  name: string;
+  faculty: string;
+  ects: number;
+  description: string;
+  status: "active" | "draft" | "archived";
+}
+
 interface CourseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  course?: Course | null;
-  onSave: (course: Omit<Course, "id"> & { id?: string }) => void;
+  course?: BaseCourse | null;
+  onSave: (course: Omit<BaseCourse, "id"> & { id?: string }) => void;
 }
 
 const faculties = [
@@ -54,30 +66,20 @@ const faculties = [
   "Faculty of Economics",
 ];
 
-const programmes = [
-  "Computer Science BSc",
-  "Computer Science MSc",
-  "Mathematics BSc",
-  "Data Science MSc",
-  "Mechanical Engineering BSc",
-];
-
 export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialogProps) {
   const [formData, setFormData] = useState<{
     code: string;
     name: string;
     faculty: string;
-    programme: string;
     ects: number;
-    semester: number;
+    description: string;
     status: "active" | "draft" | "archived";
   }>({
     code: "",
     name: "",
     faculty: "",
-    programme: "",
     ects: 6,
-    semester: 1,
+    description: "",
     status: "draft",
   });
 
@@ -87,9 +89,8 @@ export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialo
         code: course.code,
         name: course.name,
         faculty: course.faculty,
-        programme: course.programme,
         ects: course.ects,
-        semester: course.semester,
+        description: course.description || "",
         status: course.status,
       });
     } else {
@@ -97,9 +98,8 @@ export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialo
         code: "",
         name: "",
         faculty: "",
-        programme: "",
         ects: 6,
-        semester: 1,
+        description: "",
         status: "draft",
       });
     }
@@ -110,8 +110,6 @@ export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialo
     onSave({
       ...formData,
       id: course?.id,
-      teachers: course?.teachers || [],
-      rules: course?.rules || [],
     });
     onOpenChange(false);
   };
@@ -125,7 +123,7 @@ export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialo
             {course ? "Edit Course" : "New Course"}
           </DialogTitle>
           <DialogDescription>
-            {course ? "Update course details" : "Create a new course"}
+            {course ? "Update course details in the catalog" : "Add a new course to the catalog"}
           </DialogDescription>
         </DialogHeader>
         
@@ -170,65 +168,56 @@ export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialo
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="programme">Programme</Label>
-              <Select 
-                value={formData.programme} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, programme: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select programme..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {programmes.map(p => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ects">ECTS Credits</Label>
+                <Input
+                  id="ects"
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={formData.ects}
+                  onChange={(e) => setFormData(prev => ({ ...prev, ects: parseInt(e.target.value) || 0 }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select 
+                  value={formData.status} 
+                  onValueChange={(value: "active" | "draft" | "archived") => setFormData(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="ects">ECTS Credits</Label>
-              <Input
-                id="ects"
-                type="number"
-                min={1}
-                max={30}
-                value={formData.ects}
-                onChange={(e) => setFormData(prev => ({ ...prev, ects: parseInt(e.target.value) || 0 }))}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="semester">Semester</Label>
-              <Input
-                id="semester"
-                type="number"
-                min={1}
-                max={10}
-                value={formData.semester}
-                onChange={(e) => setFormData(prev => ({ ...prev, semester: parseInt(e.target.value) || 1 }))}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value: "active" | "draft" | "archived") => setFormData(prev => ({ ...prev, status: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Brief description of the course content..."
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+            />
+          </div>
+
+          <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+            <p>💡 <strong>Note:</strong> After creating the course, you can:</p>
+            <ul className="list-disc list-inside mt-1 space-y-0.5">
+              <li>Assign teachers via "Manage Teachers"</li>
+              <li>Link to programmes via Study Programmes → Manage Courses</li>
+              <li>Configure rules per programme where this course is linked</li>
+            </ul>
           </div>
 
           <DialogFooter>

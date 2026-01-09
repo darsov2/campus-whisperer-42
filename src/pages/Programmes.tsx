@@ -41,7 +41,7 @@ import {
 } from "@/components/dialogs/ProgrammeCourseDialog";
 import { ProgrammeCourseRuleDialog } from "@/components/dialogs/ProgrammeCourseRuleDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
-
+import { CourseGroupsSection } from "@/components/programmes/CourseGroupsSection";
 import { ManageCoursesModal } from "@/components/programmes/ManageCoursesModal";
 import { ConfigureSlotsModal } from "@/components/programmes/ConfigureSlotsModal";
 import type { ProgrammeWithDetails, CourseGroup, ProgrammeSlot } from "@/components/programmes/types";
@@ -746,6 +746,14 @@ export default function Programmes() {
         }
       />
 
+      {/* Course Groups Section */}
+      <div className="mb-6">
+        <CourseGroupsSection
+          groups={courseGroups}
+          catalogCourses={catalogCourses}
+          onGroupsChange={setCourseGroups}
+        />
+      </div>
 
       {/* Filters */}
       <div className="flex items-center gap-4 mb-6">

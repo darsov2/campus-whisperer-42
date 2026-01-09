@@ -9,6 +9,8 @@ import {
   Users,
   GraduationCap,
   ExternalLink,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -33,6 +35,7 @@ import { CourseDialog } from "@/components/dialogs/CourseDialog";
 import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { toast } from "sonner";
+import { DataTable } from "@/components/ui/data-table";
 
 // Base course - standalone in the catalog
 export interface BaseCourse {
@@ -252,6 +255,7 @@ export default function Courses() {
 
   const [teachersDialogOpen, setTeachersDialogOpen] = useState(false);
   const [teachersCourse, setTeachersCourse] = useState<BaseCourse | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
@@ -341,6 +345,24 @@ export default function Courses() {
             <SelectItem value="Engineering">Engineering</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center border rounded-md">
+          <Button
+            variant={viewMode === "grid" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("grid")}
+            className="rounded-r-none"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("table")}
+            className="rounded-l-none"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -369,30 +391,139 @@ export default function Courses() {
         </div>
       </div>
 
-      {/* Courses Grid */}
-      <div className="space-y-3">
-        {filteredCourses.map((course) => (
-          <CourseCard
-            key={course.id}
-            course={course}
-            onEdit={() => {
-              setEditingCourse(course);
-              setDialogOpen(true);
-            }}
-            onDelete={() => {
-              setDeletingCourseId(course.id);
-              setDeleteDialogOpen(true);
-            }}
-            onManageTeachers={() => {
-              setTeachersCourse(course);
-              setTeachersDialogOpen(true);
-            }}
-            onViewTeachersPage={() => {
-              navigate(`/courses/${course.id}/teachers`);
-            }}
-          />
-        ))}
-      </div>
+      {/* Courses View */}
+      {viewMode === "grid" ? (
+        <div className="space-y-3">
+          {filteredCourses.map((course) => (
+            <CourseCard
+              key={course.id}
+              course={course}
+              onEdit={() => {
+                setEditingCourse(course);
+                setDialogOpen(true);
+              }}
+              onDelete={() => {
+                setDeletingCourseId(course.id);
+                setDeleteDialogOpen(true);
+              }}
+              onManageTeachers={() => {
+                setTeachersCourse(course);
+                setTeachersDialogOpen(true);
+              }}
+              onViewTeachersPage={() => {
+                navigate(`/courses/${course.id}/teachers`);
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        <DataTable
+          data={filteredCourses}
+          columns={[
+            {
+              key: "code",
+              header: "Code",
+              cell: (course) => (
+                <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
+                  {course.code}
+                </span>
+              ),
+            },
+            {
+              key: "name",
+              header: "Name",
+              cell: (course) => (
+                <div>
+                  <span className="font-medium">{course.name}</span>
+                  <p className="text-xs text-muted-foreground truncate max-w-xs">
+                    {course.description}
+                  </p>
+                </div>
+              ),
+            },
+            {
+              key: "faculty",
+              header: "Faculty",
+              cell: (course) => (
+                <span className="text-sm">{course.faculty}</span>
+              ),
+            },
+            {
+              key: "ects",
+              header: "ECTS",
+              cell: (course) => (
+                <span className="font-medium">{course.ects}</span>
+              ),
+              className: "text-center",
+            },
+            {
+              key: "teachers",
+              header: "Teachers",
+              cell: (course) => (
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span>{course.teachers.length}</span>
+                </div>
+              ),
+            },
+            {
+              key: "status",
+              header: "Status",
+              cell: (course) => <StatusBadge status={course.status} />,
+            },
+            {
+              key: "actions",
+              header: "",
+              cell: (course) => (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setEditingCourse(course);
+                        setDialogOpen(true);
+                      }}
+                    >
+                      Edit Course
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setTeachersCourse(course);
+                        setTeachersDialogOpen(true);
+                      }}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Quick Assign Teachers
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate(`/courses/${course.id}/teachers`)}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Full Teachers Page
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setDeletingCourseId(course.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                      className="text-destructive"
+                    >
+                      Archive Course
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ),
+              className: "w-12",
+            },
+          ]}
+          emptyMessage="No courses found"
+        />
+      )}
 
       <CourseDialog
         open={dialogOpen}

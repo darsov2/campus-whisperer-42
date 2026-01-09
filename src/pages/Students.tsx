@@ -26,12 +26,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 // Types
@@ -387,41 +387,43 @@ export default function Students() {
         ))}
       </div>
 
-      {/* Student Record Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="sm:max-w-3xl overflow-y-auto">
+      {/* Student Record Full-Page Dialog */}
+      <Dialog open={sheetOpen} onOpenChange={setSheetOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
           {selectedStudent && (
-            <>
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-3">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
+            <div className="p-6">
+              <DialogHeader className="pb-4 border-b mb-6">
+                <DialogTitle className="flex items-center gap-4">
+                  <Avatar className="h-14 w-14">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-lg">
                       {getInitials(selectedStudent.firstName, selectedStudent.lastName)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
                         {selectedStudent.studentId}
                       </span>
-                      {selectedStudent.firstName} {selectedStudent.lastName}
+                      <span className="text-xl">
+                        {selectedStudent.firstName} {selectedStudent.lastName}
+                      </span>
                       <Badge className={cn("text-xs", statusColors[selectedStudent.status])}>
                         {selectedStudent.status}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground font-normal">
-                      {selectedStudent.programme} • GPA: {selectedStudent.gpa.toFixed(2)}
+                    <p className="text-sm text-muted-foreground font-normal mt-1">
+                      {selectedStudent.programme} ({selectedStudent.programmeCode}) • {selectedStudent.faculty}
                     </p>
                   </div>
-                </SheetTitle>
-                <SheetDescription>
+                </DialogTitle>
+                <DialogDescription className="sr-only">
                   Complete student record and academic history
-                </SheetDescription>
-              </SheetHeader>
+                </DialogDescription>
+              </DialogHeader>
 
-              <Tabs defaultValue="personal" className="mt-6">
-                <TabsList className="grid grid-cols-4 w-full">
-                  <TabsTrigger value="personal">Personal</TabsTrigger>
+              <Tabs defaultValue="personal">
+                <TabsList className="grid grid-cols-4 w-full mb-6">
+                  <TabsTrigger value="personal">Personal Data</TabsTrigger>
                   <TabsTrigger value="semesters">Semesters</TabsTrigger>
                   <TabsTrigger value="courses">Courses</TabsTrigger>
                   <TabsTrigger value="disciplinary" className="relative">
@@ -435,160 +437,166 @@ export default function Students() {
                 </TabsList>
 
                 {/* Personal Data Tab */}
-                <TabsContent value="personal" className="space-y-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <TabsContent value="personal" className="space-y-6">
+                  <div className="grid grid-cols-3 gap-6">
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Email</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Email</p>
                       <p className="font-medium">{selectedStudent.email}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Phone</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Phone</p>
                       <p className="font-medium">{selectedStudent.phone}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Date of Birth</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Date of Birth</p>
                       <p className="font-medium">{selectedStudent.dateOfBirth}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Nationality</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Nationality</p>
                       <p className="font-medium">{selectedStudent.nationality}</p>
                     </div>
                     <div className="space-y-1 col-span-2">
-                      <p className="text-xs text-muted-foreground">Address</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Address</p>
                       <p className="font-medium">{selectedStudent.address}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Enrollment Date</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Enrollment Date</p>
                       <p className="font-medium">{selectedStudent.enrollmentDate}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Faculty</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Faculty</p>
                       <p className="font-medium">{selectedStudent.faculty}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                    <div className="data-card p-4 text-center">
-                      <Calendar className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-                      <p className="text-xl font-semibold">{selectedStudent.currentSemester}</p>
-                      <p className="text-xs text-muted-foreground">Current Semester</p>
+                  <div className="grid grid-cols-3 gap-6 pt-6 border-t">
+                    <div className="data-card p-5 text-center">
+                      <Calendar className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-2xl font-semibold">{selectedStudent.currentSemester}</p>
+                      <p className="text-sm text-muted-foreground">Current Semester</p>
                     </div>
-                    <div className="data-card p-4 text-center">
-                      <BookOpen className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-                      <p className="text-xl font-semibold">{selectedStudent.totalCredits}</p>
-                      <p className="text-xs text-muted-foreground">Total Credits</p>
+                    <div className="data-card p-5 text-center">
+                      <BookOpen className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-2xl font-semibold">{selectedStudent.totalCredits}</p>
+                      <p className="text-sm text-muted-foreground">Total Credits</p>
                     </div>
-                    <div className="data-card p-4 text-center">
-                      <GraduationCap className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-                      <p className="text-xl font-semibold">{selectedStudent.gpa.toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground">Cumulative GPA</p>
+                    <div className="data-card p-5 text-center">
+                      <GraduationCap className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-2xl font-semibold">{selectedStudent.gpa.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">Cumulative GPA</p>
                     </div>
                   </div>
                 </TabsContent>
 
                 {/* Semesters Tab */}
-                <TabsContent value="semesters" className="space-y-3 mt-4">
-                  {selectedStudent.semesters.map((semester) => (
-                    <div key={semester.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{semester.semesterName}</p>
-                          <p className="text-sm text-muted-foreground">{semester.academicYear}</p>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="text-center">
-                            <p className="font-semibold">{semester.earnedCredits}/{semester.enrolledCredits}</p>
-                            <p className="text-xs text-muted-foreground">Credits</p>
+                <TabsContent value="semesters" className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedStudent.semesters.map((semester) => (
+                      <div key={semester.id} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{semester.semesterName}</p>
+                            <p className="text-sm text-muted-foreground">{semester.academicYear}</p>
                           </div>
-                          {semester.status !== "in_progress" && (
+                          <div className="flex items-center gap-4 text-sm">
                             <div className="text-center">
-                              <p className="font-semibold">{semester.gpa.toFixed(2)}</p>
-                              <p className="text-xs text-muted-foreground">GPA</p>
+                              <p className="font-semibold">{semester.earnedCredits}/{semester.enrolledCredits}</p>
+                              <p className="text-xs text-muted-foreground">Credits</p>
                             </div>
-                          )}
-                          <Badge className={cn(
-                            "text-xs",
-                            semester.status === "completed" && "bg-success/20 text-success",
-                            semester.status === "in_progress" && "bg-info/20 text-info",
-                            semester.status === "failed" && "bg-destructive/20 text-destructive"
-                          )}>
-                            {semester.status.replace("_", " ")}
-                          </Badge>
+                            {semester.status !== "in_progress" && (
+                              <div className="text-center">
+                                <p className="font-semibold">{semester.gpa.toFixed(2)}</p>
+                                <p className="text-xs text-muted-foreground">GPA</p>
+                              </div>
+                            )}
+                            <Badge className={cn(
+                              "text-xs",
+                              semester.status === "completed" && "bg-success/20 text-success",
+                              semester.status === "in_progress" && "bg-info/20 text-info",
+                              semester.status === "failed" && "bg-destructive/20 text-destructive"
+                            )}>
+                              {semester.status.replace("_", " ")}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </TabsContent>
 
                 {/* Courses Tab */}
-                <TabsContent value="courses" className="space-y-3 mt-4">
-                  {selectedStudent.courses.map((course) => (
-                    <div key={course.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
-                              {course.courseCode}
-                            </span>
-                            <span className="font-medium">{course.courseName}</span>
+                <TabsContent value="courses" className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedStudent.courses.map((course) => (
+                      <div key={course.id} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
+                                {course.courseCode}
+                              </span>
+                              <span className="font-medium">{course.courseName}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {course.credits} ECTS
+                              {course.examDate && ` • Exam: ${course.examDate}`}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {course.credits} ECTS
-                            {course.examDate && ` • Exam: ${course.examDate}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {course.grade && (
-                            <span className="text-lg font-bold">{course.grade}</span>
-                          )}
-                          <Badge className={cn("text-xs", courseStatusColors[course.status])}>
-                            {course.status.replace("_", " ")}
-                          </Badge>
+                          <div className="flex items-center gap-3">
+                            {course.grade && (
+                              <span className="text-lg font-bold">{course.grade}</span>
+                            )}
+                            <Badge className={cn("text-xs", courseStatusColors[course.status])}>
+                              {course.status.replace("_", " ")}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </TabsContent>
 
                 {/* Disciplinary Tab */}
-                <TabsContent value="disciplinary" className="space-y-3 mt-4">
+                <TabsContent value="disciplinary" className="space-y-3">
                   {selectedStudent.disciplinaryRecords.length === 0 ? (
-                    <div className="text-center py-8 border border-dashed rounded-lg bg-muted/20">
-                      <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <div className="text-center py-12 border border-dashed rounded-lg bg-muted/20">
+                      <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                       <p className="text-muted-foreground">No disciplinary records</p>
                     </div>
                   ) : (
-                    selectedStudent.disciplinaryRecords.map((record) => (
-                      <div key={record.id} className="p-4 border rounded-lg border-destructive/30 bg-destructive/5">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Badge className={cn("text-xs", disciplinaryColors[record.type])}>
-                                {record.type}
-                              </Badge>
-                              <span className="text-sm text-muted-foreground">{record.date}</span>
-                              {record.resolvedDate && (
-                                <Badge variant="outline" className="text-xs text-success border-success">
-                                  Resolved {record.resolvedDate}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedStudent.disciplinaryRecords.map((record) => (
+                        <div key={record.id} className="p-4 border rounded-lg border-destructive/30 bg-destructive/5">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge className={cn("text-xs", disciplinaryColors[record.type])}>
+                                  {record.type}
                                 </Badge>
+                                <span className="text-sm text-muted-foreground">{record.date}</span>
+                                {record.resolvedDate && (
+                                  <Badge variant="outline" className="text-xs text-success border-success">
+                                    Resolved {record.resolvedDate}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="font-medium mt-2">{record.reason}</p>
+                              {record.notes && (
+                                <p className="text-sm text-muted-foreground mt-1">{record.notes}</p>
                               )}
                             </div>
-                            <p className="font-medium mt-2">{record.reason}</p>
-                            {record.notes && (
-                              <p className="text-sm text-muted-foreground mt-1">{record.notes}</p>
-                            )}
+                            <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
                           </div>
-                          <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
                         </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </TabsContent>
               </Tabs>
-            </>
+            </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

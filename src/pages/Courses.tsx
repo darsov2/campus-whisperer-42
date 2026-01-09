@@ -327,7 +327,7 @@ export default function Courses() {
   const [courseGroups, setCourseGroups] = useState<CourseGroup[]>(initialCourseGroups);
   const [searchQuery, setSearchQuery] = useState("");
   const [facultyFilter, setFacultyFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("table");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<BaseCourse | null>(null);

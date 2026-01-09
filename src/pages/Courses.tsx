@@ -32,6 +32,8 @@ import { cn } from "@/lib/utils";
 import { CourseDialog } from "@/components/dialogs/CourseDialog";
 import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
+import { CourseGroupsSection } from "@/components/programmes/CourseGroupsSection";
+import type { CourseGroup } from "@/components/programmes/types";
 import { toast } from "sonner";
 
 // Base course - standalone in the catalog
@@ -123,98 +125,121 @@ const initialCourses: BaseCourse[] = [
     ],
     status: "active",
   },
+  {
+    id: "7",
+    code: "MA102",
+    name: "Linear Algebra",
+    faculty: "Faculty of Natural Sciences",
+    ects: 6,
+    description: "Vectors, matrices, and linear transformations",
+    teachers: [{ id: "t4", name: "Prof. David Lee", role: "coordinator" }],
+    status: "active",
+  },
+  {
+    id: "8",
+    code: "CS202",
+    name: "Operating Systems",
+    faculty: "Faculty of Computer Science",
+    ects: 5,
+    description: "Principles of operating system design",
+    teachers: [{ id: "t6", name: "Dr. Michael Brown", role: "coordinator" }],
+    status: "active",
+  },
+  {
+    id: "9",
+    code: "HUM101",
+    name: "Philosophy",
+    faculty: "Faculty of Humanities",
+    ects: 4,
+    description: "Introduction to philosophical thinking",
+    teachers: [],
+    status: "active",
+  },
+  {
+    id: "10",
+    code: "HUM102",
+    name: "History of Science",
+    faculty: "Faculty of Humanities",
+    ects: 4,
+    description: "Historical development of scientific thought",
+    teachers: [],
+    status: "active",
+  },
+  {
+    id: "11",
+    code: "HUM103",
+    name: "Ethics in Technology",
+    faculty: "Faculty of Humanities",
+    ects: 3,
+    description: "Ethical considerations in modern technology",
+    teachers: [],
+    status: "active",
+  },
+  {
+    id: "12",
+    code: "ENG101",
+    name: "Technical Writing",
+    faculty: "Faculty of Engineering",
+    ects: 3,
+    description: "Writing for technical and scientific contexts",
+    teachers: [],
+    status: "active",
+  },
 ];
 
-function CourseCard({
-  course,
-  onEdit,
-  onDelete,
-  onManageTeachers,
-  onViewTeachersPage,
-}: {
+const initialCourseGroups: CourseGroup[] = [
+  {
+    id: "cg1",
+    name: "Humanities Electives",
+    code: "HUM-ELEC",
+    description: "Courses from the humanities department",
+    courseIds: ["9", "10", "11"],
+  },
+  {
+    id: "cg2",
+    name: "Technical Core",
+    code: "TECH-CORE",
+    description: "Core technical courses for CS students",
+    courseIds: ["1", "2", "3", "8"],
+  },
+];
+
+interface CourseGridItemProps {
   course: BaseCourse;
   onEdit: () => void;
   onDelete: () => void;
   onManageTeachers: () => void;
   onViewTeachersPage: () => void;
-}) {
+}
+
+function CourseGridItem({
+  course,
+  onEdit,
+  onDelete,
+  onManageTeachers,
+  onViewTeachersPage,
+}: CourseGridItemProps) {
   return (
-    <div className="data-card p-5 hover:shadow-elevated transition-all">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <div
+    <div className="data-card p-4 hover:shadow-elevated transition-all flex flex-col h-full">
+      <div className="flex items-start justify-between mb-3">
+        <div
+          className={cn(
+            "p-2.5 rounded-lg",
+            course.status === "active" ? "bg-accent/10" : "bg-muted"
+          )}
+        >
+          <BookOpen
             className={cn(
-              "p-3 rounded-lg",
-              course.status === "active" ? "bg-accent/10" : "bg-muted"
+              "h-5 w-5",
+              course.status === "active"
+                ? "text-accent"
+                : "text-muted-foreground"
             )}
-          >
-            <BookOpen
-              className={cn(
-                "h-5 w-5",
-                course.status === "active"
-                  ? "text-accent"
-                  : "text-muted-foreground"
-              )}
-            />
-          </div>
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
-                {course.code}
-              </span>
-              <h3 className="font-semibold">{course.name}</h3>
-              <StatusBadge status={course.status} />
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {course.faculty}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {course.description}
-            </p>
-
-            <div className="flex items-center gap-6 mt-3 text-sm">
-              <div className="flex items-center gap-1.5">
-                <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                <span>{course.ects} ECTS</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {course.teachers.length} teacher
-                  {course.teachers.length !== 1 && "s"}
-                </span>
-              </div>
-            </div>
-
-            {course.teachers.length > 0 && (
-              <div className="flex items-center gap-2 mt-2">
-                {course.teachers.slice(0, 3).map((teacher) => (
-                  <span
-                    key={teacher.id}
-                    className={cn(
-                      "text-xs px-2 py-0.5 rounded",
-                      teacher.role === "coordinator"
-                        ? "bg-accent/20 text-accent"
-                        : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {teacher.name}
-                    {teacher.role === "coordinator" && " (Coord.)"}
-                  </span>
-                ))}
-                {course.teachers.length > 3 && (
-                  <span className="text-xs text-muted-foreground">
-                    +{course.teachers.length - 3} more
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
+          />
         </div>
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -235,6 +260,59 @@ function CourseCard({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
+            {course.code}
+          </span>
+          <StatusBadge status={course.status} />
+        </div>
+        <h3 className="font-semibold text-sm mb-1 line-clamp-2">{course.name}</h3>
+        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+          {course.description}
+        </p>
+      </div>
+
+      <div className="mt-auto pt-3 border-t border-border/50">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <GraduationCap className="h-3.5 w-3.5" />
+            <span>{course.ects} ECTS</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Users className="h-3.5 w-3.5" />
+            <span>
+              {course.teachers.length} teacher
+              {course.teachers.length !== 1 && "s"}
+            </span>
+          </div>
+        </div>
+        {course.teachers.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {course.teachers.slice(0, 2).map((teacher) => (
+              <span
+                key={teacher.id}
+                className={cn(
+                  "text-xs px-1.5 py-0.5 rounded truncate max-w-[120px]",
+                  teacher.role === "coordinator"
+                    ? "bg-accent/20 text-accent"
+                    : "bg-muted text-muted-foreground"
+                )}
+                title={teacher.name}
+              >
+                {teacher.name.split(" ").slice(-1)[0]}
+                {teacher.role === "coordinator" && " ★"}
+              </span>
+            ))}
+            {course.teachers.length > 2 && (
+              <span className="text-xs text-muted-foreground">
+                +{course.teachers.length - 2}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -242,6 +320,7 @@ function CourseCard({
 export default function Courses() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<BaseCourse[]>(initialCourses);
+  const [courseGroups, setCourseGroups] = useState<CourseGroup[]>(initialCourseGroups);
   const [searchQuery, setSearchQuery] = useState("");
   const [facultyFilter, setFacultyFilter] = useState("all");
 
@@ -252,6 +331,14 @@ export default function Courses() {
 
   const [teachersDialogOpen, setTeachersDialogOpen] = useState(false);
   const [teachersCourse, setTeachersCourse] = useState<BaseCourse | null>(null);
+
+  // Convert BaseCourse to the format expected by CourseGroupsSection
+  const catalogCoursesForGroups = courses.map((c) => ({
+    id: c.id,
+    code: c.code,
+    name: c.name,
+    ects: c.ects,
+  }));
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
@@ -299,11 +386,17 @@ export default function Courses() {
     }
   };
 
+  // Get unique faculties for filter
+  const uniqueFaculties = [...new Set(courses.map((c) => {
+    const match = c.faculty.match(/Faculty of (.+)/);
+    return match ? match[1] : c.faculty;
+  }))];
+
   return (
     <div className="page-container">
       <PageHeader
         title="Course Catalog"
-        description="Manage standalone courses - link them to programmes to configure rules"
+        description="Manage standalone courses and course groups"
         actions={
           <Button
             className="bg-accent hover:bg-accent/90 text-accent-foreground"
@@ -317,6 +410,15 @@ export default function Courses() {
           </Button>
         }
       />
+
+      {/* Course Groups Section */}
+      <div className="mb-6">
+        <CourseGroupsSection
+          groups={courseGroups}
+          catalogCourses={catalogCoursesForGroups}
+          onGroupsChange={setCourseGroups}
+        />
+      </div>
 
       {/* Filters */}
       <div className="flex items-center gap-4 mb-6">
@@ -336,9 +438,11 @@ export default function Courses() {
           </SelectTrigger>
           <SelectContent className="bg-popover">
             <SelectItem value="all">All Faculties</SelectItem>
-            <SelectItem value="Computer Science">Computer Science</SelectItem>
-            <SelectItem value="Natural Sciences">Natural Sciences</SelectItem>
-            <SelectItem value="Engineering">Engineering</SelectItem>
+            {uniqueFaculties.map((faculty) => (
+              <SelectItem key={faculty} value={faculty}>
+                {faculty}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -356,10 +460,8 @@ export default function Courses() {
           <p className="text-sm text-muted-foreground">Active</p>
         </div>
         <div className="data-card p-4 text-center">
-          <p className="text-2xl font-semibold">
-            {courses.filter((c) => c.status === "draft").length}
-          </p>
-          <p className="text-sm text-muted-foreground">Draft</p>
+          <p className="text-2xl font-semibold">{courseGroups.length}</p>
+          <p className="text-sm text-muted-foreground">Course Groups</p>
         </div>
         <div className="data-card p-4 text-center">
           <p className="text-2xl font-semibold">
@@ -370,9 +472,9 @@ export default function Courses() {
       </div>
 
       {/* Courses Grid */}
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredCourses.map((course) => (
-          <CourseCard
+          <CourseGridItem
             key={course.id}
             course={course}
             onEdit={() => {
@@ -393,6 +495,14 @@ export default function Courses() {
           />
         ))}
       </div>
+
+      {filteredCourses.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="text-lg font-medium">No courses found</p>
+          <p className="text-sm">Try adjusting your search or filters</p>
+        </div>
+      )}
 
       <CourseDialog
         open={dialogOpen}

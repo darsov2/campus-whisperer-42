@@ -9,6 +9,8 @@ import {
   Users,
   GraduationCap,
   ExternalLink,
+  LayoutGrid,
+  Table as TableIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -35,6 +37,8 @@ import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { CourseGroupsSection } from "@/components/programmes/CourseGroupsSection";
 import type { CourseGroup } from "@/components/programmes/types";
 import { toast } from "sonner";
+import { DataTable } from "@/components/ui/data-table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 // Base course - standalone in the catalog
 export interface BaseCourse {
@@ -323,6 +327,7 @@ export default function Courses() {
   const [courseGroups, setCourseGroups] = useState<CourseGroup[]>(initialCourseGroups);
   const [searchQuery, setSearchQuery] = useState("");
   const [facultyFilter, setFacultyFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<BaseCourse | null>(null);
@@ -445,6 +450,14 @@ export default function Courses() {
             ))}
           </SelectContent>
         </Select>
+        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "grid" | "table")}>
+          <ToggleGroupItem value="grid" aria-label="Grid view">
+            <LayoutGrid className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="table" aria-label="Table view">
+            <TableIcon className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {/* Stats */}
@@ -471,32 +484,131 @@ export default function Courses() {
         </div>
       </div>
 
-      {/* Courses Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredCourses.map((course) => (
-          <CourseGridItem
-            key={course.id}
-            course={course}
-            onEdit={() => {
-              setEditingCourse(course);
-              setDialogOpen(true);
-            }}
-            onDelete={() => {
-              setDeletingCourseId(course.id);
-              setDeleteDialogOpen(true);
-            }}
-            onManageTeachers={() => {
-              setTeachersCourse(course);
-              setTeachersDialogOpen(true);
-            }}
-            onViewTeachersPage={() => {
-              navigate(`/courses/${course.id}/teachers`);
-            }}
-          />
-        ))}
-      </div>
+      {/* Courses View */}
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredCourses.map((course) => (
+            <CourseGridItem
+              key={course.id}
+              course={course}
+              onEdit={() => {
+                setEditingCourse(course);
+                setDialogOpen(true);
+              }}
+              onDelete={() => {
+                setDeletingCourseId(course.id);
+                setDeleteDialogOpen(true);
+              }}
+              onManageTeachers={() => {
+                setTeachersCourse(course);
+                setTeachersDialogOpen(true);
+              }}
+              onViewTeachersPage={() => {
+                navigate(`/courses/${course.id}/teachers`);
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        <DataTable
+          data={filteredCourses}
+          columns={[
+            {
+              key: "code",
+              header: "Code",
+              cell: (course) => (
+                <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
+                  {course.code}
+                </span>
+              ),
+              className: "w-[100px]",
+            },
+            {
+              key: "name",
+              header: "Course Name",
+              cell: (course) => (
+                <div>
+                  <p className="font-medium">{course.name}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-1">{course.description}</p>
+                </div>
+              ),
+            },
+            {
+              key: "faculty",
+              header: "Faculty",
+              cell: (course) => (
+                <span className="text-sm">{course.faculty.replace("Faculty of ", "")}</span>
+              ),
+            },
+            {
+              key: "ects",
+              header: "ECTS",
+              cell: (course) => <span className="font-medium">{course.ects}</span>,
+              className: "w-[80px] text-center",
+            },
+            {
+              key: "teachers",
+              header: "Teachers",
+              cell: (course) => (
+                <div className="flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm">{course.teachers.length}</span>
+                </div>
+              ),
+              className: "w-[100px]",
+            },
+            {
+              key: "status",
+              header: "Status",
+              cell: (course) => <StatusBadge status={course.status} />,
+              className: "w-[100px]",
+            },
+            {
+              key: "actions",
+              header: "",
+              cell: (course) => (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover">
+                    <DropdownMenuItem onClick={() => {
+                      setEditingCourse(course);
+                      setDialogOpen(true);
+                    }}>
+                      Edit Course
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      setTeachersCourse(course);
+                      setTeachersDialogOpen(true);
+                    }}>
+                      <Users className="h-4 w-4 mr-2" />
+                      Quick Assign Teachers
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate(`/courses/${course.id}/teachers`)}>
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Full Teachers Page
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => {
+                      setDeletingCourseId(course.id);
+                      setDeleteDialogOpen(true);
+                    }} className="text-destructive">
+                      Archive Course
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ),
+              className: "w-[60px]",
+            },
+          ]}
+          emptyMessage="No courses found"
+        />
+      )}
 
-      {filteredCourses.length === 0 && (
+      {filteredCourses.length === 0 && viewMode === "grid" && (
         <div className="text-center py-12 text-muted-foreground">
           <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p className="text-lg font-medium">No courses found</p>

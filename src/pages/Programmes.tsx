@@ -10,7 +10,7 @@ import {
   Clock,
   Award,
   GitBranch,
-  Eye,
+  Grid3X3,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -30,14 +30,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ProgrammeDialog, type Programme } from "@/components/dialogs/ProgrammeDialog";
 import {
@@ -48,8 +40,11 @@ import {
   createEmptyRules,
 } from "@/components/dialogs/ProgrammeCourseDialog";
 import { ProgrammeCourseRuleDialog } from "@/components/dialogs/ProgrammeCourseRuleDialog";
-import { RulesVisualTree } from "@/components/RulesVisualTree";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
+import { CourseGroupsSection } from "@/components/programmes/CourseGroupsSection";
+import { ManageCoursesModal } from "@/components/programmes/ManageCoursesModal";
+import { ConfigureSlotsModal } from "@/components/programmes/ConfigureSlotsModal";
+import type { ProgrammeWithDetails, CourseGroup, ProgrammeSlot } from "@/components/programmes/types";
 import { toast } from "sonner";
 
 // Available courses in the catalog
@@ -64,11 +59,11 @@ const catalogCourses: BaseCourse[] = [
   { id: "8", code: "CS202", name: "Operating Systems", ects: 5 },
   { id: "9", code: "CS302", name: "Computer Networks", ects: 5 },
   { id: "10", code: "CS402", name: "Software Engineering", ects: 6 },
+  { id: "11", code: "HUM101", name: "Philosophy", ects: 4 },
+  { id: "12", code: "HUM102", name: "History of Science", ects: 4 },
+  { id: "13", code: "HUM103", name: "Ethics in Technology", ects: 3 },
+  { id: "14", code: "ENG101", name: "Technical Writing", ects: 3 },
 ];
-
-interface ProgrammeWithCourses extends Programme {
-  courses: ProgrammeCourse[];
-}
 
 // Helper to count total conditions in new rules format
 function countConditions(rules: ProgrammeCourseRules): number {
@@ -76,7 +71,24 @@ function countConditions(rules: ProgrammeCourseRules): number {
   return rules.groups.reduce((acc, g) => acc + g.conditions.length, 0);
 }
 
-const initialProgrammes: ProgrammeWithCourses[] = [
+const initialCourseGroups: CourseGroup[] = [
+  {
+    id: "cg1",
+    name: "Humanities Electives",
+    code: "HUM-ELEC",
+    description: "Courses from the humanities department",
+    courseIds: ["11", "12", "13"],
+  },
+  {
+    id: "cg2",
+    name: "Technical Core",
+    code: "TECH-CORE",
+    description: "Core technical courses for CS students",
+    courseIds: ["1", "2", "3", "8", "9"],
+  },
+];
+
+const initialProgrammes: ProgrammeWithDetails[] = [
   {
     id: "1",
     name: "Computer Science",
@@ -231,6 +243,40 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         },
       },
     ],
+    slots: [
+      {
+        id: "slot1",
+        semester: 1,
+        position: 1,
+        type: "mandatory",
+        courseId: "1",
+        courseCode: "CS101",
+        courseName: "Introduction to Programming",
+        ects: 6,
+      },
+      {
+        id: "slot2",
+        semester: 1,
+        position: 2,
+        type: "mandatory",
+        courseId: "6",
+        courseCode: "CS102",
+        courseName: "Programming Lab",
+        ects: 3,
+      },
+      {
+        id: "slot3",
+        semester: 2,
+        position: 1,
+        type: "optional",
+        name: "Humanities Elective",
+        minEcts: 3,
+        maxEcts: 4,
+        rules: [
+          { id: "r1", type: "course_group", value: "cg1", label: "Group: Humanities Electives" },
+        ],
+      },
+    ],
   },
   {
     id: "2",
@@ -282,6 +328,7 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         rules: createEmptyRules(),
       },
     ],
+    slots: [],
   },
   {
     id: "3",
@@ -317,6 +364,7 @@ const initialProgrammes: ProgrammeWithCourses[] = [
         rules: createEmptyRules(),
       },
     ],
+    slots: [],
   },
 ];
 
@@ -337,11 +385,13 @@ function ProgrammeCard({
   onEdit,
   onDelete,
   onManageCourses,
+  onConfigureSlots,
 }: {
-  programme: ProgrammeWithCourses;
+  programme: ProgrammeWithDetails;
   onEdit: () => void;
   onDelete: () => void;
   onManageCourses: () => void;
+  onConfigureSlots: () => void;
 }) {
   const isAccreditationExpiring =
     programme.accreditedUntil &&
@@ -406,6 +456,10 @@ function ProgrammeCard({
                 <span>{programme.courses.length} courses</span>
               </div>
               <div className="flex items-center gap-1.5">
+                <Grid3X3 className="h-4 w-4 text-muted-foreground" />
+                <span>{programme.slots?.length || 0} slots</span>
+              </div>
+              <div className="flex items-center gap-1.5">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span>{programme.studentsEnrolled} students</span>
               </div>
@@ -438,7 +492,11 @@ function ProgrammeCard({
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onManageCourses}>
             <BookOpen className="h-4 w-4 mr-2" />
-            Manage Courses
+            Courses
+          </Button>
+          <Button variant="outline" size="sm" onClick={onConfigureSlots}>
+            <Grid3X3 className="h-4 w-4 mr-2" />
+            Slots
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -452,6 +510,9 @@ function ProgrammeCard({
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onManageCourses}>
                 Manage Courses
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onConfigureSlots}>
+                Configure Slots
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Accreditation Details</DropdownMenuItem>
@@ -468,22 +529,27 @@ function ProgrammeCard({
 
 export default function Programmes() {
   const [programmes, setProgrammes] =
-    useState<ProgrammeWithCourses[]>(initialProgrammes);
+    useState<ProgrammeWithDetails[]>(initialProgrammes);
+  const [courseGroups, setCourseGroups] = useState<CourseGroup[]>(initialCourseGroups);
   const [searchQuery, setSearchQuery] = useState("");
   const [degreeFilter, setDegreeFilter] = useState("all");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProgramme, setEditingProgramme] =
-    useState<ProgrammeWithCourses | null>(null);
+    useState<ProgrammeWithDetails | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingProgrammeId, setDeletingProgrammeId] = useState<string | null>(
     null
   );
 
-  // Course management sheet
-  const [courseSheetOpen, setCourseSheetOpen] = useState(false);
+  // Course management modal
+  const [courseModalOpen, setCourseModalOpen] = useState(false);
   const [selectedProgramme, setSelectedProgramme] =
-    useState<ProgrammeWithCourses | null>(null);
+    useState<ProgrammeWithDetails | null>(null);
+  const [addCourseSemester, setAddCourseSemester] = useState<number>(1);
+
+  // Slots configuration modal
+  const [slotsModalOpen, setSlotsModalOpen] = useState(false);
 
   // Programme course dialogs
   const [programmeCourseDialogOpen, setProgrammeCourseDialogOpen] =
@@ -496,9 +562,6 @@ export default function Programmes() {
 
   const [deleteCourseDialogOpen, setDeleteCourseDialogOpen] = useState(false);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
-
-  const [visualRulesCourse, setVisualRulesCourse] =
-    useState<ProgrammeCourse | null>(null);
 
   const filteredProgrammes = programmes.filter((programme) => {
     const matchesSearch =
@@ -520,12 +583,13 @@ export default function Programmes() {
       );
       toast.success("Programme updated successfully");
     } else {
-      const newProgramme: ProgrammeWithCourses = {
+      const newProgramme: ProgrammeWithDetails = {
         ...data,
         id: `prog-${Date.now()}`,
         coursesCount: 0,
         studentsEnrolled: 0,
         courses: [],
+        slots: [],
       };
       setProgrammes((prev) => [newProgramme, ...prev]);
       toast.success("Programme created successfully");
@@ -546,6 +610,9 @@ export default function Programmes() {
   ) => {
     if (!selectedProgramme) return;
 
+    // Override semester with the one from tab if adding new
+    const courseData = data.id ? data : { ...data, semester: addCourseSemester };
+
     if (data.id) {
       // Update existing
       setProgrammes((prev) =>
@@ -554,19 +621,18 @@ export default function Programmes() {
             ? {
                 ...p,
                 courses: p.courses.map((c) =>
-                  c.id === data.id ? { ...c, ...data } : c
+                  c.id === data.id ? { ...c, ...courseData } : c
                 ),
               }
             : p
         )
       );
-      // Update local state
       setSelectedProgramme((prev) =>
         prev
           ? {
               ...prev,
               courses: prev.courses.map((c) =>
-                c.id === data.id ? { ...c, ...data, id: c.id } : c
+                c.id === data.id ? { ...c, ...courseData, id: c.id } : c
               ),
             }
           : null
@@ -575,7 +641,7 @@ export default function Programmes() {
     } else {
       // Add new
       const newCourse: ProgrammeCourse = {
-        ...data,
+        ...courseData,
         id: `pc-${Date.now()}`,
       };
       setProgrammes((prev) =>
@@ -621,11 +687,6 @@ export default function Programmes() {
         : null
     );
     
-    // Update visual rules if showing
-    if (visualRulesCourse?.id === programmeCourseId) {
-      setVisualRulesCourse(prev => prev ? { ...prev, rules } : null);
-    }
-    
     toast.success("Rules saved successfully");
   };
 
@@ -647,6 +708,16 @@ export default function Programmes() {
     toast.success("Course removed from programme");
     setDeleteCourseDialogOpen(false);
     setDeletingCourseId(null);
+  };
+
+  const handleSlotsChange = (programmeId: string, slots: ProgrammeSlot[]) => {
+    setProgrammes((prev) =>
+      prev.map((p) => (p.id === programmeId ? { ...p, slots } : p))
+    );
+    if (selectedProgramme?.id === programmeId) {
+      setSelectedProgramme((prev) => (prev ? { ...prev, slots } : null));
+    }
+    toast.success("Slot configuration saved");
   };
 
   // Filter out already added courses
@@ -674,6 +745,15 @@ export default function Programmes() {
           </Button>
         }
       />
+
+      {/* Course Groups Section */}
+      <div className="mb-6">
+        <CourseGroupsSection
+          groups={courseGroups}
+          catalogCourses={catalogCourses}
+          onGroupsChange={setCourseGroups}
+        />
+      </div>
 
       {/* Filters */}
       <div className="flex items-center gap-4 mb-6">
@@ -744,7 +824,11 @@ export default function Programmes() {
             }}
             onManageCourses={() => {
               setSelectedProgramme(programme);
-              setCourseSheetOpen(true);
+              setCourseModalOpen(true);
+            }}
+            onConfigureSlots={() => {
+              setSelectedProgramme(programme);
+              setSlotsModalOpen(true);
             }}
           />
         ))}
@@ -766,233 +850,39 @@ export default function Programmes() {
         onConfirm={handleDelete}
       />
 
-      {/* Course Management Full-Screen Modal */}
-      <Dialog open={courseSheetOpen} onOpenChange={setCourseSheetOpen}>
-        <DialogContent className="max-w-[90vw] w-full h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="flex items-center gap-2 text-xl">
-                  <BookOpen className="h-6 w-6 text-accent" />
-                  {selectedProgramme?.name} - {selectedProgramme?.code}
-                </DialogTitle>
-                <DialogDescription className="mt-1">
-                  Manage courses linked to this programme and configure enrollment rules
-                </DialogDescription>
-              </div>
-              <Button
-                onClick={() => {
-                  setEditingProgrammeCourse(null);
-                  setProgrammeCourseDialogOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Course
-              </Button>
-            </div>
-            
-            {/* Summary Stats */}
-            {selectedProgramme && selectedProgramme.courses.length > 0 && (
-              <div className="flex items-center gap-6 mt-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Total:</span>
-                  <span className="font-medium">{selectedProgramme.courses.length} courses</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Mandatory:</span>
-                  <span className="font-medium text-accent">
-                    {selectedProgramme.courses.filter(c => c.type === "mandatory").length}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Elective:</span>
-                  <span className="font-medium text-info">
-                    {selectedProgramme.courses.filter(c => c.type === "elective").length}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">ECTS:</span>
-                  <span className="font-medium">
-                    {selectedProgramme.courses.reduce((acc, c) => acc + c.ects, 0)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Semesters:</span>
-                  <span className="font-medium">
-                    {new Set(selectedProgramme.courses.map(c => c.semester)).size}
-                  </span>
-                </div>
-              </div>
-            )}
-          </DialogHeader>
+      {/* Manage Courses Modal */}
+      <ManageCoursesModal
+        open={courseModalOpen}
+        onOpenChange={setCourseModalOpen}
+        programme={selectedProgramme}
+        onAddCourse={(semester) => {
+          setAddCourseSemester(semester);
+          setEditingProgrammeCourse(null);
+          setProgrammeCourseDialogOpen(true);
+        }}
+        onEditCourse={(course) => {
+          setEditingProgrammeCourse(course);
+          setProgrammeCourseDialogOpen(true);
+        }}
+        onConfigureRules={(course) => {
+          setRulesCourse(course);
+          setRuleDialogOpen(true);
+        }}
+        onRemoveCourse={(courseId) => {
+          setDeletingCourseId(courseId);
+          setDeleteCourseDialogOpen(true);
+        }}
+      />
 
-          <ScrollArea className="flex-1 px-6">
-            <div className="py-6">
-              {selectedProgramme?.courses.length === 0 ? (
-                <div className="text-center py-16 border border-dashed rounded-lg bg-muted/20">
-                  <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-lg text-muted-foreground">No courses linked</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Add courses from the catalog to this programme
-                  </p>
-                  <Button
-                    className="mt-4"
-                    onClick={() => {
-                      setEditingProgrammeCourse(null);
-                      setProgrammeCourseDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add First Course
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Group courses by semester */}
-                  {Array.from(new Set(selectedProgramme?.courses.map(c => c.semester))).sort((a, b) => a - b).map(semester => (
-                    <div key={semester} className="space-y-3">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Semester {semester}
-                        <span className="text-xs font-normal">
-                          ({selectedProgramme?.courses.filter(c => c.semester === semester).length} courses,{" "}
-                          {selectedProgramme?.courses.filter(c => c.semester === semester).reduce((acc, c) => acc + c.ects, 0)} ECTS)
-                        </span>
-                      </h4>
-                      
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                        {selectedProgramme?.courses
-                          .filter(c => c.semester === semester)
-                          .sort((a, b) => a.courseCode.localeCompare(b.courseCode))
-                          .map((course) => {
-                            const conditionsCount = countConditions(course.rules);
-                            return (
-                              <div key={course.id} className="space-y-2">
-                                <div className="p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded shrink-0">
-                                          {course.courseCode}
-                                        </span>
-                                        <span className="font-medium truncate">
-                                          {course.courseName}
-                                        </span>
-                                        <span
-                                          className={cn(
-                                            "text-xs px-2 py-0.5 rounded shrink-0",
-                                            course.type === "mandatory"
-                                              ? "bg-accent/20 text-accent"
-                                              : "bg-info/20 text-info"
-                                          )}
-                                        >
-                                          {course.type === "mandatory"
-                                            ? "Mandatory"
-                                            : "Elective"}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                        <span>{course.ects} ECTS</span>
-                                        {conditionsCount > 0 && (
-                                          <span className="text-accent font-medium flex items-center gap-1">
-                                            <GitBranch className="h-3 w-3" />
-                                            {conditionsCount} condition
-                                            {conditionsCount !== 1 && "s"}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          setVisualRulesCourse(
-                                            visualRulesCourse?.id === course.id
-                                              ? null
-                                              : course
-                                          );
-                                        }}
-                                        title="View rules"
-                                      >
-                                        <Eye className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          setRulesCourse(course);
-                                          setRuleDialogOpen(true);
-                                        }}
-                                        title="Configure rules"
-                                      >
-                                        <GitBranch className="h-4 w-4" />
-                                      </Button>
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button variant="ghost" size="sm">
-                                            <MoreHorizontal className="h-4 w-4" />
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent
-                                          align="end"
-                                          className="bg-popover"
-                                        >
-                                          <DropdownMenuItem
-                                            onClick={() => {
-                                              setEditingProgrammeCourse(course);
-                                              setProgrammeCourseDialogOpen(true);
-                                            }}
-                                          >
-                                            Edit Settings
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            onClick={() => {
-                                              setRulesCourse(course);
-                                              setRuleDialogOpen(true);
-                                            }}
-                                          >
-                                            <GitBranch className="h-4 w-4 mr-2" />
-                                            Configure Rules
-                                          </DropdownMenuItem>
-                                          <DropdownMenuSeparator />
-                                          <DropdownMenuItem
-                                            className="text-destructive"
-                                            onClick={() => {
-                                              setDeletingCourseId(course.id);
-                                              setDeleteCourseDialogOpen(true);
-                                            }}
-                                          >
-                                            Remove from Programme
-                                          </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Visual Rules Tree */}
-                                {visualRulesCourse?.id === course.id && (
-                                  <div className="ml-4 border-l-2 border-accent/30 bg-muted/20 rounded-r-lg">
-                                    <RulesVisualTree
-                                      courseCode={course.courseCode}
-                                      courseName={course.courseName}
-                                      rules={course.rules}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+      {/* Configure Slots Modal */}
+      <ConfigureSlotsModal
+        open={slotsModalOpen}
+        onOpenChange={setSlotsModalOpen}
+        programme={selectedProgramme}
+        catalogCourses={catalogCourses}
+        courseGroups={courseGroups}
+        onSlotsChange={handleSlotsChange}
+      />
 
       {/* Programme Course Dialog */}
       {selectedProgramme && (

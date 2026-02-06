@@ -405,29 +405,34 @@ export default function MasterCourses() {
     }
   };
 
-  const handleLinkCourse = (
-    courseId: string,
-    courseData: {
+  const handleLinkCourses = (
+    courses: Array<{
+      id: string;
       code: string;
       name: string;
       accreditation: string;
       accreditationYear: number;
       status: "active" | "draft" | "archived";
       ects: number;
-    }
+    }>
   ) => {
     if (linkingToMasterCourse) {
-      const newVersion: CourseVersion = {
-        id: courseId,
-        ...courseData,
+      const newVersions: CourseVersion[] = courses.map((course) => ({
+        id: course.id,
+        code: course.code,
+        name: course.name,
+        accreditation: course.accreditation,
+        accreditationYear: course.accreditationYear,
+        status: course.status,
+        ects: course.ects,
         isMain: false,
-      };
+      }));
 
       setMasterCourses((prev) =>
         prev.map((mc) => {
           if (mc.id !== linkingToMasterCourse.id) return mc;
 
-          const updatedVersions = [...mc.courseVersions, newVersion];
+          const updatedVersions = [...mc.courseVersions, ...newVersions];
           // Auto-determine main if not overridden
           let mainCourseId = mc.mainCourseId;
           if (!mc.isMainOverridden) {
@@ -444,7 +449,7 @@ export default function MasterCourses() {
           };
         })
       );
-      toast.success("Course linked successfully");
+      toast.success(`${courses.length} course${courses.length !== 1 ? "s" : ""} linked successfully`);
     }
   };
 
@@ -605,7 +610,7 @@ export default function MasterCourses() {
           onOpenChange={setLinkDialogOpen}
           masterCourseName={linkingToMasterCourse.name}
           availableCourses={availableCoursesForLinking}
-          onLink={handleLinkCourse}
+          onLink={handleLinkCourses}
         />
       )}
 

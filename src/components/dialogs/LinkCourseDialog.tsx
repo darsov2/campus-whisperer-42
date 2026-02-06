@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { BookOpen, Search, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,15 +38,15 @@ interface LinkCourseDialogProps {
   masterCourseName: string;
   availableCourses: AvailableCourse[];
   onLink: (
-    courseId: string,
-    courseData: {
+    courses: Array<{
+      id: string;
       code: string;
       name: string;
       accreditation: string;
       accreditationYear: number;
       status: "active" | "draft" | "archived";
       ects: number;
-    }
+    }>
   ) => void;
 }
 
@@ -58,7 +59,7 @@ export function LinkCourseDialog({
 }: LinkCourseDialogProps) {
   const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
 
   // New course form state
   const [newCourse, setNewCourse] = useState<{
@@ -83,23 +84,44 @@ export function LinkCourseDialog({
       c.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const toggleCourseSelection = (courseId: string) => {
+    setSelectedCourseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(courseId)) {
+        next.delete(courseId);
+      } else {
+        next.add(courseId);
+      }
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedCourseIds(new Set(filteredCourses.map((c) => c.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedCourseIds(new Set());
+  };
+
   const handleLink = () => {
-    if (activeTab === "existing" && selectedCourseId) {
-      const course = availableCourses.find((c) => c.id === selectedCourseId);
-      if (course) {
-        onLink(course.id, {
+    if (activeTab === "existing" && selectedCourseIds.size > 0) {
+      const selectedCourses = availableCourses
+        .filter((c) => selectedCourseIds.has(c.id))
+        .map((course) => ({
+          id: course.id,
           code: course.code,
           name: course.name,
           accreditation: course.accreditation,
           accreditationYear: course.accreditationYear,
           status: course.status,
           ects: course.ects,
-        });
-        onOpenChange(false);
-        resetForm();
-      }
+        }));
+      onLink(selectedCourses);
+      onOpenChange(false);
+      resetForm();
     } else if (activeTab === "new" && newCourse.code && newCourse.name) {
-      onLink(`new-${Date.now()}`, newCourse);
+      onLink([{ id: `new-${Date.now()}`, ...newCourse }]);
       onOpenChange(false);
       resetForm();
     }
@@ -107,7 +129,7 @@ export function LinkCourseDialog({
 
   const resetForm = () => {
     setSearchQuery("");
-    setSelectedCourseId(null);
+    setSelectedCourseIds(new Set());
     setActiveTab("existing");
     setNewCourse({
       code: "",
@@ -119,42 +141,64 @@ export function LinkCourseDialog({
     });
   };
 
+  const allFilteredSelected = filteredCourses.length > 0 && filteredCourses.every((c) => selectedCourseIds.has(c.id));
+
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) resetForm(); }}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Link Course to "{masterCourseName}"</DialogTitle>
+          <DialogTitle>Link Courses to "{masterCourseName}"</DialogTitle>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "existing" | "new")}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="existing">Link Existing Course</TabsTrigger>
+            <TabsTrigger value="existing">Link Existing Courses</TabsTrigger>
             <TabsTrigger value="new">Create & Link New</TabsTrigger>
           </TabsList>
 
           <TabsContent value="existing" className="space-y-4 mt-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search courses..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search courses..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={allFilteredSelected ? deselectAll : selectAll}
+              >
+                {allFilteredSelected ? "Deselect All" : "Select All"}
+              </Button>
             </div>
+
+            {selectedCourseIds.size > 0 && (
+              <div className="text-sm text-muted-foreground">
+                {selectedCourseIds.size} course{selectedCourseIds.size !== 1 && "s"} selected
+              </div>
+            )}
 
             <div className="max-h-[300px] overflow-y-auto space-y-2">
               {filteredCourses.map((course) => (
                 <div
                   key={course.id}
-                  onClick={() => setSelectedCourseId(course.id)}
+                  onClick={() => toggleCourseSelection(course.id)}
                   className={cn(
                     "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                    selectedCourseId === course.id
+                    selectedCourseIds.has(course.id)
                       ? "border-accent bg-accent/5"
                       : "hover:bg-muted/50"
                   )}
                 >
+                  <Checkbox
+                    checked={selectedCourseIds.has(course.id)}
+                    onCheckedChange={() => toggleCourseSelection(course.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                   <BookOpen className="h-4 w-4 text-muted-foreground" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -281,12 +325,12 @@ export function LinkCourseDialog({
           <Button
             onClick={handleLink}
             disabled={
-              (activeTab === "existing" && !selectedCourseId) ||
+              (activeTab === "existing" && selectedCourseIds.size === 0) ||
               (activeTab === "new" && (!newCourse.code || !newCourse.name))
             }
           >
             {activeTab === "existing" ? (
-              "Link Selected Course"
+              <>Link {selectedCourseIds.size > 0 ? `${selectedCourseIds.size} Course${selectedCourseIds.size !== 1 ? "s" : ""}` : "Selected"}</>
             ) : (
               <>
                 <Plus className="h-4 w-4 mr-2" />

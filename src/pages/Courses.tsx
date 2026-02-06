@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { CourseDialog } from "@/components/dialogs/CourseDialog";
+import { CourseDialog, type MasterCourseOption } from "@/components/dialogs/CourseDialog";
 import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { toast } from "sonner";
@@ -266,6 +266,13 @@ export default function Courses() {
     return matchesSearch && matchesFaculty;
   });
 
+  // Mock master courses for the dialog
+  const masterCourseOptions: MasterCourseOption[] = [
+    { id: "mc1", name: "Introduction to Programming" },
+    { id: "mc2", name: "Data Structures and Algorithms" },
+    { id: "mc3", name: "Database Systems" },
+  ];
+
   const handleSave = (data: any) => {
     if (data.id) {
       setCourses((prev) =>
@@ -279,7 +286,15 @@ export default function Courses() {
         teachers: [],
       };
       setCourses((prev) => [newCourse, ...prev]);
-      toast.success("Course created successfully");
+
+      if (data.createNewMasterCourse) {
+        toast.success(`Course created and new master course "${data.name}" created`);
+      } else if (data.masterCourseId) {
+        const mc = masterCourseOptions.find(m => m.id === data.masterCourseId);
+        toast.success(`Course created and linked to "${mc?.name}"`);
+      } else {
+        toast.success("Course created successfully");
+      }
     }
   };
 
@@ -529,6 +544,7 @@ export default function Courses() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         course={editingCourse as any}
+        masterCourses={masterCourseOptions}
         onSave={handleSave}
       />
 

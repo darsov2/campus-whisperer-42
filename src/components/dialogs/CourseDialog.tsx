@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Layers } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -52,11 +53,17 @@ export interface BaseCourse {
   status: "active" | "draft" | "archived";
 }
 
+export interface MasterCourseOption {
+  id: string;
+  name: string;
+}
+
 interface CourseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   course?: BaseCourse | null;
-  onSave: (course: Omit<BaseCourse, "id"> & { id?: string }) => void;
+  masterCourses?: MasterCourseOption[];
+  onSave: (course: Omit<BaseCourse, "id"> & { id?: string; masterCourseId?: string; createNewMasterCourse?: boolean }) => void;
 }
 
 const faculties = [
@@ -66,7 +73,7 @@ const faculties = [
   "Faculty of Economics",
 ];
 
-export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialogProps) {
+export function CourseDialog({ open, onOpenChange, course, masterCourses = [], onSave }: CourseDialogProps) {
   const [formData, setFormData] = useState<{
     code: string;
     name: string;
@@ -82,6 +89,9 @@ export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialo
     description: "",
     status: "draft",
   });
+
+  const [masterCourseId, setMasterCourseId] = useState<string>("");
+  const [createNewMasterCourse, setCreateNewMasterCourse] = useState(false);
 
   useEffect(() => {
     if (course) {
@@ -103,6 +113,8 @@ export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialo
         status: "draft",
       });
     }
+    setMasterCourseId("");
+    setCreateNewMasterCourse(false);
   }, [course, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -110,6 +122,8 @@ export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialo
     onSave({
       ...formData,
       id: course?.id,
+      masterCourseId: !createNewMasterCourse && masterCourseId ? masterCourseId : undefined,
+      createNewMasterCourse: createNewMasterCourse,
     });
     onOpenChange(false);
   };
@@ -210,6 +224,59 @@ export function CourseDialog({ open, onOpenChange, course, onSave }: CourseDialo
               rows={3}
             />
           </div>
+
+          {/* Master Course Section */}
+          {!course && (
+            <div className="space-y-3 p-4 rounded-lg border bg-muted/20">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-medium">Master Course</Label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="createNewMasterCourse"
+                  checked={createNewMasterCourse}
+                  onCheckedChange={(checked) => {
+                    setCreateNewMasterCourse(!!checked);
+                    if (checked) setMasterCourseId("");
+                  }}
+                />
+                <Label htmlFor="createNewMasterCourse" className="text-sm cursor-pointer">
+                  Create a new master course from this course
+                </Label>
+              </div>
+
+              {!createNewMasterCourse && (
+                <Select
+                  value={masterCourseId}
+                  onValueChange={setMasterCourseId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select existing master course (optional)..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {masterCourses.map((mc) => (
+                      <SelectItem key={mc.id} value={mc.id}>
+                        {mc.name}
+                      </SelectItem>
+                    ))}
+                    {masterCourses.length === 0 && (
+                      <div className="px-2 py-3 text-sm text-muted-foreground text-center">
+                        No master courses available
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {createNewMasterCourse && formData.name && (
+                <p className="text-xs text-muted-foreground">
+                  A new master course "<strong>{formData.name}</strong>" will be created automatically.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
             <p>💡 <strong>Note:</strong> After creating the course, you can:</p>

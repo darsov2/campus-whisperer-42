@@ -16,6 +16,7 @@ import {
   UserCircle,
   Receipt,
   BarChart3,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ const navigation = [
   { name: "Faculties", href: "/faculties", icon: Building2 },
   { name: "Study Programmes", href: "/programmes", icon: GraduationCap },
   { name: "Courses", href: "/courses", icon: BookOpen },
+  { name: "Master Courses", href: "/master-courses", icon: Layers },
   { name: "Course Overview", href: "/course-programmes", icon: Network },
   { name: "Teachers", href: "/teachers", icon: Users },
   { name: "Students", href: "/students", icon: UserCircle },

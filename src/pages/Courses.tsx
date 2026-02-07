@@ -667,18 +667,26 @@ export default function Courses() {
         />
       )}
 
-      <CourseDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        course={editingCourse as any}
-        masterCourses={masterCourseOptions}
-        onSave={handleSave}
-      />
+      {dialogOpen && (
+        <CourseDialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) setEditingCourse(null);
+          }}
+          course={editingCourse as any}
+          masterCourses={masterCourseOptions}
+          onSave={handleSave}
+        />
+      )}
 
-      {teachersCourse && (
+      {teachersCourse && teachersDialogOpen && (
         <CourseTeachersDialog
           open={teachersDialogOpen}
-          onOpenChange={setTeachersDialogOpen}
+          onOpenChange={(open) => {
+            setTeachersDialogOpen(open);
+            if (!open) setTeachersCourse(null);
+          }}
           courseName={teachersCourse.name}
           courseCode={teachersCourse.code}
           teachers={teachersCourse.teachers}
@@ -687,13 +695,18 @@ export default function Courses() {
         />
       )}
 
-      <DeleteDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title="Archive Course"
-        description="Are you sure you want to archive this course? It will be removed from all programmes."
-        onConfirm={handleDelete}
-      />
+      {deleteDialogOpen && (
+        <DeleteDialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) setDeletingCourseId(null);
+          }}
+          title="Archive Course"
+          description="Are you sure you want to archive this course? It will be removed from all programmes."
+          onConfirm={handleDelete}
+        />
+      )}
 
       {/* Programme Picker for Programme-Course Teachers */}
       {programmePickerCourse && programmePickerOpen && (

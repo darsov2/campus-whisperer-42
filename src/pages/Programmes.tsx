@@ -45,7 +45,18 @@ import { CourseGroupsSection } from "@/components/programmes/CourseGroupsSection
 import { ManageCoursesModal } from "@/components/programmes/ManageCoursesModal";
 import { ConfigureSlotsModal } from "@/components/programmes/ConfigureSlotsModal";
 import type { ProgrammeWithDetails, CourseGroup, ProgrammeSlot } from "@/components/programmes/types";
+import type { AvailableTeacher } from "@/components/programmes/TeacherPicker";
 import { toast } from "sonner";
+
+const availableTeachersList: AvailableTeacher[] = [
+  { id: "t1", name: "Dr. Sarah Johnson", title: "Associate Professor" },
+  { id: "t2", name: "Prof. Michael Chen", title: "Full Professor" },
+  { id: "t3", name: "Dr. Emily Williams", title: "Assistant Professor" },
+  { id: "t4", name: "Dr. James Brown", title: "Senior Lecturer" },
+  { id: "t5", name: "Maria Garcia, MSc", title: "Teaching Assistant" },
+  { id: "t6", name: "Prof. David Kim", title: "Department Head" },
+  { id: "t7", name: "Dr. Anna Schmidt", title: "Research Fellow" },
+];
 
 // Available courses in the catalog
 const catalogCourses: BaseCourse[] = [
@@ -894,6 +905,7 @@ export default function Programmes() {
           availableCourses={
             editingProgrammeCourse ? catalogCourses : availableCatalogCourses
           }
+          availableTeachers={availableTeachersList}
           onSave={handleSaveProgrammeCourse}
         />
       )}

@@ -696,10 +696,13 @@ export default function Courses() {
       />
 
       {/* Programme Picker for Programme-Course Teachers */}
-      {programmePickerCourse && (
+      {programmePickerCourse && programmePickerOpen && (
         <ProgrammePickerDialog
           open={programmePickerOpen}
-          onOpenChange={setProgrammePickerOpen}
+          onOpenChange={(open) => {
+            setProgrammePickerOpen(open);
+            if (!open) setProgrammePickerCourse(null);
+          }}
           courseName={programmePickerCourse.name}
           courseCode={programmePickerCourse.code}
           programmes={mockCourseProgrammes[programmePickerCourse.id] || []}
@@ -713,10 +716,16 @@ export default function Courses() {
       )}
 
       {/* Programme-Course Teacher Assignment (reuses CourseTeachersDialog) */}
-      {programmePickerCourse && progTeachersProgramme && (
+      {programmePickerCourse && progTeachersProgramme && progTeachersDialogOpen && (
         <CourseTeachersDialog
           open={progTeachersDialogOpen}
-          onOpenChange={setProgTeachersDialogOpen}
+          onOpenChange={(open) => {
+            setProgTeachersDialogOpen(open);
+            if (!open) {
+              setProgTeachersProgramme(null);
+              setProgrammePickerCourse(null);
+            }
+          }}
           courseName={`${programmePickerCourse.code} in ${progTeachersProgramme.name} (${progTeachersProgramme.code})`}
           courseCode={programmePickerCourse.code}
           teachers={[]}
@@ -730,10 +739,13 @@ export default function Courses() {
       )}
 
       {/* Bulk Rule Assignment */}
-      {bulkRulesCourse && (
+      {bulkRulesCourse && bulkRulesOpen && (
         <BulkRuleAssignmentDialog
           open={bulkRulesOpen}
-          onOpenChange={setBulkRulesOpen}
+          onOpenChange={(open) => {
+            setBulkRulesOpen(open);
+            if (!open) setBulkRulesCourse(null);
+          }}
           courseName={bulkRulesCourse.name}
           courseCode={bulkRulesCourse.code}
           programmes={mockCourseProgrammes[bulkRulesCourse.id] || []}
@@ -748,10 +760,13 @@ export default function Courses() {
       )}
 
       {/* Faculty-Course Teachers */}
-      {facultyTeachersCourse && (
+      {facultyTeachersCourse && facultyTeachersOpen && (
         <FacultyCourseTeachersDialog
           open={facultyTeachersOpen}
-          onOpenChange={setFacultyTeachersOpen}
+          onOpenChange={(open) => {
+            setFacultyTeachersOpen(open);
+            if (!open) setFacultyTeachersCourse(null);
+          }}
           courseName={facultyTeachersCourse.name}
           courseCode={facultyTeachersCourse.code}
           faculties={allFaculties}

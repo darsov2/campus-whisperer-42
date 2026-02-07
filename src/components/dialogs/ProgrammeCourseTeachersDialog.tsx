@@ -4,10 +4,11 @@ import {
   Users,
   Search,
   ChevronRight,
-  ChevronLeft,
   ChevronsRight,
+  ChevronLeft,
   ChevronsLeft,
-  Check,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import {
   Dialog,
@@ -23,16 +24,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-// Types
 export interface ProgrammeTeacher {
   id: string;
   name: string;
@@ -57,17 +50,12 @@ interface ProgrammeCourseTeachersDialogProps {
   onSave: (assignments: ProgrammeCourseTeacherAssignment[]) => void;
 }
 
-const roleLabels: Record<ProgrammeTeacher["role"], string> = {
-  coordinator: "Coord.",
-  lecturer: "Lect.",
-  assistant: "Asst.",
-};
-
-const roleColors: Record<ProgrammeTeacher["role"], string> = {
-  coordinator: "bg-accent text-accent-foreground",
-  lecturer: "bg-info/20 text-info",
-  assistant: "bg-muted text-muted-foreground",
-};
+/** Format "Dr. John Smith" → "J. Smith" */
+function shortName(fullName: string): string {
+  const parts = fullName.replace(/^(Dr\.|Prof\.|Mr\.|Ms\.|Mrs\.)\s*/i, "").trim().split(/\s+/);
+  if (parts.length < 2) return fullName;
+  return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
+}
 
 export function ProgrammeCourseTeachersDialog({
   open,
@@ -82,8 +70,8 @@ export function ProgrammeCourseTeachersDialog({
   const [assignments, setAssignments] = useState<ProgrammeCourseTeacherAssignment[]>([]);
   const [selectedProgrammeIds, setSelectedProgrammeIds] = useState<Set<string>>(new Set());
   const [activeProgrammeId, setActiveProgrammeId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(true);
 
-  // Teacher dual-list state
   const [leftSearch, setLeftSearch] = useState("");
   const [rightSearch, setRightSearch] = useState("");
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
@@ -92,18 +80,17 @@ export function ProgrammeCourseTeachersDialog({
   useEffect(() => {
     const mapped = programmes.map((p) => {
       const existing = initialAssignments.find((a) => a.programmeId === p.id);
-      return (
-        existing || {
-          programmeId: p.id,
-          programmeName: p.name,
-          programmeCode: p.code,
-          teachers: [],
-        }
-      );
+      return existing || {
+        programmeId: p.id,
+        programmeName: p.name,
+        programmeCode: p.code,
+        teachers: [],
+      };
     });
     setAssignments(mapped);
     setSelectedProgrammeIds(new Set());
     setActiveProgrammeId(null);
+    setPanelOpen(true);
     setLeftSearch("");
     setRightSearch("");
     setSelectedLeft(null);
@@ -111,11 +98,10 @@ export function ProgrammeCourseTeachersDialog({
   }, [initialAssignments, programmes, open]);
 
   const isBulkMode = selectedProgrammeIds.size > 1;
+  const allSelected = selectedProgrammeIds.size === programmes.length;
 
-  // In bulk mode, show the intersection of teachers across selected programmes
-  // In single mode, show the active programme's teachers
   const currentTeachers: ProgrammeTeacher[] = (() => {
-    if (isBulkMode) return []; // Bulk mode uses additive approach
+    if (isBulkMode) return [];
     const active = assignments.find((a) => a.programmeId === activeProgrammeId);
     return active?.teachers || [];
   })();
@@ -136,9 +122,7 @@ export function ProgrammeCourseTeachersDialog({
 
   const updateTeachersForProgramme = (programmeId: string, teachers: ProgrammeTeacher[]) => {
     setAssignments((prev) =>
-      prev.map((a) =>
-        a.programmeId === programmeId ? { ...a, teachers } : a
-      )
+      prev.map((a) => (a.programmeId === programmeId ? { ...a, teachers } : a))
     );
   };
 
@@ -147,7 +131,6 @@ export function ProgrammeCourseTeachersDialog({
     updateTeachersForProgramme(activeProgrammeId, teachers);
   };
 
-  // Bulk add: add teachers to all selected programmes
   const bulkAddTeachers = (teachersToAdd: { id: string; name: string }[]) => {
     setAssignments((prev) =>
       prev.map((a) => {
@@ -157,7 +140,7 @@ export function ProgrammeCourseTeachersDialog({
           .map((t) => ({
             id: t.id,
             name: t.name,
-            role: (a.teachers.length === 0 ? "coordinator" : "lecturer") as ProgrammeTeacher["role"],
+            role: "lecturer" as ProgrammeTeacher["role"],
           }));
         return { ...a, teachers: [...a.teachers, ...newTeachers] };
       })
@@ -168,19 +151,11 @@ export function ProgrammeCourseTeachersDialog({
     if (!selectedLeft) return;
     const t = availableTeachers.find((x) => x.id === selectedLeft);
     if (!t) return;
-
     if (isBulkMode) {
       bulkAddTeachers([{ id: t.id, name: t.name }]);
     } else {
       if (currentTeachers.some((ct) => ct.id === t.id)) return;
-      updateTeachers([
-        ...currentTeachers,
-        {
-          id: t.id,
-          name: t.name,
-          role: currentTeachers.length === 0 ? "coordinator" : "lecturer",
-        },
-      ]);
+      updateTeachers([...currentTeachers, { id: t.id, name: t.name, role: "lecturer" }]);
     }
     setSelectedLeft(null);
   };
@@ -189,12 +164,10 @@ export function ProgrammeCourseTeachersDialog({
     if (isBulkMode) {
       bulkAddTeachers(available.map((t) => ({ id: t.id, name: t.name })));
     } else {
-      const newTeachers = available.map((t, i) => ({
+      const newTeachers = available.map((t) => ({
         id: t.id,
         name: t.name,
-        role: (currentTeachers.length === 0 && i === 0
-          ? "coordinator"
-          : "lecturer") as ProgrammeTeacher["role"],
+        role: "lecturer" as ProgrammeTeacher["role"],
       }));
       updateTeachers([...currentTeachers, ...newTeachers]);
     }
@@ -213,31 +186,29 @@ export function ProgrammeCourseTeachersDialog({
     setSelectedRight(null);
   };
 
-  const updateRole = (teacherId: string, role: ProgrammeTeacher["role"]) => {
-    if (isBulkMode) return;
-    updateTeachers(
-      currentTeachers.map((t) => (t.id === teacherId ? { ...t, role } : t))
-    );
-  };
-
   const toggleProgrammeSelection = (programmeId: string) => {
     setSelectedProgrammeIds((prev) => {
       const next = new Set(prev);
-      if (next.has(programmeId)) {
-        next.delete(programmeId);
-      } else {
-        next.add(programmeId);
-      }
+      if (next.has(programmeId)) next.delete(programmeId);
+      else next.add(programmeId);
       return next;
     });
   };
 
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedProgrammeIds(new Set());
+    } else {
+      setSelectedProgrammeIds(new Set(programmes.map((p) => p.id)));
+    }
+  };
+
   const handleRowClick = (programmeId: string) => {
     setActiveProgrammeId(programmeId);
-    // If not in bulk mode, clear multi-selection
     if (selectedProgrammeIds.size <= 1) {
       setSelectedProgrammeIds(new Set([programmeId]));
     }
+    if (!panelOpen) setPanelOpen(true);
     setLeftSearch("");
     setRightSearch("");
     setSelectedLeft(null);
@@ -251,48 +222,75 @@ export function ProgrammeCourseTeachersDialog({
   };
 
   const assignedCount = assignments.filter((a) => a.teachers.length > 0).length;
+  const showPanel = panelOpen && (activeProgrammeId || isBulkMode);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1000px] max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className={cn(
+        "max-h-[85vh] overflow-hidden flex flex-col",
+        showPanel ? "sm:max-w-[1000px]" : "sm:max-w-[550px]"
+      )}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5 text-accent" />
             Programme Teachers — {courseCode}
           </DialogTitle>
           <DialogDescription>
-            Assign teachers to <strong>{courseName}</strong> per study programme.
-            Select multiple programmes to bulk-assign.{" "}
+            Assign teachers to <strong>{courseName}</strong> per study programme.{" "}
             <Badge variant="outline" className="ml-1">
               {assignedCount}/{programmes.length} staffed
             </Badge>
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit}
-          className="flex-1 overflow-hidden flex flex-col gap-3"
-        >
+        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col gap-3">
           <div className="flex gap-3 flex-1 overflow-hidden min-h-[380px]">
             {/* Programme list */}
-            <div className="w-[340px] flex flex-col border rounded-lg overflow-hidden shrink-0">
+            <div className={cn(
+              "flex flex-col border rounded-lg overflow-hidden shrink-0",
+              showPanel ? "w-[340px]" : "flex-1"
+            )}>
               <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Programmes ({programmes.length})
                 </Label>
-                {selectedProgrammeIds.size > 1 && (
-                  <Badge className="bg-accent text-accent-foreground text-[10px]">
-                    {selectedProgrammeIds.size} selected — bulk mode
-                  </Badge>
-                )}
+                <div className="flex items-center gap-2">
+                  {selectedProgrammeIds.size > 1 && (
+                    <Badge className="bg-accent text-accent-foreground text-[10px]">
+                      {selectedProgrammeIds.size} selected — bulk
+                    </Badge>
+                  )}
+                  {(activeProgrammeId || isBulkMode) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => setPanelOpen(!panelOpen)}
+                      title={panelOpen ? "Close assignment panel" : "Open assignment panel"}
+                    >
+                      {panelOpen ? (
+                        <PanelRightClose className="h-3.5 w-3.5" />
+                      ) : (
+                        <PanelRightOpen className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
               <ScrollArea className="flex-1">
                 <div className="text-xs">
-                  {/* Header */}
+                  {/* Header with Select All */}
                   <div className="grid grid-cols-[28px_1fr_auto] gap-1 px-3 py-2 border-b bg-muted/20 font-semibold text-muted-foreground items-center">
-                    <span></span>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={toggleSelectAll}
+                        className="h-3.5 w-3.5"
+                      />
+                    </div>
                     <span>Programme</span>
-                    <span className="text-center w-[160px]">Teachers</span>
+                    <span className="text-center min-w-[120px]">Teachers</span>
                   </div>
                   {assignments.map((a) => (
                     <div
@@ -305,15 +303,10 @@ export function ProgrammeCourseTeachersDialog({
                       )}
                       onClick={() => handleRowClick(a.programmeId)}
                     >
-                      <div
-                        className="flex items-center"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedProgrammeIds.has(a.programmeId)}
-                          onCheckedChange={() =>
-                            toggleProgrammeSelection(a.programmeId)
-                          }
+                          onCheckedChange={() => toggleProgrammeSelection(a.programmeId)}
                           className="h-3.5 w-3.5"
                         />
                       </div>
@@ -322,34 +315,26 @@ export function ProgrammeCourseTeachersDialog({
                           <span className="font-mono font-medium text-[11px] bg-muted px-1 py-0.5 rounded">
                             {a.programmeCode}
                           </span>
-                          <span className="font-medium truncate">
-                            {a.programmeName}
-                          </span>
+                          <span className="font-medium truncate">{a.programmeName}</span>
                         </div>
                       </div>
-                      <div className="w-[160px]">
+                      <div className="min-w-[120px]">
                         {a.teachers.length === 0 ? (
-                          <span className="text-muted-foreground text-[10px]">
-                            No teachers
-                          </span>
+                          <span className="text-muted-foreground text-[10px]">No teachers</span>
                         ) : (
                           <div className="flex items-center gap-1 flex-wrap">
-                            {a.teachers.slice(0, 2).map((t) => (
+                            {a.teachers.slice(0, showPanel ? 2 : 4).map((t) => (
                               <Badge
                                 key={t.id}
                                 variant="outline"
-                                className={cn(
-                                  "text-[9px] px-1 py-0",
-                                  t.role === "coordinator" && "border-accent/50 text-accent"
-                                )}
+                                className="text-[9px] px-1 py-0"
                               >
-                                {t.name.split(" ").pop()}
-                                {t.role === "coordinator" && " ★"}
+                                {shortName(t.name)}
                               </Badge>
                             ))}
-                            {a.teachers.length > 2 && (
+                            {a.teachers.length > (showPanel ? 2 : 4) && (
                               <span className="text-[10px] text-muted-foreground">
-                                +{a.teachers.length - 2}
+                                +{a.teachers.length - (showPanel ? 2 : 4)}
                               </span>
                             )}
                           </div>
@@ -362,14 +347,13 @@ export function ProgrammeCourseTeachersDialog({
             </div>
 
             {/* Teacher dual-list builder */}
-            {activeProgrammeId || isBulkMode ? (
+            {showPanel && (
               <div className="flex-1 flex flex-col gap-2 overflow-hidden">
                 <div className="px-1">
                   {isBulkMode ? (
                     <p className="text-xs text-muted-foreground">
                       <strong>Bulk mode:</strong> Adding teachers to{" "}
                       <strong>{selectedProgrammeIds.size} programmes</strong> at once.
-                      Teachers are added to each programme that doesn't already have them.
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
@@ -415,10 +399,8 @@ export function ProgrammeCourseTeachersDialog({
                             onClick={() => setSelectedLeft(t.id)}
                             onDoubleClick={addOne}
                           >
-                            <p className="text-xs font-medium">{t.name}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {t.title}
-                            </p>
+                            <p className="text-xs font-medium">{shortName(t.name)}</p>
+                            <p className="text-[10px] text-muted-foreground">{t.title}</p>
                           </div>
                         ))
                       )}
@@ -427,57 +409,25 @@ export function ProgrammeCourseTeachersDialog({
 
                   {/* Center controls */}
                   <div className="flex flex-col items-center justify-center gap-1.5 py-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={addAll}
-                      disabled={available.length === 0}
-                      title={isBulkMode ? "Add all to selected programmes" : "Add all"}
-                    >
+                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={addAll} disabled={available.length === 0}>
                       <ChevronsRight className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={addOne}
-                      disabled={!selectedLeft}
-                      title={isBulkMode ? "Add to selected programmes" : "Add selected"}
-                    >
+                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={addOne} disabled={!selectedLeft}>
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Button>
                     {!isBulkMode && (
                       <>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={removeOne}
-                          disabled={!selectedRight}
-                          title="Remove selected"
-                        >
+                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={removeOne} disabled={!selectedRight}>
                           <ChevronLeft className="h-3.5 w-3.5" />
                         </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={removeAll}
-                          disabled={currentTeachers.length === 0}
-                          title="Remove all"
-                        >
+                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={removeAll} disabled={currentTeachers.length === 0}>
                           <ChevronsLeft className="h-3.5 w-3.5" />
                         </Button>
                       </>
                     )}
                   </div>
 
-                  {/* Assigned / Bulk confirmation */}
+                  {/* Assigned / Bulk */}
                   <div className="flex-[1.2] flex flex-col border rounded-lg overflow-hidden">
                     <div className="p-2 border-b bg-muted/30">
                       <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -510,10 +460,7 @@ export function ProgrammeCourseTeachersDialog({
                               const a = assignments.find((x) => x.programmeId === pid);
                               if (!a) return null;
                               return (
-                                <div
-                                  key={pid}
-                                  className="flex items-center justify-between px-2 py-1.5 bg-muted/30 rounded text-xs"
-                                >
+                                <div key={pid} className="flex items-center justify-between px-2 py-1.5 bg-muted/30 rounded text-xs">
                                   <span className="font-medium">{a.programmeCode}</span>
                                   <span className="text-muted-foreground">
                                     {a.teachers.length} teacher{a.teachers.length !== 1 && "s"}
@@ -529,9 +476,7 @@ export function ProgrammeCourseTeachersDialog({
                           <p className="text-xs text-muted-foreground">No teachers</p>
                         </div>
                       ) : filteredAssigned.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center py-6">
-                          No matches
-                        </p>
+                        <p className="text-xs text-muted-foreground text-center py-6">No matches</p>
                       ) : (
                         filteredAssigned.map((t) => (
                           <div
@@ -545,37 +490,7 @@ export function ProgrammeCourseTeachersDialog({
                             onClick={() => setSelectedRight(t.id)}
                             onDoubleClick={removeOne}
                           >
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-medium flex-1 truncate">
-                                {t.name}
-                              </span>
-                              <Select
-                                value={t.role}
-                                onValueChange={(v: ProgrammeTeacher["role"]) =>
-                                  updateRole(t.id, v)
-                                }
-                              >
-                                <SelectTrigger
-                                  className="w-[100px] h-6 text-[10px]"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-popover">
-                                  <SelectItem value="coordinator">Coordinator</SelectItem>
-                                  <SelectItem value="lecturer">Lecturer</SelectItem>
-                                  <SelectItem value="assistant">Assistant</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Badge
-                                className={cn(
-                                  "text-[9px] shrink-0 px-1",
-                                  roleColors[t.role]
-                                )}
-                              >
-                                {roleLabels[t.role]}
-                              </Badge>
-                            </div>
+                            <span className="text-xs font-medium">{shortName(t.name)}</span>
                           </div>
                         ))
                       )}
@@ -583,31 +498,25 @@ export function ProgrammeCourseTeachersDialog({
                   </div>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {/* Empty state when no panel and nothing selected */}
+            {!showPanel && !activeProgrammeId && !isBulkMode && (
               <div className="flex-1 flex items-center justify-center border rounded-lg bg-muted/10">
                 <div className="text-center text-muted-foreground">
                   <GraduationCap className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">Select a programme to manage teachers</p>
-                  <p className="text-xs mt-1">
-                    Or check multiple programmes for bulk assignment
-                  </p>
+                  <p className="text-xs mt-1">Or check multiple programmes for bulk assignment</p>
                 </div>
               </div>
             )}
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="bg-accent hover:bg-accent/90 text-accent-foreground"
-            >
+            <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground">
               Save Teachers
             </Button>
           </DialogFooter>

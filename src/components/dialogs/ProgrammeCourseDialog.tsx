@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { BookOpen, Search } from "lucide-react";
+import { TeacherPicker, type ProgrammeCourseTeacher, type AvailableTeacher } from "@/components/programmes/TeacherPicker";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,7 @@ export interface ProgrammeCourse {
   semester: number;
   type: "mandatory" | "elective";
   rules: ProgrammeCourseRules;
+  teachers?: ProgrammeCourseTeacher[];
 }
 
 // Legacy rule format for backwards compatibility
@@ -74,6 +76,7 @@ interface ProgrammeCourseDialogProps {
   programmeName: string;
   programmeCourse?: ProgrammeCourse | null;
   availableCourses: BaseCourse[];
+  availableTeachers?: AvailableTeacher[];
   onSave: (programmeCourse: Omit<ProgrammeCourse, "id"> & { id?: string }) => void;
 }
 
@@ -91,10 +94,12 @@ export function ProgrammeCourseDialog({
   programmeName,
   programmeCourse,
   availableCourses,
+  availableTeachers = [],
   onSave,
 }: ProgrammeCourseDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCourse, setSelectedCourse] = useState<BaseCourse | null>(null);
+  const [teachers, setTeachers] = useState<ProgrammeCourseTeacher[]>([]);
   const [formData, setFormData] = useState({
     semester: 1,
     type: "mandatory" as ProgrammeCourse["type"],
@@ -110,9 +115,11 @@ export function ProgrammeCourseDialog({
         type: programmeCourse.type,
         ects: programmeCourse.ects,
       });
+      setTeachers(programmeCourse.teachers || []);
     } else {
       setSelectedCourse(null);
       setFormData({ semester: 1, type: "mandatory", ects: 6 });
+      setTeachers([]);
     }
     setSearchQuery("");
   }, [programmeCourse, availableCourses, open]);
@@ -137,6 +144,7 @@ export function ProgrammeCourseDialog({
       semester: formData.semester,
       type: formData.type,
       rules: programmeCourse?.rules || createEmptyRules(),
+      teachers,
     });
     onOpenChange(false);
   };
@@ -308,6 +316,13 @@ export function ProgrammeCourseDialog({
                   ? "This course is required for all students in the programme"
                   : "This course is optional - students can choose whether to enroll"}
               </div>
+
+              {/* Teacher Assignment */}
+              <TeacherPicker
+                teachers={teachers}
+                availableTeachers={availableTeachers}
+                onChange={setTeachers}
+              />
             </>
           )}
 

@@ -711,10 +711,10 @@ export default function Courses() {
       {/* Programme Picker for Programme-Course Teachers */}
       {programmePickerCourse && programmePickerOpen && (
         <ProgrammePickerDialog
-          open={programmePickerOpen}
-          onOpenChange={(open) => {
-            setProgrammePickerOpen(open);
-            if (!open) setProgrammePickerCourse(null);
+          open
+          onClose={() => {
+            setProgrammePickerOpen(false);
+            setProgrammePickerCourse(null);
           }}
           courseName={programmePickerCourse.name}
           courseCode={programmePickerCourse.code}
@@ -754,10 +754,10 @@ export default function Courses() {
       {/* Bulk Rule Assignment */}
       {bulkRulesCourse && bulkRulesOpen && (
         <BulkRuleAssignmentDialog
-          open={bulkRulesOpen}
-          onOpenChange={(open) => {
-            setBulkRulesOpen(open);
-            if (!open) setBulkRulesCourse(null);
+          open
+          onClose={() => {
+            setBulkRulesOpen(false);
+            setBulkRulesCourse(null);
           }}
           courseName={bulkRulesCourse.name}
           courseCode={bulkRulesCourse.code}
@@ -775,10 +775,10 @@ export default function Courses() {
       {/* Faculty-Course Teachers */}
       {facultyTeachersCourse && facultyTeachersOpen && (
         <FacultyCourseTeachersDialog
-          open={facultyTeachersOpen}
-          onOpenChange={(open) => {
-            setFacultyTeachersOpen(open);
-            if (!open) setFacultyTeachersCourse(null);
+          open
+          onClose={() => {
+            setFacultyTeachersOpen(false);
+            setFacultyTeachersCourse(null);
           }}
           courseName={facultyTeachersCourse.name}
           courseCode={facultyTeachersCourse.code}

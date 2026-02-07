@@ -11,6 +11,7 @@ import {
   ExternalLink,
   LayoutGrid,
   List,
+  Building2,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -33,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CourseDialog, type MasterCourseOption } from "@/components/dialogs/CourseDialog";
 import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
+import { FacultyCourseDialog, type FacultyCourseAssignment } from "@/components/dialogs/FacultyCourseDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
@@ -132,14 +134,12 @@ function CourseCard({
   course,
   onEdit,
   onDelete,
-  onManageTeachers,
-  onViewTeachersPage,
+  onManageFaculty,
 }: {
   course: BaseCourse;
   onEdit: () => void;
   onDelete: () => void;
-  onManageTeachers: () => void;
-  onViewTeachersPage: () => void;
+  onManageFaculty: () => void;
 }) {
   return (
     <div className="data-card p-5 hover:shadow-elevated transition-all">
@@ -223,13 +223,9 @@ function CourseCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-popover">
             <DropdownMenuItem onClick={onEdit}>Edit Course</DropdownMenuItem>
-            <DropdownMenuItem onClick={onManageTeachers}>
-              <Users className="h-4 w-4 mr-2" />
-              Quick Assign Teachers
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onViewTeachersPage}>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Full Teachers Page
+            <DropdownMenuItem onClick={onManageFaculty}>
+              <Building2 className="h-4 w-4 mr-2" />
+              Faculty & Teachers
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-destructive">
@@ -256,6 +252,18 @@ export default function Courses() {
   const [teachersDialogOpen, setTeachersDialogOpen] = useState(false);
   const [teachersCourse, setTeachersCourse] = useState<BaseCourse | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+
+  // Faculty-Course dialog state
+  const [facultyCourseDialogOpen, setFacultyCourseDialogOpen] = useState(false);
+  const [facultyCourseCourse, setFacultyCourseCourse] = useState<BaseCourse | null>(null);
+  const [facultyCourseAssignments, setFacultyCourseAssignments] = useState<Record<string, FacultyCourseAssignment[]>>({});
+
+  const allFaculties = [
+    { id: "1", name: "Faculty of Computer Science", code: "FCS" },
+    { id: "2", name: "Faculty of Natural Sciences", code: "FNS" },
+    { id: "3", name: "Faculty of Engineering", code: "FE" },
+    { id: "4", name: "Faculty of Economics", code: "FEC" },
+  ];
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
@@ -421,12 +429,9 @@ export default function Courses() {
                 setDeletingCourseId(course.id);
                 setDeleteDialogOpen(true);
               }}
-              onManageTeachers={() => {
-                setTeachersCourse(course);
-                setTeachersDialogOpen(true);
-              }}
-              onViewTeachersPage={() => {
-                navigate(`/courses/${course.id}/teachers`);
+              onManageFaculty={() => {
+                setFacultyCourseCourse(course);
+                setFacultyCourseDialogOpen(true);
               }}
             />
           ))}
@@ -507,18 +512,12 @@ export default function Courses() {
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => {
-                        setTeachersCourse(course);
-                        setTeachersDialogOpen(true);
+                        setFacultyCourseCourse(course);
+                        setFacultyCourseDialogOpen(true);
                       }}
                     >
-                      <Users className="h-4 w-4 mr-2" />
-                      Quick Assign Teachers
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigate(`/courses/${course.id}/teachers`)}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Full Teachers Page
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Faculty & Teachers
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -548,15 +547,22 @@ export default function Courses() {
         onSave={handleSave}
       />
 
-      {teachersCourse && (
-        <CourseTeachersDialog
-          open={teachersDialogOpen}
-          onOpenChange={setTeachersDialogOpen}
-          courseName={teachersCourse.name}
-          courseCode={teachersCourse.code}
-          teachers={teachersCourse.teachers}
+      {facultyCourseCourse && (
+        <FacultyCourseDialog
+          open={facultyCourseDialogOpen}
+          onOpenChange={setFacultyCourseDialogOpen}
+          courseName={facultyCourseCourse.name}
+          courseCode={facultyCourseCourse.code}
+          faculties={allFaculties}
           availableTeachers={availableTeachers}
-          onSave={handleSaveTeachers}
+          assignments={facultyCourseAssignments[facultyCourseCourse.id] || []}
+          onSave={(assignments) => {
+            setFacultyCourseAssignments((prev) => ({
+              ...prev,
+              [facultyCourseCourse.id]: assignments,
+            }));
+            toast.success("Faculty configuration saved");
+          }}
         />
       )}
 

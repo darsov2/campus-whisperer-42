@@ -6,6 +6,7 @@ import {
   GitBranch,
   MoreHorizontal,
   Eye,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +36,7 @@ interface ManageCoursesModalProps {
   onAddCourse: (semester: number) => void;
   onEditCourse: (course: ProgrammeCourse) => void;
   onConfigureRules: (course: ProgrammeCourse) => void;
+  onManageTeachers: (course: ProgrammeCourse) => void;
   onRemoveCourse: (courseId: string) => void;
 }
 
@@ -50,6 +52,7 @@ export function ManageCoursesModal({
   onAddCourse,
   onEditCourse,
   onConfigureRules,
+  onManageTeachers,
   onRemoveCourse,
 }: ManageCoursesModalProps) {
   const [visualRulesCourse, setVisualRulesCourse] = useState<ProgrammeCourse | null>(null);
@@ -197,6 +200,13 @@ export function ManageCoursesModal({
                                     </div>
                                     <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                                       <span>{course.ects} ECTS</span>
+                                      {(course.teachers?.length ?? 0) > 0 && (
+                                        <span className="font-medium flex items-center gap-1">
+                                          <Users className="h-3 w-3" />
+                                          {course.teachers!.length} teacher
+                                          {course.teachers!.length !== 1 && "s"}
+                                        </span>
+                                      )}
                                       {conditionsCount > 0 && (
                                         <span className="text-accent font-medium flex items-center gap-1">
                                           <GitBranch className="h-3 w-3" />
@@ -224,6 +234,14 @@ export function ManageCoursesModal({
                                     <Button
                                       variant="ghost"
                                       size="sm"
+                                      onClick={() => onManageTeachers(course)}
+                                      title="Manage teachers"
+                                    >
+                                      <Users className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => onConfigureRules(course)}
                                       title="Configure rules"
                                     >
@@ -243,6 +261,12 @@ export function ManageCoursesModal({
                                           onClick={() => onEditCourse(course)}
                                         >
                                           Edit Settings
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => onManageTeachers(course)}
+                                        >
+                                          <Users className="h-4 w-4 mr-2" />
+                                          Manage Teachers
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                           onClick={() => onConfigureRules(course)}

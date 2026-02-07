@@ -9,6 +9,8 @@ import {
   ChevronsLeft,
   PanelRightClose,
   PanelRightOpen,
+  X,
+  CheckCheck,
 } from "lucide-react";
 import {
   Dialog,
@@ -147,6 +149,16 @@ export function ProgrammeCourseTeachersDialog({
     );
   };
 
+  const removeTeacherFromProgramme = (programmeId: string, teacherId: string) => {
+    setAssignments((prev) =>
+      prev.map((a) =>
+        a.programmeId === programmeId
+          ? { ...a, teachers: a.teachers.filter((t) => t.id !== teacherId) }
+          : a
+      )
+    );
+  };
+
   const addOne = () => {
     if (!selectedLeft) return;
     const t = availableTeachers.find((x) => x.id === selectedLeft);
@@ -227,37 +239,43 @@ export function ProgrammeCourseTeachersDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(
-        "max-h-[85vh] overflow-hidden flex flex-col",
-        showPanel ? "sm:max-w-[1000px]" : "sm:max-w-[550px]"
+        "max-h-[85vh] overflow-hidden flex flex-col p-0",
+        showPanel ? "sm:max-w-[1050px]" : "sm:max-w-[600px]"
       )}>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-accent" />
-            Programme Teachers — {courseCode}
-          </DialogTitle>
-          <DialogDescription>
-            Assign teachers to <strong>{courseName}</strong> per study programme.{" "}
-            <Badge variant="outline" className="ml-1">
-              {assignedCount}/{programmes.length} staffed
-            </Badge>
-          </DialogDescription>
-        </DialogHeader>
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b bg-muted/20">
+          <DialogHeader className="space-y-1.5">
+            <DialogTitle className="flex items-center gap-2.5 text-lg">
+              <div className="h-8 w-8 rounded-lg bg-accent/15 flex items-center justify-center">
+                <GraduationCap className="h-4.5 w-4.5 text-accent" />
+              </div>
+              Programme Teachers — {courseCode}
+            </DialogTitle>
+            <DialogDescription className="flex items-center gap-2">
+              Assign teachers to <strong>{courseName}</strong> per study programme.
+              <Badge variant="outline" className="text-[10px] font-medium">
+                <CheckCheck className="h-3 w-3 mr-1" />
+                {assignedCount}/{programmes.length} staffed
+              </Badge>
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col gap-3">
-          <div className="flex gap-3 flex-1 overflow-hidden min-h-[380px]">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex gap-0 flex-1 overflow-hidden min-h-[400px]">
             {/* Programme list */}
             <div className={cn(
-              "flex flex-col border rounded-lg overflow-hidden shrink-0",
-              showPanel ? "w-[340px]" : "flex-1"
+              "flex flex-col border-r overflow-hidden shrink-0",
+              showPanel ? "w-[380px]" : "flex-1"
             )}>
-              <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="px-4 py-3 border-b bg-muted/10 flex items-center justify-between">
+                <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Programmes ({programmes.length})
                 </Label>
                 <div className="flex items-center gap-2">
                   {selectedProgrammeIds.size > 1 && (
-                    <Badge className="bg-accent text-accent-foreground text-[10px]">
-                      {selectedProgrammeIds.size} selected — bulk
+                    <Badge className="bg-accent/15 text-accent border-accent/30 text-[10px] font-medium">
+                      {selectedProgrammeIds.size} selected
                     </Badge>
                   )}
                   {(activeProgrammeId || isBulkMode) && (
@@ -280,8 +298,8 @@ export function ProgrammeCourseTeachersDialog({
               </div>
               <ScrollArea className="flex-1">
                 <div className="text-xs">
-                  {/* Header with Select All */}
-                  <div className="grid grid-cols-[28px_1fr_auto] gap-1 px-3 py-2 border-b bg-muted/20 font-semibold text-muted-foreground items-center">
+                  {/* Header row */}
+                  <div className="grid grid-cols-[28px_1fr] gap-1 px-4 py-2 border-b bg-muted/5 font-semibold text-muted-foreground items-center sticky top-0">
                     <div onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={allSelected}
@@ -289,54 +307,51 @@ export function ProgrammeCourseTeachersDialog({
                         className="h-3.5 w-3.5"
                       />
                     </div>
-                    <span>Programme</span>
-                    <span className="text-center min-w-[120px]">Teachers</span>
+                    <span>Programme / Assigned Teachers</span>
                   </div>
                   {assignments.map((a) => (
                     <div
                       key={a.programmeId}
                       className={cn(
-                        "grid grid-cols-[28px_1fr_auto] gap-1 px-3 py-2.5 border-b last:border-b-0 cursor-pointer transition-colors items-center",
+                        "grid grid-cols-[28px_1fr] gap-1 px-4 py-3 border-b last:border-b-0 cursor-pointer transition-all items-start",
                         activeProgrammeId === a.programmeId
-                          ? "bg-accent/15 border-l-2 border-l-accent"
-                          : "hover:bg-muted/50"
+                          ? "bg-accent/10 border-l-[3px] border-l-accent"
+                          : "hover:bg-muted/40 border-l-[3px] border-l-transparent"
                       )}
                       onClick={() => handleRowClick(a.programmeId)}
                     >
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <div onClick={(e) => e.stopPropagation()} className="pt-0.5">
                         <Checkbox
                           checked={selectedProgrammeIds.has(a.programmeId)}
                           onCheckedChange={() => toggleProgrammeSelection(a.programmeId)}
                           className="h-3.5 w-3.5"
                         />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 space-y-1.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-medium text-[11px] bg-muted px-1 py-0.5 rounded">
+                          <span className="font-mono font-semibold text-[10px] bg-muted/60 text-muted-foreground px-1.5 py-0.5 rounded">
                             {a.programmeCode}
                           </span>
-                          <span className="font-medium truncate">{a.programmeName}</span>
+                          <span className="font-medium truncate text-[12px]">{a.programmeName}</span>
                         </div>
-                      </div>
-                      <div className="min-w-[120px]">
                         {a.teachers.length === 0 ? (
-                          <span className="text-muted-foreground text-[10px]">No teachers</span>
+                          <span className="text-muted-foreground/60 text-[10px] italic">No teachers assigned</span>
                         ) : (
                           <div className="flex items-center gap-1 flex-wrap">
-                            {a.teachers.slice(0, showPanel ? 2 : 4).map((t) => (
+                            {a.teachers.map((t) => (
                               <Badge
                                 key={t.id}
-                                variant="outline"
-                                className="text-[9px] px-1 py-0"
+                                variant="secondary"
+                                className="text-[10px] pl-1.5 pr-1 py-0 gap-0.5 font-normal cursor-pointer hover:bg-destructive/15 hover:text-destructive hover:border-destructive/30 transition-colors group"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeTeacherFromProgramme(a.programmeId, t.id);
+                                }}
                               >
-                                {shortName(t.name)}
+                                {t.name}
+                                <X className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                               </Badge>
                             ))}
-                            {a.teachers.length > (showPanel ? 2 : 4) && (
-                              <span className="text-[10px] text-muted-foreground">
-                                +{a.teachers.length - (showPanel ? 2 : 4)}
-                              </span>
-                            )}
                           </div>
                         )}
                       </div>
@@ -348,33 +363,32 @@ export function ProgrammeCourseTeachersDialog({
 
             {/* Teacher dual-list builder */}
             {showPanel && (
-              <div className="flex-1 flex flex-col gap-2 overflow-hidden">
-                <div className="px-1">
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="px-4 py-3 border-b bg-muted/10">
                   {isBulkMode ? (
-                    <p className="text-xs text-muted-foreground">
-                      <strong>Bulk mode:</strong> Adding teachers to{" "}
-                      <strong>{selectedProgrammeIds.size} programmes</strong> at once.
+                    <p className="text-xs font-medium text-accent">
+                      Bulk mode — adding to {selectedProgrammeIds.size} programmes
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      Teachers for{" "}
-                      <strong>
+                      Assign teachers to{" "}
+                      <strong className="text-foreground">
                         {assignments.find((a) => a.programmeId === activeProgrammeId)?.programmeName}
                       </strong>
                     </p>
                   )}
                 </div>
-                <div className="flex gap-2 flex-1 overflow-hidden">
+                <div className="flex gap-0 flex-1 overflow-hidden">
                   {/* Available */}
-                  <div className="flex-1 flex flex-col border rounded-lg overflow-hidden">
-                    <div className="p-2 border-b bg-muted/30">
-                      <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="flex-1 flex flex-col border-r overflow-hidden">
+                    <div className="px-3 py-2.5 border-b bg-muted/5">
+                      <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                         Available ({available.length})
                       </Label>
                       <div className="relative mt-1.5">
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                         <Input
-                          placeholder="Filter..."
+                          placeholder="Filter teachers..."
                           value={leftSearch}
                           onChange={(e) => setLeftSearch(e.target.value)}
                           className="pl-7 h-7 text-xs"
@@ -383,23 +397,23 @@ export function ProgrammeCourseTeachersDialog({
                     </div>
                     <ScrollArea className="flex-1">
                       {available.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center py-6">
-                          {leftSearch ? "No matches" : "All assigned"}
+                        <p className="text-xs text-muted-foreground text-center py-8">
+                          {leftSearch ? "No matches" : "All teachers assigned"}
                         </p>
                       ) : (
                         available.map((t) => (
                           <div
                             key={t.id}
                             className={cn(
-                              "px-2 py-2 cursor-pointer border-b last:border-b-0 transition-colors",
+                              "px-3 py-2 cursor-pointer border-b last:border-b-0 transition-colors",
                               selectedLeft === t.id
-                                ? "bg-accent/15 border-l-2 border-l-accent"
-                                : "hover:bg-muted/50"
+                                ? "bg-accent/10 border-l-2 border-l-accent"
+                                : "hover:bg-muted/40 border-l-2 border-l-transparent"
                             )}
                             onClick={() => setSelectedLeft(t.id)}
                             onDoubleClick={addOne}
                           >
-                            <p className="text-xs font-medium">{shortName(t.name)}</p>
+                            <p className="text-xs font-medium">{t.name}</p>
                             <p className="text-[10px] text-muted-foreground">{t.title}</p>
                           </div>
                         ))
@@ -408,19 +422,19 @@ export function ProgrammeCourseTeachersDialog({
                   </div>
 
                   {/* Center controls */}
-                  <div className="flex flex-col items-center justify-center gap-1.5 py-4">
-                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={addAll} disabled={available.length === 0}>
+                  <div className="flex flex-col items-center justify-center gap-1.5 px-2 py-4 bg-muted/5">
+                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={addAll} disabled={available.length === 0} title="Add all">
                       <ChevronsRight className="h-3.5 w-3.5" />
                     </Button>
-                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={addOne} disabled={!selectedLeft}>
+                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={addOne} disabled={!selectedLeft} title="Add selected">
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Button>
                     {!isBulkMode && (
                       <>
-                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={removeOne} disabled={!selectedRight}>
+                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={removeOne} disabled={!selectedRight} title="Remove selected">
                           <ChevronLeft className="h-3.5 w-3.5" />
                         </Button>
-                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={removeAll} disabled={currentTeachers.length === 0}>
+                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={removeAll} disabled={currentTeachers.length === 0} title="Remove all">
                           <ChevronsLeft className="h-3.5 w-3.5" />
                         </Button>
                       </>
@@ -428,9 +442,9 @@ export function ProgrammeCourseTeachersDialog({
                   </div>
 
                   {/* Assigned / Bulk */}
-                  <div className="flex-[1.2] flex flex-col border rounded-lg overflow-hidden">
-                    <div className="p-2 border-b bg-muted/30">
-                      <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="flex-[1.2] flex flex-col overflow-hidden">
+                    <div className="px-3 py-2.5 border-b bg-muted/5">
+                      <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                         {isBulkMode ? "Bulk Assignment" : `Assigned (${currentTeachers.length})`}
                       </Label>
                       {!isBulkMode && (
@@ -448,49 +462,52 @@ export function ProgrammeCourseTeachersDialog({
                     <ScrollArea className="flex-1">
                       {isBulkMode ? (
                         <div className="p-4 space-y-3">
-                          <div className="text-center py-2">
-                            <Users className="h-6 w-6 mx-auto text-accent mb-2" />
-                            <p className="text-xs text-muted-foreground">
+                          <div className="text-center py-3">
+                            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-2.5">
+                              <Users className="h-5 w-5 text-accent" />
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
                               Select teachers on the left and click the arrow to add them to all{" "}
-                              <strong>{selectedProgrammeIds.size}</strong> selected programmes.
+                              <strong className="text-foreground">{selectedProgrammeIds.size}</strong> selected programmes.
                             </p>
                           </div>
-                          <div className="space-y-1.5">
+                          <div className="space-y-1">
                             {Array.from(selectedProgrammeIds).map((pid) => {
                               const a = assignments.find((x) => x.programmeId === pid);
                               if (!a) return null;
                               return (
-                                <div key={pid} className="flex items-center justify-between px-2 py-1.5 bg-muted/30 rounded text-xs">
-                                  <span className="font-medium">{a.programmeCode}</span>
-                                  <span className="text-muted-foreground">
+                                <div key={pid} className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-md text-xs">
+                                  <span className="font-mono font-medium text-[10px]">{a.programmeCode}</span>
+                                  <Badge variant="outline" className="text-[10px]">
                                     {a.teachers.length} teacher{a.teachers.length !== 1 && "s"}
-                                  </span>
+                                  </Badge>
                                 </div>
                               );
                             })}
                           </div>
                         </div>
                       ) : currentTeachers.length === 0 ? (
-                        <div className="text-center py-6">
-                          <Users className="h-6 w-6 mx-auto text-muted-foreground mb-1.5 opacity-50" />
-                          <p className="text-xs text-muted-foreground">No teachers</p>
+                        <div className="text-center py-10">
+                          <Users className="h-7 w-7 mx-auto text-muted-foreground/30 mb-2" />
+                          <p className="text-xs text-muted-foreground/60">No teachers assigned</p>
+                          <p className="text-[10px] text-muted-foreground/40 mt-0.5">Double-click or use arrows</p>
                         </div>
                       ) : filteredAssigned.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center py-6">No matches</p>
+                        <p className="text-xs text-muted-foreground text-center py-8">No matches</p>
                       ) : (
                         filteredAssigned.map((t) => (
                           <div
                             key={t.id}
                             className={cn(
-                              "px-2 py-1.5 cursor-pointer border-b last:border-b-0 transition-colors",
+                              "px-3 py-2 cursor-pointer border-b last:border-b-0 transition-colors",
                               selectedRight === t.id
-                                ? "bg-accent/15 border-l-2 border-l-accent"
-                                : "hover:bg-muted/50"
+                                ? "bg-accent/10 border-l-2 border-l-accent"
+                                : "hover:bg-muted/40 border-l-2 border-l-transparent"
                             )}
                             onClick={() => setSelectedRight(t.id)}
                             onDoubleClick={removeOne}
                           >
-                            <span className="text-xs font-medium">{shortName(t.name)}</span>
+                            <span className="text-xs font-medium">{t.name}</span>
                           </div>
                         ))
                       )}
@@ -499,20 +516,10 @@ export function ProgrammeCourseTeachersDialog({
                 </div>
               </div>
             )}
-
-            {/* Empty state when no panel and nothing selected */}
-            {!showPanel && !activeProgrammeId && !isBulkMode && (
-              <div className="flex-1 flex items-center justify-center border rounded-lg bg-muted/10">
-                <div className="text-center text-muted-foreground">
-                  <GraduationCap className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Select a programme to manage teachers</p>
-                  <p className="text-xs mt-1">Or check multiple programmes for bulk assignment</p>
-                </div>
-              </div>
-            )}
           </div>
 
-          <DialogFooter>
+          {/* Footer */}
+          <DialogFooter className="px-6 py-4 border-t bg-muted/10">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

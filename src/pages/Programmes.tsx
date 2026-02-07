@@ -122,6 +122,10 @@ const initialProgrammes: ProgrammeWithDetails[] = [
         semester: 1,
         type: "mandatory",
         rules: createEmptyRules(),
+        teachers: [
+          { id: "t2", name: "Prof. Michael Chen", role: "coordinator" },
+          { id: "t5", name: "Maria Garcia, MSc", role: "assistant" },
+        ],
       },
       {
         id: "pc2",
@@ -148,6 +152,9 @@ const initialProgrammes: ProgrammeWithDetails[] = [
             },
           ],
         },
+        teachers: [
+          { id: "t3", name: "Dr. Emily Williams", role: "lecturer" },
+        ],
       },
       {
         id: "pc3",
@@ -198,6 +205,10 @@ const initialProgrammes: ProgrammeWithDetails[] = [
             },
           ],
         },
+        teachers: [
+          { id: "t1", name: "Dr. Sarah Johnson", role: "coordinator" },
+          { id: "t4", name: "Dr. James Brown", role: "lecturer" },
+        ],
       },
       {
         id: "pc4",
@@ -208,6 +219,9 @@ const initialProgrammes: ProgrammeWithDetails[] = [
         semester: 1,
         type: "mandatory",
         rules: createEmptyRules(),
+        teachers: [
+          { id: "t6", name: "Prof. David Kim", role: "coordinator" },
+        ],
       },
       {
         id: "pc5",
@@ -252,6 +266,10 @@ const initialProgrammes: ProgrammeWithDetails[] = [
             },
           ],
         },
+        teachers: [
+          { id: "t7", name: "Dr. Anna Schmidt", role: "coordinator" },
+          { id: "t3", name: "Dr. Emily Williams", role: "lecturer" },
+        ],
       },
     ],
     slots: [
@@ -327,6 +345,9 @@ const initialProgrammes: ProgrammeWithDetails[] = [
             },
           ],
         },
+        teachers: [
+          { id: "t1", name: "Dr. Sarah Johnson", role: "coordinator" },
+        ],
       },
       {
         id: "pc7",
@@ -337,6 +358,7 @@ const initialProgrammes: ProgrammeWithDetails[] = [
         semester: 1,
         type: "elective",
         rules: createEmptyRules(),
+        teachers: [],
       },
     ],
     slots: [],
@@ -363,6 +385,9 @@ const initialProgrammes: ProgrammeWithDetails[] = [
         semester: 1,
         type: "mandatory",
         rules: createEmptyRules(),
+        teachers: [
+          { id: "t6", name: "Prof. David Kim", role: "coordinator" },
+        ],
       },
       {
         id: "pc9",
@@ -373,6 +398,9 @@ const initialProgrammes: ProgrammeWithDetails[] = [
         semester: 1,
         type: "mandatory",
         rules: createEmptyRules(),
+        teachers: [
+          { id: "t7", name: "Dr. Anna Schmidt", role: "lecturer" },
+        ],
       },
     ],
     slots: [],

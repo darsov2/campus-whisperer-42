@@ -7,8 +7,6 @@ import {
   ChevronLeft,
   ChevronsRight,
   ChevronsLeft,
-  LayoutGrid,
-  List,
 } from "lucide-react";
 import {
   Dialog,
@@ -84,7 +82,7 @@ export function FacultyCourseDialog({
 }: FacultyCourseDialogProps) {
   const [assignments, setAssignments] = useState<FacultyCourseAssignment[]>([]);
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"table" | "panel">("table");
+  
 
   // Teacher dual-list state
   const [leftSearch, setLeftSearch] = useState("");
@@ -219,34 +217,10 @@ export function FacultyCourseDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[950px] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
+           <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-accent" />
               Faculty Availability — {courseCode}
             </DialogTitle>
-            <div className="flex items-center border rounded-md mr-8">
-              <Button
-                type="button"
-                variant={viewMode === "table" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("table")}
-                className="rounded-r-none h-7 text-xs"
-              >
-                <List className="h-3.5 w-3.5 mr-1" />
-                Table
-              </Button>
-              <Button
-                type="button"
-                variant={viewMode === "panel" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("panel")}
-                className="rounded-l-none h-7 text-xs"
-              >
-                <LayoutGrid className="h-3.5 w-3.5 mr-1" />
-                Panel
-              </Button>
-            </div>
-          </div>
           <DialogDescription>
             Configure which faculties offer <strong>{courseName}</strong> and
             assign teachers per faculty.{" "}
@@ -260,33 +234,7 @@ export function FacultyCourseDialog({
           onSubmit={handleSubmit}
           className="flex-1 overflow-hidden flex flex-col gap-3"
         >
-          {viewMode === "table" ? (
-            <TableView
-              assignments={assignments}
-              selectedFacultyId={selectedFacultyId}
-              onSelectFaculty={setSelectedFacultyId}
-              onToggleSemester={toggleSemester}
-              availableTeachers={availableTeachers}
-              // Teacher builder props
-              leftSearch={leftSearch}
-              setLeftSearch={setLeftSearch}
-              rightSearch={rightSearch}
-              setRightSearch={setRightSearch}
-              selectedLeft={selectedLeft}
-              setSelectedLeft={setSelectedLeft}
-              selectedRight={selectedRight}
-              setSelectedRight={setSelectedRight}
-              available={available}
-              filteredAssigned={filteredAssigned}
-              currentTeachers={currentTeachers}
-              addOne={addOne}
-              addAll={addAll}
-              removeOne={removeOne}
-              removeAll={removeAll}
-              updateRole={updateRole}
-            />
-          ) : (
-            <PanelView
+          <TableView
               assignments={assignments}
               selectedFacultyId={selectedFacultyId}
               onSelectFaculty={setSelectedFacultyId}
@@ -309,7 +257,6 @@ export function FacultyCourseDialog({
               removeAll={removeAll}
               updateRole={updateRole}
             />
-          )}
 
           <DialogFooter>
             <Button
@@ -459,102 +406,7 @@ function TableView({
   );
 }
 
-// ─── Panel View ─────────────────────────────────────────
-function PanelView({
-  assignments,
-  selectedFacultyId,
-  onSelectFaculty,
-  onToggleSemester,
-  ...teacherProps
-}: ViewProps) {
-  return (
-    <div className="flex gap-3 flex-1 overflow-hidden min-h-[380px]">
-      {/* Faculty list */}
-      <div className="w-[220px] flex flex-col border rounded-lg overflow-hidden shrink-0">
-        <div className="p-3 border-b bg-muted/30">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Faculties
-          </Label>
-        </div>
-        <ScrollArea className="flex-1">
-          {assignments.map((a) => {
-            const active = a.winter || a.summer;
-            return (
-              <div
-                key={a.facultyId}
-                className={cn(
-                  "px-3 py-3 cursor-pointer border-b last:border-b-0 transition-colors",
-                  selectedFacultyId === a.facultyId
-                    ? "bg-accent/15 border-l-2 border-l-accent"
-                    : "hover:bg-muted/50",
-                  !active && "opacity-50"
-                )}
-                onClick={() => onSelectFaculty(a.facultyId)}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{a.facultyCode}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      {a.facultyName.replace("Faculty of ", "")}
-                    </p>
-                  </div>
-                  {active && (
-                    <Badge className="bg-accent/20 text-accent text-[10px] px-1">
-                      {a.teachers.length}
-                    </Badge>
-                  )}
-                </div>
-                <div
-                  className="flex gap-3 mt-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
-                    <Switch
-                      checked={a.winter}
-                      onCheckedChange={(v) =>
-                        onToggleSemester(a.facultyId, "winter", v)
-                      }
-                      className="scale-[0.65]"
-                    />
-                    Win
-                  </label>
-                  <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
-                    <Switch
-                      checked={a.summer}
-                      onCheckedChange={(v) =>
-                        onToggleSemester(a.facultyId, "summer", v)
-                      }
-                      className="scale-[0.65]"
-                    />
-                    Sum
-                  </label>
-                </div>
-              </div>
-            );
-          })}
-        </ScrollArea>
-      </div>
 
-      {/* Teacher dual-list builder */}
-      {selectedFacultyId ? (
-        <TeacherDualList
-          facultyName={
-            assignments.find((a) => a.facultyId === selectedFacultyId)
-              ?.facultyName || ""
-          }
-          {...teacherProps}
-        />
-      ) : (
-        <div className="flex-1 flex items-center justify-center border rounded-lg bg-muted/10">
-          <div className="text-center text-muted-foreground">
-            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Select a faculty to manage teachers</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Teacher Dual-List Builder ──────────────────────────
 interface TeacherDualListProps {

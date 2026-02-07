@@ -41,6 +41,7 @@ import {
 } from "@/components/dialogs/ProgrammeCourseDialog";
 import { ProgrammeCourseRuleDialog } from "@/components/dialogs/ProgrammeCourseRuleDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
+import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
 import { CourseGroupsSection } from "@/components/programmes/CourseGroupsSection";
 import { ManageCoursesModal } from "@/components/programmes/ManageCoursesModal";
 import { ConfigureSlotsModal } from "@/components/programmes/ConfigureSlotsModal";
@@ -602,6 +603,10 @@ export default function Programmes() {
   const [deleteCourseDialogOpen, setDeleteCourseDialogOpen] = useState(false);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
 
+  // Teacher management
+  const [teachersCourse, setTeachersCourse] = useState<ProgrammeCourse | null>(null);
+  const [teachersDialogOpen, setTeachersDialogOpen] = useState(false);
+
   const filteredProgrammes = programmes.filter((programme) => {
     const matchesSearch =
       programme.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -907,6 +912,10 @@ export default function Programmes() {
           setRulesCourse(course);
           setRuleDialogOpen(true);
         }}
+        onManageTeachers={(course) => {
+          setTeachersCourse(course);
+          setTeachersDialogOpen(true);
+        }}
         onRemoveCourse={(courseId) => {
           setDeletingCourseId(courseId);
           setDeleteCourseDialogOpen(true);
@@ -933,7 +942,7 @@ export default function Programmes() {
           availableCourses={
             editingProgrammeCourse ? catalogCourses : availableCatalogCourses
           }
-          availableTeachers={availableTeachersList}
+          
           onSave={handleSaveProgrammeCourse}
         />
       )}
@@ -946,6 +955,57 @@ export default function Programmes() {
           programmeCourse={rulesCourse}
           allProgrammeCourses={selectedProgramme.courses}
           onSave={handleSaveRules}
+        />
+      )}
+
+      {/* Course Teachers Dialog */}
+      {teachersCourse && (
+        <CourseTeachersDialog
+          open={teachersDialogOpen}
+          onOpenChange={setTeachersDialogOpen}
+          courseName={teachersCourse.courseName}
+          courseCode={teachersCourse.courseCode}
+          teachers={(teachersCourse.teachers || []).map(t => ({
+            id: t.id,
+            name: t.name,
+            role: t.role,
+          }))}
+          availableTeachers={availableTeachersList}
+          onSave={(teachers: CourseTeacher[]) => {
+            if (!selectedProgramme || !teachersCourse) return;
+            const updatedTeachers = teachers.map(t => ({
+              id: t.id,
+              name: t.name,
+              role: t.role,
+            }));
+            setProgrammes(prev =>
+              prev.map(p =>
+                p.id === selectedProgramme.id
+                  ? {
+                      ...p,
+                      courses: p.courses.map(c =>
+                        c.id === teachersCourse.id
+                          ? { ...c, teachers: updatedTeachers }
+                          : c
+                      ),
+                    }
+                  : p
+              )
+            );
+            setSelectedProgramme(prev =>
+              prev
+                ? {
+                    ...prev,
+                    courses: prev.courses.map(c =>
+                      c.id === teachersCourse.id
+                        ? { ...c, teachers: updatedTeachers }
+                        : c
+                    ),
+                  }
+                : null
+            );
+            toast.success("Teachers updated for " + teachersCourse.courseCode);
+          }}
         />
       )}
 

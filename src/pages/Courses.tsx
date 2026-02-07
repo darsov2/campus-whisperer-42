@@ -11,8 +11,6 @@ import {
   ExternalLink,
   LayoutGrid,
   List,
-  GitBranch,
-  Building2,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -35,9 +33,6 @@ import {
 import { cn } from "@/lib/utils";
 import { CourseDialog, type MasterCourseOption } from "@/components/dialogs/CourseDialog";
 import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
-import { ProgrammePickerDialog, type ProgrammeOption } from "@/components/dialogs/ProgrammePickerDialog";
-import { BulkRuleAssignmentDialog } from "@/components/dialogs/BulkRuleAssignmentDialog";
-import { FacultyCourseTeachersDialog, type FacultyCourseTeacher } from "@/components/dialogs/FacultyCourseTeachersDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
@@ -139,18 +134,12 @@ function CourseCard({
   onDelete,
   onManageTeachers,
   onViewTeachersPage,
-  onProgrammeTeachers,
-  onBulkRules,
-  onFacultyTeachers,
 }: {
   course: BaseCourse;
   onEdit: () => void;
   onDelete: () => void;
   onManageTeachers: () => void;
   onViewTeachersPage: () => void;
-  onProgrammeTeachers: () => void;
-  onBulkRules: () => void;
-  onFacultyTeachers: () => void;
 }) {
   return (
     <div className="data-card p-5 hover:shadow-elevated transition-all">
@@ -234,7 +223,6 @@ function CourseCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-popover">
             <DropdownMenuItem onClick={onEdit}>Edit Course</DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onManageTeachers}>
               <Users className="h-4 w-4 mr-2" />
               Quick Assign Teachers
@@ -242,19 +230,6 @@ function CourseCard({
             <DropdownMenuItem onClick={onViewTeachersPage}>
               <ExternalLink className="h-4 w-4 mr-2" />
               Full Teachers Page
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onFacultyTeachers}>
-              <Building2 className="h-4 w-4 mr-2" />
-              Faculty Teachers
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onProgrammeTeachers}>
-              <GraduationCap className="h-4 w-4 mr-2" />
-              Programme Teachers
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onBulkRules}>
-              <GitBranch className="h-4 w-4 mr-2" />
-              Assign Rules
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-destructive">
@@ -281,67 +256,6 @@ export default function Courses() {
   const [teachersDialogOpen, setTeachersDialogOpen] = useState(false);
   const [teachersCourse, setTeachersCourse] = useState<BaseCourse | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
-
-  // Programme picker for programme-course teachers
-  const [programmePickerOpen, setProgrammePickerOpen] = useState(false);
-  const [programmePickerCourse, setProgrammePickerCourse] = useState<BaseCourse | null>(null);
-
-  // Bulk rule assignment
-  const [bulkRulesOpen, setBulkRulesOpen] = useState(false);
-  const [bulkRulesCourse, setBulkRulesCourse] = useState<BaseCourse | null>(null);
-
-  // Faculty-course teachers
-  const [facultyTeachersOpen, setFacultyTeachersOpen] = useState(false);
-  const [facultyTeachersCourse, setFacultyTeachersCourse] = useState<BaseCourse | null>(null);
-
-  // Programme-course teacher dialog (after picking programme)
-  const [progTeachersDialogOpen, setProgTeachersDialogOpen] = useState(false);
-  const [progTeachersProgramme, setProgTeachersProgramme] = useState<ProgrammeOption | null>(null);
-
-  // Mock programme data for courses
-  const mockCourseProgrammes: Record<string, ProgrammeOption[]> = {
-    "1": [
-      { id: "p1", name: "Computer Science", code: "CS-BSC", degree: "bachelor", faculty: "Faculty of Computer Science", semester: 1, ects: 6 },
-      { id: "p4", name: "Information Systems", code: "IS-BSC", degree: "bachelor", faculty: "Faculty of Computer Science", semester: 1, ects: 5 },
-    ],
-    "2": [
-      { id: "p1", name: "Computer Science", code: "CS-BSC", degree: "bachelor", faculty: "Faculty of Computer Science", semester: 3, ects: 6 },
-    ],
-    "3": [
-      { id: "p1", name: "Computer Science", code: "CS-BSC", degree: "bachelor", faculty: "Faculty of Computer Science", semester: 5, ects: 5 },
-      { id: "p2", name: "Computer Science", code: "CS-MSC", degree: "master", faculty: "Faculty of Computer Science", semester: 1, ects: 5 },
-      { id: "p4", name: "Information Systems", code: "IS-BSC", degree: "bachelor", faculty: "Faculty of Computer Science", semester: 4, ects: 6 },
-    ],
-    "4": [
-      { id: "p1", name: "Computer Science", code: "CS-BSC", degree: "bachelor", faculty: "Faculty of Computer Science", semester: 1, ects: 7 },
-      { id: "p3", name: "Mathematics", code: "MA-BSC", degree: "bachelor", faculty: "Faculty of Natural Sciences", semester: 1, ects: 7 },
-    ],
-    "5": [
-      { id: "p2", name: "Computer Science", code: "CS-MSC", degree: "master", faculty: "Faculty of Computer Science", semester: 1, ects: 6 },
-    ],
-    "6": [
-      { id: "p1", name: "Computer Science", code: "CS-BSC", degree: "bachelor", faculty: "Faculty of Computer Science", semester: 1, ects: 3 },
-    ],
-  };
-
-  const availableFacultyTeachers = [
-    { id: "t1", name: "Dr. John Smith", title: "Associate Professor", faculty: "Faculty of Computer Science" },
-    { id: "t2", name: "Prof. Maria Garcia", title: "Full Professor", faculty: "Faculty of Computer Science" },
-    { id: "t3", name: "Prof. Anna Johnson", title: "Full Professor", faculty: "Faculty of Computer Science" },
-    { id: "t4", name: "Prof. David Lee", title: "Full Professor", faculty: "Faculty of Natural Sciences" },
-    { id: "t5", name: "Dr. Sarah Chen", title: "Assistant Professor", faculty: "Faculty of Computer Science" },
-    { id: "t6", name: "Dr. Michael Brown", title: "Senior Lecturer", faculty: "Faculty of Engineering" },
-    { id: "t7", name: "Dr. Emily Wilson", title: "Lecturer", faculty: "Faculty of Computer Science" },
-  ];
-
-  const allFaculties = [
-    "Faculty of Computer Science",
-    "Faculty of Natural Sciences",
-    "Faculty of Engineering",
-    "Faculty of Economics",
-  ];
-
-  const availableCoursesForRules = courses.map((c) => ({ code: c.code, name: c.name }));
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
@@ -514,18 +428,6 @@ export default function Courses() {
               onViewTeachersPage={() => {
                 navigate(`/courses/${course.id}/teachers`);
               }}
-              onProgrammeTeachers={() => {
-                setProgrammePickerCourse(course);
-                setProgrammePickerOpen(true);
-              }}
-              onBulkRules={() => {
-                setBulkRulesCourse(course);
-                setBulkRulesOpen(true);
-              }}
-              onFacultyTeachers={() => {
-                setFacultyTeachersCourse(course);
-                setFacultyTeachersOpen(true);
-              }}
             />
           ))}
         </div>
@@ -603,7 +505,6 @@ export default function Courses() {
                     >
                       Edit Course
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => {
                         setTeachersCourse(course);
@@ -618,34 +519,6 @@ export default function Courses() {
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Full Teachers Page
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setFacultyTeachersCourse(course);
-                        setFacultyTeachersOpen(true);
-                      }}
-                    >
-                      <Building2 className="h-4 w-4 mr-2" />
-                      Faculty Teachers
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setProgrammePickerCourse(course);
-                        setProgrammePickerOpen(true);
-                      }}
-                    >
-                      <GraduationCap className="h-4 w-4 mr-2" />
-                      Programme Teachers
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setBulkRulesCourse(course);
-                        setBulkRulesOpen(true);
-                      }}
-                    >
-                      <GitBranch className="h-4 w-4 mr-2" />
-                      Assign Rules
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -667,26 +540,18 @@ export default function Courses() {
         />
       )}
 
-      {dialogOpen && (
-        <CourseDialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) setEditingCourse(null);
-          }}
-          course={editingCourse as any}
-          masterCourses={masterCourseOptions}
-          onSave={handleSave}
-        />
-      )}
+      <CourseDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        course={editingCourse as any}
+        masterCourses={masterCourseOptions}
+        onSave={handleSave}
+      />
 
-      {teachersCourse && teachersDialogOpen && (
+      {teachersCourse && (
         <CourseTeachersDialog
           open={teachersDialogOpen}
-          onOpenChange={(open) => {
-            setTeachersDialogOpen(open);
-            if (!open) setTeachersCourse(null);
-          }}
+          onOpenChange={setTeachersDialogOpen}
           courseName={teachersCourse.name}
           courseCode={teachersCourse.code}
           teachers={teachersCourse.teachers}
@@ -695,103 +560,13 @@ export default function Courses() {
         />
       )}
 
-      {deleteDialogOpen && (
-        <DeleteDialog
-          open={deleteDialogOpen}
-          onOpenChange={(open) => {
-            setDeleteDialogOpen(open);
-            if (!open) setDeletingCourseId(null);
-          }}
-          title="Archive Course"
-          description="Are you sure you want to archive this course? It will be removed from all programmes."
-          onConfirm={handleDelete}
-        />
-      )}
-
-      {/* Programme Picker for Programme-Course Teachers */}
-      {programmePickerCourse && programmePickerOpen && (
-        <ProgrammePickerDialog
-          open
-          onClose={() => {
-            setProgrammePickerOpen(false);
-            setProgrammePickerCourse(null);
-          }}
-          courseName={programmePickerCourse.name}
-          courseCode={programmePickerCourse.code}
-          programmes={mockCourseProgrammes[programmePickerCourse.id] || []}
-          title="Programme Teachers"
-          description={`Select a programme to manage teachers for ${programmePickerCourse.code}`}
-          onSelect={(prog) => {
-            setProgTeachersProgramme(prog);
-            setProgTeachersDialogOpen(true);
-          }}
-        />
-      )}
-
-      {/* Programme-Course Teacher Assignment (reuses CourseTeachersDialog) */}
-      {programmePickerCourse && progTeachersProgramme && progTeachersDialogOpen && (
-        <CourseTeachersDialog
-          open={progTeachersDialogOpen}
-          onOpenChange={(open) => {
-            setProgTeachersDialogOpen(open);
-            if (!open) {
-              setProgTeachersProgramme(null);
-              setProgrammePickerCourse(null);
-            }
-          }}
-          courseName={`${programmePickerCourse.code} in ${progTeachersProgramme.name} (${progTeachersProgramme.code})`}
-          courseCode={programmePickerCourse.code}
-          teachers={[]}
-          availableTeachers={availableTeachers}
-          onSave={(teachers) => {
-            toast.success(
-              `${teachers.length} teacher${teachers.length !== 1 ? "s" : ""} assigned to ${programmePickerCourse.code} in ${progTeachersProgramme.name}`
-            );
-          }}
-        />
-      )}
-
-      {/* Bulk Rule Assignment */}
-      {bulkRulesCourse && bulkRulesOpen && (
-        <BulkRuleAssignmentDialog
-          open
-          onClose={() => {
-            setBulkRulesOpen(false);
-            setBulkRulesCourse(null);
-          }}
-          courseName={bulkRulesCourse.name}
-          courseCode={bulkRulesCourse.code}
-          programmes={mockCourseProgrammes[bulkRulesCourse.id] || []}
-          availableCourses={availableCoursesForRules}
-          onSave={(programmeIds, rules) => {
-            const totalConditions = rules.groups.reduce((acc, g) => acc + g.conditions.length, 0);
-            toast.success(
-              `${totalConditions} rule condition${totalConditions !== 1 ? "s" : ""} applied to ${programmeIds.length} programme${programmeIds.length !== 1 ? "s" : ""}`
-            );
-          }}
-        />
-      )}
-
-      {/* Faculty-Course Teachers */}
-      {facultyTeachersCourse && facultyTeachersOpen && (
-        <FacultyCourseTeachersDialog
-          open
-          onClose={() => {
-            setFacultyTeachersOpen(false);
-            setFacultyTeachersCourse(null);
-          }}
-          courseName={facultyTeachersCourse.name}
-          courseCode={facultyTeachersCourse.code}
-          faculties={allFaculties}
-          teachers={[]}
-          availableTeachers={availableFacultyTeachers}
-          onSave={(teachers) => {
-            toast.success(
-              `Faculty teachers updated for ${facultyTeachersCourse.code}`
-            );
-          }}
-        />
-      )}
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Archive Course"
+        description="Are you sure you want to archive this course? It will be removed from all programmes."
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

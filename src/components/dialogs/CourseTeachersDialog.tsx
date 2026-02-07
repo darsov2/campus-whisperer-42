@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Plus, Trash2, Search } from "lucide-react";
+import { Users, Trash2, Search, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 export interface CourseTeacher {
@@ -60,22 +62,42 @@ export function CourseTeachersDialog({
 }: CourseTeachersDialogProps) {
   const [teachers, setTeachers] = useState<CourseTeacher[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setTeachers(initialTeachers);
     setSearchQuery("");
+    setSelectedIds(new Set());
   }, [initialTeachers, open]);
 
-  const addTeacher = (teacherId: string, name: string) => {
-    if (teachers.some((t) => t.id === teacherId)) return;
+  const toggleSelection = (teacherId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(teacherId)) {
+        next.delete(teacherId);
+      } else {
+        next.add(teacherId);
+      }
+      return next;
+    });
+  };
 
-    const newTeacher: CourseTeacher = {
-      id: teacherId,
-      name,
-      role: teachers.length === 0 ? "coordinator" : "lecturer",
-    };
-    setTeachers([...teachers, newTeacher]);
-    setSearchQuery("");
+  const addSelected = () => {
+    const newTeachers: CourseTeacher[] = [];
+    selectedIds.forEach((id) => {
+      if (!teachers.some((t) => t.id === id)) {
+        const teacher = availableTeachers.find((t) => t.id === id);
+        if (teacher) {
+          newTeachers.push({
+            id: teacher.id,
+            name: teacher.name,
+            role: teachers.length === 0 && newTeachers.length === 0 ? "coordinator" : "lecturer",
+          });
+        }
+      }
+    });
+    setTeachers([...teachers, ...newTeachers]);
+    setSelectedIds(new Set());
   };
 
   const updateRole = (teacherId: string, role: CourseTeacher["role"]) => {
@@ -94,16 +116,17 @@ export function CourseTeachersDialog({
     onOpenChange(false);
   };
 
-  const filteredAvailable = availableTeachers.filter(
+  const unassigned = availableTeachers.filter(
     (t) =>
       !teachers.some((assigned) => assigned.id === t.id) &&
-      (t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (searchQuery === "" ||
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.title.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-accent" />
@@ -114,102 +137,123 @@ export function CourseTeachersDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-hidden flex flex-col">
           {/* Assigned Teachers */}
           <div className="space-y-2">
-            <Label>Assigned Teachers</Label>
+            <Label>Assigned Teachers ({teachers.length})</Label>
             {teachers.length === 0 ? (
-              <div className="text-center py-6 border border-dashed rounded-lg bg-muted/20">
-                <Users className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <div className="text-center py-4 border border-dashed rounded-lg bg-muted/20">
+                <Users className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
                 <p className="text-muted-foreground text-sm">
-                  No teachers assigned
+                  No teachers assigned — select from the list below
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {teachers.map((teacher) => (
-                  <div
-                    key={teacher.id}
-                    className="flex items-center gap-3 p-3 bg-card border rounded-lg"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium">{teacher.name}</p>
+              <ScrollArea className="max-h-48">
+                <div className="space-y-2 pr-3">
+                  {teachers.map((teacher) => (
+                    <div
+                      key={teacher.id}
+                      className="flex items-center gap-2 p-2.5 bg-card border rounded-lg"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{teacher.name}</p>
+                      </div>
+                      <Select
+                        value={teacher.role}
+                        onValueChange={(value: CourseTeacher["role"]) =>
+                          updateRole(teacher.id, value)
+                        }
+                      >
+                        <SelectTrigger className="w-[150px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="coordinator">Coordinator</SelectItem>
+                          <SelectItem value="lecturer">Lecturer</SelectItem>
+                          <SelectItem value="assistant">Assistant</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Badge className={cn("text-xs shrink-0", roleColors[teacher.role])}>
+                        {roleLabels[teacher.role]}
+                      </Badge>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeTeacher(teacher.id)}
+                        className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                    <Select
-                      value={teacher.role}
-                      onValueChange={(value: CourseTeacher["role"]) =>
-                        updateRole(teacher.id, value)
-                      }
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="coordinator">
-                          Course Coordinator
-                        </SelectItem>
-                        <SelectItem value="lecturer">Lecturer</SelectItem>
-                        <SelectItem value="assistant">
-                          Teaching Assistant
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Badge className={cn("text-xs", roleColors[teacher.role])}>
-                      {roleLabels[teacher.role]}
-                    </Badge>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeTeacher(teacher.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </div>
 
-          {/* Add Teacher */}
-          <div className="space-y-2">
-            <Label>Add Teacher</Label>
+          {/* Available Teachers */}
+          <div className="space-y-2 flex-1 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between">
+              <Label>Available Teachers ({unassigned.length})</Label>
+              {selectedIds.size > 0 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={addSelected}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground h-7 text-xs"
+                >
+                  <Check className="h-3.5 w-3.5 mr-1" />
+                  Add {selectedIds.size} selected
+                </Button>
+              )}
+            </div>
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search teachers..."
+                placeholder="Filter teachers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-9"
               />
             </div>
-            {searchQuery && filteredAvailable.length > 0 && (
-              <div className="border rounded-lg max-h-48 overflow-y-auto">
-                {filteredAvailable.slice(0, 5).map((teacher) => (
-                  <div
-                    key={teacher.id}
-                    className="flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => addTeacher(teacher.id, teacher.name)}
-                  >
-                    <div>
-                      <p className="font-medium">{teacher.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {teacher.title}
-                      </p>
+
+            <ScrollArea className="flex-1 border rounded-lg">
+              {unassigned.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  {searchQuery ? "No matching teachers found" : "All teachers are assigned"}
+                </p>
+              ) : (
+                <div>
+                  {unassigned.map((teacher) => (
+                    <div
+                      key={teacher.id}
+                      className={cn(
+                        "flex items-center gap-3 p-3 cursor-pointer transition-colors border-b last:border-b-0",
+                        selectedIds.has(teacher.id)
+                          ? "bg-accent/10"
+                          : "hover:bg-muted/50"
+                      )}
+                      onClick={() => toggleSelection(teacher.id)}
+                    >
+                      <Checkbox
+                        checked={selectedIds.has(teacher.id)}
+                        onCheckedChange={() => toggleSelection(teacher.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{teacher.name}</p>
+                        <p className="text-xs text-muted-foreground">{teacher.title}</p>
+                      </div>
+                      {selectedIds.has(teacher.id) && (
+                        <Check className="h-4 w-4 text-accent shrink-0" />
+                      )}
                     </div>
-                    <Button type="button" variant="ghost" size="sm">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {searchQuery && filteredAvailable.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No matching teachers found
-              </p>
-            )}
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
           </div>
 
           <DialogFooter>

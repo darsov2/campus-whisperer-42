@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { CourseDialog, type MasterCourseOption } from "@/components/dialogs/CourseDialog";
 import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
 import { FacultyCourseDialog, type FacultyCourseAssignment } from "@/components/dialogs/FacultyCourseDialog";
+import { ProgrammeCourseTeachersDialog, type ProgrammeCourseTeacherAssignment } from "@/components/dialogs/ProgrammeCourseTeachersDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
@@ -135,11 +136,13 @@ function CourseCard({
   onEdit,
   onDelete,
   onManageFaculty,
+  onManageProgTeachers,
 }: {
   course: BaseCourse;
   onEdit: () => void;
   onDelete: () => void;
   onManageFaculty: () => void;
+  onManageProgTeachers: () => void;
 }) {
   return (
     <div className="data-card p-5 hover:shadow-elevated transition-all">
@@ -227,6 +230,10 @@ function CourseCard({
               <Building2 className="h-4 w-4 mr-2" />
               Faculty & Teachers
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={onManageProgTeachers}>
+              <GraduationCap className="h-4 w-4 mr-2" />
+              Programme Teachers
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-destructive">
               Archive Course
@@ -257,6 +264,18 @@ export default function Courses() {
   const [facultyCourseDialogOpen, setFacultyCourseDialogOpen] = useState(false);
   const [facultyCourseCourse, setFacultyCourseCourse] = useState<BaseCourse | null>(null);
   const [facultyCourseAssignments, setFacultyCourseAssignments] = useState<Record<string, FacultyCourseAssignment[]>>({});
+
+  // Programme-Course Teachers dialog state
+  const [progTeachersDialogOpen, setProgTeachersDialogOpen] = useState(false);
+  const [progTeachersCourse, setProgTeachersCourse] = useState<BaseCourse | null>(null);
+  const [progTeacherAssignments, setProgTeacherAssignments] = useState<Record<string, ProgrammeCourseTeacherAssignment[]>>({});
+
+  const allProgrammes = [
+    { id: "p1", name: "Computer Science BSc", code: "CS-BSc" },
+    { id: "p2", name: "Software Engineering BSc", code: "SE-BSc" },
+    { id: "p3", name: "Data Science MSc", code: "DS-MSc" },
+    { id: "p4", name: "Information Systems BSc", code: "IS-BSc" },
+  ];
 
   const allFaculties = [
     { id: "1", name: "Faculty of Computer Science", code: "FCS" },
@@ -433,6 +452,10 @@ export default function Courses() {
                 setFacultyCourseCourse(course);
                 setFacultyCourseDialogOpen(true);
               }}
+              onManageProgTeachers={() => {
+                setProgTeachersCourse(course);
+                setProgTeachersDialogOpen(true);
+              }}
             />
           ))}
         </div>
@@ -519,6 +542,15 @@ export default function Courses() {
                       <Building2 className="h-4 w-4 mr-2" />
                       Faculty & Teachers
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setProgTeachersCourse(course);
+                        setProgTeachersDialogOpen(true);
+                      }}
+                    >
+                      <GraduationCap className="h-4 w-4 mr-2" />
+                      Programme Teachers
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => {
@@ -562,6 +594,25 @@ export default function Courses() {
               [facultyCourseCourse.id]: assignments,
             }));
             toast.success("Faculty configuration saved");
+          }}
+        />
+      )}
+
+      {progTeachersCourse && (
+        <ProgrammeCourseTeachersDialog
+          open={progTeachersDialogOpen}
+          onOpenChange={setProgTeachersDialogOpen}
+          courseName={progTeachersCourse.name}
+          courseCode={progTeachersCourse.code}
+          programmes={allProgrammes}
+          availableTeachers={availableTeachers}
+          assignments={progTeacherAssignments[progTeachersCourse.id] || []}
+          onSave={(assignments) => {
+            setProgTeacherAssignments((prev) => ({
+              ...prev,
+              [progTeachersCourse.id]: assignments,
+            }));
+            toast.success("Programme teachers saved");
           }}
         />
       )}

@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   List,
   Building2,
+  Layers,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -36,6 +37,7 @@ import { CourseDialog, type MasterCourseOption } from "@/components/dialogs/Cour
 import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
 import { FacultyCourseDialog, type FacultyCourseAssignment } from "@/components/dialogs/FacultyCourseDialog";
 import { ProgrammeCourseTeachersDialog, type ProgrammeCourseTeacherAssignment } from "@/components/dialogs/ProgrammeCourseTeachersDialog";
+import { MasterCourseDialog } from "@/components/dialogs/MasterCourseDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
@@ -50,6 +52,7 @@ export interface BaseCourse {
   description: string;
   teachers: CourseTeacher[];
   status: "active" | "draft" | "archived";
+  masterCourseId?: string;
 }
 
 const availableTeachers = [
@@ -75,6 +78,7 @@ const initialCourses: BaseCourse[] = [
       { id: "t2", name: "Prof. Maria Garcia", role: "lecturer" },
     ],
     status: "active",
+    masterCourseId: "mc1",
   },
   {
     id: "2",
@@ -85,6 +89,7 @@ const initialCourses: BaseCourse[] = [
     description: "Core data structures and algorithm design",
     teachers: [{ id: "t1", name: "Dr. John Smith", role: "coordinator" }],
     status: "active",
+    masterCourseId: "mc2",
   },
   {
     id: "3",
@@ -95,6 +100,7 @@ const initialCourses: BaseCourse[] = [
     description: "Relational databases, SQL, and database design",
     teachers: [{ id: "t3", name: "Prof. Anna Johnson", role: "coordinator" }],
     status: "active",
+    masterCourseId: "mc3",
   },
   {
     id: "4",
@@ -133,16 +139,20 @@ const initialCourses: BaseCourse[] = [
 
 function CourseCard({
   course,
+  masterCourseName,
   onEdit,
   onDelete,
   onManageFaculty,
   onManageProgTeachers,
+  onEditMasterCourse,
 }: {
   course: BaseCourse;
+  masterCourseName?: string;
   onEdit: () => void;
   onDelete: () => void;
   onManageFaculty: () => void;
   onManageProgTeachers: () => void;
+  onEditMasterCourse: () => void;
 }) {
   return (
     <div className="data-card p-5 hover:shadow-elevated transition-all">
@@ -190,6 +200,12 @@ function CourseCard({
                   {course.teachers.length !== 1 && "s"}
                 </span>
               </div>
+              {masterCourseName && (
+                <div className="flex items-center gap-1.5">
+                  <Layers className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">{masterCourseName}</span>
+                </div>
+              )}
             </div>
 
             {course.teachers.length > 0 && (
@@ -226,6 +242,10 @@ function CourseCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-popover">
             <DropdownMenuItem onClick={onEdit}>Edit Course</DropdownMenuItem>
+            <DropdownMenuItem onClick={onEditMasterCourse}>
+              <Layers className="h-4 w-4 mr-2" />
+              Edit Master Course
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onManageFaculty}>
               <Building2 className="h-4 w-4 mr-2" />
               Faculty & Teachers
@@ -269,6 +289,28 @@ export default function Courses() {
   const [progTeachersDialogOpen, setProgTeachersDialogOpen] = useState(false);
   const [progTeachersCourse, setProgTeachersCourse] = useState<BaseCourse | null>(null);
   const [progTeacherAssignments, setProgTeacherAssignments] = useState<Record<string, ProgrammeCourseTeacherAssignment[]>>({});
+
+  // Master Course dialog state
+  const [masterCourseDialogOpen, setMasterCourseDialogOpen] = useState(false);
+  const [editingMasterCourse, setEditingMasterCourse] = useState<{ id: string; name: string; description: string } | null>(null);
+
+  const getMasterCourseName = (courseId: string) => {
+    const course = courses.find(c => c.id === courseId);
+    if (!course?.masterCourseId) return undefined;
+    return masterCourseOptions.find(mc => mc.id === course.masterCourseId)?.name;
+  };
+
+  const openMasterCourseEdit = (course: BaseCourse) => {
+    if (course.masterCourseId) {
+      const mc = masterCourseOptions.find(m => m.id === course.masterCourseId);
+      if (mc) {
+        setEditingMasterCourse({ id: mc.id, name: mc.name, description: "" });
+      }
+    } else {
+      setEditingMasterCourse(null);
+    }
+    setMasterCourseDialogOpen(true);
+  };
 
   const allProgrammes = [
     { id: "p1", name: "Computer Science BSc", code: "CS-BSc" },
@@ -440,6 +482,7 @@ export default function Courses() {
             <CourseCard
               key={course.id}
               course={course}
+              masterCourseName={getMasterCourseName(course.id)}
               onEdit={() => {
                 setEditingCourse(course);
                 setDialogOpen(true);
@@ -456,6 +499,7 @@ export default function Courses() {
                 setProgTeachersCourse(course);
                 setProgTeachersDialogOpen(true);
               }}
+              onEditMasterCourse={() => openMasterCourseEdit(course)}
             />
           ))}
         </div>
@@ -483,6 +527,21 @@ export default function Courses() {
                   </p>
                 </div>
               ),
+            },
+            {
+              key: "masterCourse",
+              header: "Master Course",
+              cell: (course) => {
+                const mcName = getMasterCourseName(course.id);
+                return mcName ? (
+                  <span className="text-sm flex items-center gap-1.5">
+                    <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                    {mcName}
+                  </span>
+                ) : (
+                  <span className="text-sm text-muted-foreground">—</span>
+                );
+              },
             },
             {
               key: "faculty",
@@ -532,6 +591,12 @@ export default function Courses() {
                       }}
                     >
                       Edit Course
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => openMasterCourseEdit(course)}
+                    >
+                      <Layers className="h-4 w-4 mr-2" />
+                      Edit Master Course
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => {
@@ -616,6 +681,19 @@ export default function Courses() {
           }}
         />
       )}
+
+      <MasterCourseDialog
+        open={masterCourseDialogOpen}
+        onOpenChange={setMasterCourseDialogOpen}
+        masterCourse={editingMasterCourse}
+        onSave={(data) => {
+          if (editingMasterCourse) {
+            toast.success(`Master course "${data.name}" updated`);
+          } else {
+            toast.success(`Master course "${data.name}" created`);
+          }
+        }}
+      />
 
       <DeleteDialog
         open={deleteDialogOpen}

@@ -1,20 +1,21 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
   CalendarClock,
   CheckCheck,
-  Clock,
   Copy,
   FlaskConical,
   Globe,
+  GraduationCap,
   History,
   Megaphone,
   Minus,
   Monitor,
   Plus,
   Send,
+  Settings2,
   Split,
   User,
   Users,
@@ -23,8 +24,8 @@ import {
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -40,6 +41,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -52,8 +58,14 @@ import {
   initialAllocations,
   previousAllocations,
   getClassTypeConfig,
-  CLASS_TYPES,
 } from "@/data/allocation-data";
+
+interface CourseSettings {
+  hasEnglishGroups: boolean;
+  sharedLectures: boolean;
+  hasLaboratory: boolean;
+  mentoredOnly: boolean;
+}
 
 export default function CourseAllocation() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -66,6 +78,15 @@ export default function CourseAllocation() {
   const [newAllocType, setNewAllocType] = useState<ClassType>("lecture");
   const [newAllocGroups, setNewAllocGroups] = useState(1);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [prefOpen, setPrefOpen] = useState(true);
+  const [prevOpen, setPrevOpen] = useState(true);
+
+  const [courseSettings, setCourseSettings] = useState<CourseSettings>({
+    hasEnglishGroups: true,
+    sharedLectures: false,
+    hasLaboratory: course?.classTypes.includes("laboratory") ?? false,
+    mentoredOnly: false,
+  });
 
   if (!course) {
     return (
@@ -98,15 +119,13 @@ export default function CourseAllocation() {
   const updateGroups = (id: string, delta: number) => {
     setAllocations(prev => prev.map(a => {
       if (a.id !== id) return a;
-      const g = Math.max(1, a.groups + delta);
-      return { ...a, groups: g };
+      return { ...a, groups: Math.max(1, a.groups + delta) };
     }));
   };
 
   const handleAllocate = () => {
     const teacher = teachers.find(t => t.id === newAllocTeacher);
     if (!teacher) return;
-
     const existing = courseAllocations.find(a => a.teacherId === newAllocTeacher && a.classType === newAllocType);
     if (existing) {
       setAllocations(prev => prev.map(a =>
@@ -148,7 +167,6 @@ export default function CourseAllocation() {
     setAllocateDialogOpen(true);
   };
 
-  // Determine which teachers are "new" (have preference but weren't in previous semester)
   const prevTeacherIds = new Set(prevCourseAllocations.map(a => a.teacherId));
   const currentTeacherIds = new Set(courseAllocations.map(a => a.teacherId));
 
@@ -167,7 +185,7 @@ export default function CourseAllocation() {
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setCopyDialogOpen(true)} disabled={prevCourseAllocations.length === 0}>
                   <Copy className="h-3.5 w-3.5 mr-1.5" />
-                  Copy Previous Semester
+                  Copy Previous
                 </Button>
                 <Button size="sm" onClick={openAllocate}>
                   <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -179,245 +197,303 @@ export default function CourseAllocation() {
         </div>
       </div>
 
-      {/* Coverage summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {course.classTypes.map(t => {
-          const cfg = getClassTypeConfig(t);
-          const allocated = getGroupsAllocated(t);
-          const total = course.totalGroups[t];
-          const Icon = cfg.icon;
-          const pct = total > 0 ? Math.round((allocated / total) * 100) : 0;
-          return (
-            <div key={t} className="data-card p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon className={cn("h-4 w-4", cfg.color.split(" ")[1])} />
-                <span className="text-sm font-medium">{cfg.label}</span>
-              </div>
-              <div className="flex items-end justify-between">
-                <span className="text-2xl font-semibold tabular-nums">{allocated}<span className="text-base text-muted-foreground font-normal">/{total}</span></span>
-                <span className={cn(
-                  "text-xs font-semibold px-2 py-0.5 rounded-full",
-                  pct >= 100 ? "bg-success/10 text-success" : pct >= 50 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
-                )}>{pct}%</span>
-              </div>
-              <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div className={cn("h-full rounded-full transition-all", pct >= 100 ? "bg-success" : pct >= 50 ? "bg-warning" : "bg-destructive")} style={{ width: `${Math.min(pct, 100)}%` }} />
-              </div>
+      {/* Course Settings Card */}
+      <div className="data-card p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Settings2 className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold">Course Configuration</h3>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-info" />
+              <Label htmlFor="english" className="text-sm cursor-pointer">English Groups</Label>
             </div>
-          );
-        })}
-        <div className="data-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCheck className="h-4 w-4 text-accent" />
-            <span className="text-sm font-medium">Overall</span>
+            <Switch
+              id="english"
+              checked={courseSettings.hasEnglishGroups}
+              onCheckedChange={v => setCourseSettings(s => ({ ...s, hasEnglishGroups: v }))}
+            />
           </div>
-          <div className="flex items-end justify-between">
-            <span className="text-2xl font-semibold tabular-nums">{totalAllocated}<span className="text-base text-muted-foreground font-normal">/{totalNeeded}</span></span>
-            <span className={cn(
-              "text-xs font-semibold px-2 py-0.5 rounded-full",
-              coverage >= 100 ? "bg-success/10 text-success" : coverage >= 50 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
-            )}>{coverage}%</span>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
+            <div className="flex items-center gap-2">
+              <Split className="h-4 w-4 text-accent" />
+              <Label htmlFor="shared" className="text-sm cursor-pointer">Shared Lectures</Label>
+            </div>
+            <Switch
+              id="shared"
+              checked={courseSettings.sharedLectures}
+              onCheckedChange={v => setCourseSettings(s => ({ ...s, sharedLectures: v }))}
+            />
           </div>
-          <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-            <div className={cn("h-full rounded-full transition-all", coverage >= 100 ? "bg-success" : coverage >= 50 ? "bg-warning" : "bg-destructive")} style={{ width: `${Math.min(coverage, 100)}%` }} />
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="h-4 w-4 text-warning" />
+              <Label htmlFor="labs" className="text-sm cursor-pointer">Has Laboratory</Label>
+            </div>
+            <Switch
+              id="labs"
+              checked={courseSettings.hasLaboratory}
+              onCheckedChange={v => setCourseSettings(s => ({ ...s, hasLaboratory: v }))}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-primary" />
+              <Label htmlFor="mentored" className="text-sm cursor-pointer">Mentored Only</Label>
+            </div>
+            <Switch
+              id="mentored"
+              checked={courseSettings.mentoredOnly}
+              onCheckedChange={v => setCourseSettings(s => ({ ...s, mentoredOnly: v }))}
+            />
           </div>
         </div>
       </div>
 
-      {/* Main 3-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main layout: Current Allocation center, side panels */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* ─── Column 1: Teacher Preferences ─── */}
-        <div className="data-card overflow-hidden">
-          <div className="p-4 border-b bg-muted/20">
-            <div className="flex items-center gap-2">
-              <Send className="h-4 w-4 text-info" />
-              <h3 className="font-semibold text-sm">Preferences</h3>
-              <Badge variant="secondary" className="ml-auto text-[10px]">{coursePreferences.length}</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Teachers who expressed interest</p>
-          </div>
-          <div className="divide-y">
-            {coursePreferences.length === 0 ? (
-              <p className="p-4 text-sm text-muted-foreground text-center italic">No preferences submitted</p>
-            ) : (
-              coursePreferences.map(pref => {
-                const isAllocated = currentTeacherIds.has(pref.teacherId);
-                return (
-                  <div key={pref.id} className={cn("p-3 hover:bg-muted/20 transition-colors", isAllocated && "bg-success/5")}>
-                    <div className="flex items-start gap-3">
-                      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0", isAllocated ? "bg-success/10 text-success" : "bg-muted text-muted-foreground")}>
-                        {pref.teacherName.split(" ").map(n => n[0]).slice(0, 2).join("")}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate">{pref.teacherName}</p>
-                          {isAllocated && <Badge variant="outline" className="text-[9px] py-0 bg-success/10 text-success border-success/20">Assigned</Badge>}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{pref.teacherTitle}</p>
-                        <div className="flex gap-1 mt-1.5 flex-wrap">
-                          {pref.preferredTypes.map(t => {
-                            const cfg = getClassTypeConfig(t);
-                            return <Badge key={t} variant="outline" className={cn("text-[9px] py-0 px-1", cfg.color)}>{cfg.label}</Badge>;
-                          })}
-                        </div>
-                        <div className="flex gap-2 mt-1.5 flex-wrap">
-                          {pref.willingEnglish && <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Globe className="h-2.5 w-2.5" /> EN</span>}
-                          {pref.onlineLectures && <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Monitor className="h-2.5 w-2.5" /> Online</span>}
-                          {pref.sharedLectures && <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Split className="h-2.5 w-2.5" /> Shared</span>}
-                        </div>
-                      </div>
-                      {!isAllocated && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 shrink-0 text-accent hover:text-accent"
-                          onClick={() => {
-                            setNewAllocTeacher(pref.teacherId);
-                            setNewAllocType(pref.preferredTypes[0] || course.classTypes[0]);
-                            setNewAllocGroups(1);
-                            setAllocateDialogOpen(true);
-                          }}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* ─── Column 2: Previous Semester ─── */}
-        <div className="data-card overflow-hidden">
-          <div className="p-4 border-b bg-muted/20">
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-semibold text-sm">Previous Semester</h3>
-              <Badge variant="secondary" className="ml-auto text-[10px]">{semesters.find(s => s.id === "s1")?.name}</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Staff from last semester for reference</p>
-          </div>
-          {prevCourseAllocations.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground text-center italic">No previous allocations</p>
-          ) : (
-            <div className="divide-y">
-              {course.classTypes.map(classType => {
-                const cfg = getClassTypeConfig(classType);
-                const typeAllocs = prevCourseAllocations.filter(a => a.classType === classType);
-                if (typeAllocs.length === 0) return null;
-                const Icon = cfg.icon;
-                return (
-                  <div key={classType} className="p-3">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Icon className={cn("h-3.5 w-3.5", cfg.color.split(" ")[1])} />
-                      <span className="text-xs font-medium text-muted-foreground">{cfg.label}</span>
-                    </div>
-                    <div className="space-y-1.5 ml-5">
-                      {typeAllocs.map(a => {
-                        const isStillAssigned = courseAllocations.some(ca => ca.teacherId === a.teacherId && ca.classType === a.classType);
-                        return (
-                          <div key={a.id} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className={cn("text-sm", isStillAssigned ? "text-foreground" : "text-muted-foreground")}>{a.teacherName}</span>
-                              {isStillAssigned && <Badge variant="outline" className="text-[9px] py-0 bg-success/5 text-success border-success/20">Kept</Badge>}
+        {/* ─── Left sidebar: Preferences + Previous ─── */}
+        <div className="lg:col-span-4 space-y-4">
+          {/* Preferences */}
+          <Collapsible open={prefOpen} onOpenChange={setPrefOpen}>
+            <div className="data-card overflow-hidden">
+              <CollapsibleTrigger asChild>
+                <button className="w-full p-4 border-b bg-muted/20 flex items-center gap-2 hover:bg-muted/30 transition-colors text-left">
+                  <Send className="h-4 w-4 text-info shrink-0" />
+                  <h3 className="font-semibold text-sm flex-1">Preferences</h3>
+                  <Badge variant="secondary" className="text-[10px]">{coursePreferences.length}</Badge>
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="divide-y max-h-[400px] overflow-y-auto">
+                  {coursePreferences.length === 0 ? (
+                    <p className="p-4 text-sm text-muted-foreground text-center italic">No preferences submitted</p>
+                  ) : (
+                    coursePreferences.map(pref => {
+                      const isAllocated = currentTeacherIds.has(pref.teacherId);
+                      return (
+                        <div key={pref.id} className={cn("p-3 hover:bg-muted/20 transition-colors", isAllocated && "bg-success/5")}>
+                          <div className="flex items-start gap-3">
+                            <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0", isAllocated ? "bg-success/10 text-success" : "bg-muted text-muted-foreground")}>
+                              {pref.teacherName.split(" ").map(n => n[0]).slice(0, 2).join("")}
                             </div>
-                            <span className="text-xs tabular-nums text-muted-foreground">{a.groups} gr.</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium truncate">{pref.teacherName}</p>
+                                {isAllocated && <Badge variant="outline" className="text-[9px] py-0 bg-success/10 text-success border-success/20">Assigned</Badge>}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">{pref.teacherTitle}</p>
+                              <div className="flex gap-1 mt-1 flex-wrap">
+                                {pref.preferredTypes.map(t => {
+                                  const cfg = getClassTypeConfig(t);
+                                  return <Badge key={t} variant="outline" className={cn("text-[9px] py-0 px-1", cfg.color)}>{cfg.label}</Badge>;
+                                })}
+                              </div>
+                              <div className="flex gap-2 mt-1 flex-wrap">
+                                {pref.willingEnglish && <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Globe className="h-2.5 w-2.5" /> EN</span>}
+                                {pref.onlineLectures && <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Monitor className="h-2.5 w-2.5" /> Online</span>}
+                                {pref.sharedLectures && <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Split className="h-2.5 w-2.5" /> Shared</span>}
+                              </div>
+                            </div>
+                            {!isAllocated && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-accent hover:text-accent" onClick={() => {
+                                setNewAllocTeacher(pref.teacherId);
+                                setNewAllocType(pref.preferredTypes[0] || course.classTypes[0]);
+                                setNewAllocGroups(1);
+                                setAllocateDialogOpen(true);
+                              }}>
+                                <Plus className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
+
+          {/* Previous Semester */}
+          <Collapsible open={prevOpen} onOpenChange={setPrevOpen}>
+            <div className="data-card overflow-hidden">
+              <CollapsibleTrigger asChild>
+                <button className="w-full p-4 border-b bg-muted/20 flex items-center gap-2 hover:bg-muted/30 transition-colors text-left">
+                  <History className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <h3 className="font-semibold text-sm flex-1">Previous Semester</h3>
+                  <Badge variant="secondary" className="text-[10px]">{semesters.find(s => s.id === "s1")?.name}</Badge>
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                {prevCourseAllocations.length === 0 ? (
+                  <p className="p-4 text-sm text-muted-foreground text-center italic">No previous allocations</p>
+                ) : (
+                  <div className="divide-y">
+                    {course.classTypes.map(classType => {
+                      const cfg = getClassTypeConfig(classType);
+                      const typeAllocs = prevCourseAllocations.filter(a => a.classType === classType);
+                      if (typeAllocs.length === 0) return null;
+                      const Icon = cfg.icon;
+                      return (
+                        <div key={classType} className="p-3">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Icon className={cn("h-3.5 w-3.5", cfg.color.split(" ")[1])} />
+                            <span className="text-xs font-medium text-muted-foreground">{cfg.label}</span>
+                          </div>
+                          <div className="space-y-1.5 ml-5">
+                            {typeAllocs.map(a => {
+                              const isStillAssigned = courseAllocations.some(ca => ca.teacherId === a.teacherId && ca.classType === a.classType);
+                              return (
+                                <div key={a.id} className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className={cn("text-sm", isStillAssigned ? "text-foreground" : "text-muted-foreground")}>{a.teacherName}</span>
+                                    {isStillAssigned && <Badge variant="outline" className="text-[9px] py-0 bg-success/5 text-success border-success/20">Kept</Badge>}
+                                  </div>
+                                  <span className="text-xs tabular-nums text-muted-foreground">{a.groups} gr.</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                )}
+                {prevCourseAllocations.length > 0 && (
+                  <div className="p-3 border-t">
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => setCopyDialogOpen(true)}>
+                      <Copy className="h-3.5 w-3.5 mr-1.5" />
+                      Copy All to Current
+                    </Button>
+                  </div>
+                )}
+              </CollapsibleContent>
             </div>
-          )}
-          {prevCourseAllocations.length > 0 && (
-            <div className="p-3 border-t">
-              <Button variant="outline" size="sm" className="w-full" onClick={() => setCopyDialogOpen(true)}>
-                <Copy className="h-3.5 w-3.5 mr-1.5" />
-                Copy All to Current
-              </Button>
-            </div>
-          )}
+          </Collapsible>
         </div>
 
-        {/* ─── Column 3: Current Allocation ─── */}
-        <div className="data-card overflow-hidden">
-          <div className="p-4 border-b bg-accent/5">
-            <div className="flex items-center gap-2">
-              <CalendarClock className="h-4 w-4 text-accent" />
-              <h3 className="font-semibold text-sm">Current Allocation</h3>
-              <Badge variant="secondary" className="ml-auto text-[10px]">{semesters.find(s => s.id === "s2")?.name}</Badge>
+        {/* ─── Center: Current Allocation (prominent) ─── */}
+        <div className="lg:col-span-8 space-y-4">
+          {/* Coverage summary cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {course.classTypes.map(t => {
+              const cfg = getClassTypeConfig(t);
+              const allocated = getGroupsAllocated(t);
+              const total = course.totalGroups[t];
+              const Icon = cfg.icon;
+              const pct = total > 0 ? Math.round((allocated / total) * 100) : 0;
+              return (
+                <div key={t} className="data-card p-3">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Icon className={cn("h-3.5 w-3.5", cfg.color.split(" ")[1])} />
+                    <span className="text-xs font-medium">{cfg.label}</span>
+                  </div>
+                  <div className="flex items-end justify-between">
+                    <span className="text-xl font-semibold tabular-nums">{allocated}<span className="text-sm text-muted-foreground font-normal">/{total}</span></span>
+                    <span className={cn(
+                      "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+                      pct >= 100 ? "bg-success/10 text-success" : pct >= 50 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                    )}>{pct}%</span>
+                  </div>
+                  <div className="mt-1.5 h-1 rounded-full bg-muted overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all", pct >= 100 ? "bg-success" : pct >= 50 ? "bg-warning" : "bg-destructive")} style={{ width: `${Math.min(pct, 100)}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+            <div className="data-card p-3">
+              <div className="flex items-center gap-2 mb-1.5">
+                <CheckCheck className="h-3.5 w-3.5 text-accent" />
+                <span className="text-xs font-medium">Overall</span>
+              </div>
+              <div className="flex items-end justify-between">
+                <span className="text-xl font-semibold tabular-nums">{totalAllocated}<span className="text-sm text-muted-foreground font-normal">/{totalNeeded}</span></span>
+                <span className={cn(
+                  "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+                  coverage >= 100 ? "bg-success/10 text-success" : coverage >= 50 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                )}>{coverage}%</span>
+              </div>
+              <div className="mt-1.5 h-1 rounded-full bg-muted overflow-hidden">
+                <div className={cn("h-full rounded-full transition-all", coverage >= 100 ? "bg-success" : coverage >= 50 ? "bg-warning" : "bg-destructive")} style={{ width: `${Math.min(coverage, 100)}%` }} />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Active assignment for this semester</p>
           </div>
-          {courseAllocations.length === 0 ? (
-            <div className="p-6 text-center space-y-3">
-              <p className="text-sm text-muted-foreground italic">No allocations yet</p>
-              <Button size="sm" onClick={openAllocate}>
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Assign First Teacher
-              </Button>
-            </div>
-          ) : (
-            <div className="divide-y">
-              {course.classTypes.map(classType => {
-                const cfg = getClassTypeConfig(classType);
-                const typeAllocs = courseAllocations.filter(a => a.classType === classType);
-                const allocated = getGroupsAllocated(classType);
-                const total = course.totalGroups[classType];
-                const Icon = cfg.icon;
 
-                return (
-                  <div key={classType} className="p-3">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Icon className={cn("h-3.5 w-3.5", cfg.color.split(" ")[1])} />
-                      <span className="text-xs font-medium">{cfg.label}</span>
-                      <span className={cn("text-xs tabular-nums ml-auto", allocated >= total ? "text-success font-medium" : "text-muted-foreground")}>
-                        {allocated}/{total}
-                      </span>
-                    </div>
-                    {typeAllocs.length === 0 ? (
-                      <p className="text-xs text-muted-foreground ml-5 italic">None assigned</p>
-                    ) : (
-                      <div className="space-y-1 ml-5">
-                        {typeAllocs.map(a => {
-                          const wasPrev = prevCourseAllocations.some(pa => pa.teacherId === a.teacherId && pa.classType === a.classType);
-                          return (
-                            <div key={a.id} className="flex items-center gap-2 py-1 px-2 rounded-md hover:bg-muted/30 group transition-colors">
-                              <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <span className="text-sm flex-1 truncate">{a.teacherName}</span>
-                              {wasPrev && <Badge variant="outline" className="text-[8px] py-0 px-1 border-muted-foreground/20 text-muted-foreground shrink-0">prev</Badge>}
-                              <div className="flex items-center gap-0.5 shrink-0">
-                                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => updateGroups(a.id, -1)}>
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="text-sm font-medium tabular-nums w-5 text-center">{a.groups}</span>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => updateGroups(a.id, 1)}>
-                                  <Plus className="h-3 w-3" />
+          {/* Current Allocation table */}
+          <div className="data-card overflow-hidden">
+            <div className="p-4 border-b bg-accent/5 flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-accent" />
+              <h3 className="font-semibold text-sm flex-1">Current Allocation</h3>
+              <Badge variant="secondary" className="text-[10px]">{semesters.find(s => s.id === "s2")?.name}</Badge>
+            </div>
+            {courseAllocations.length === 0 ? (
+              <div className="p-8 text-center space-y-3">
+                <p className="text-sm text-muted-foreground italic">No allocations yet</p>
+                <Button size="sm" onClick={openAllocate}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Assign First Teacher
+                </Button>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {course.classTypes.map(classType => {
+                  const cfg = getClassTypeConfig(classType);
+                  const typeAllocs = courseAllocations.filter(a => a.classType === classType);
+                  const allocated = getGroupsAllocated(classType);
+                  const total = course.totalGroups[classType];
+                  const Icon = cfg.icon;
+
+                  return (
+                    <div key={classType} className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Icon className={cn("h-4 w-4", cfg.color.split(" ")[1])} />
+                        <span className="text-sm font-medium">{cfg.label}</span>
+                        <span className={cn("text-xs tabular-nums ml-auto font-medium", allocated >= total ? "text-success" : "text-muted-foreground")}>
+                          {allocated}/{total} groups
+                        </span>
+                      </div>
+                      {typeAllocs.length === 0 ? (
+                        <p className="text-xs text-muted-foreground ml-6 italic">None assigned</p>
+                      ) : (
+                        <div className="space-y-1 ml-6">
+                          {typeAllocs.map(a => {
+                            const wasPrev = prevCourseAllocations.some(pa => pa.teacherId === a.teacherId && pa.classType === a.classType);
+                            return (
+                              <div key={a.id} className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-muted/30 group transition-colors">
+                                <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <span className="text-sm font-medium flex-1">{a.teacherName}</span>
+                                {wasPrev && <Badge variant="outline" className="text-[9px] py-0 px-1.5 border-muted-foreground/20 text-muted-foreground shrink-0">prev</Badge>}
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <Button variant="outline" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => updateGroups(a.id, -1)}>
+                                    <Minus className="h-3 w-3" />
+                                  </Button>
+                                  <span className="text-sm font-semibold tabular-nums w-7 text-center">{a.groups}</span>
+                                  <Button variant="outline" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => updateGroups(a.id, 1)}>
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive shrink-0" onClick={() => removeAllocation(a.id)}>
+                                  <X className="h-3 w-3" />
                                 </Button>
                               </div>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive shrink-0" onClick={() => removeAllocation(a.id)}>
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="p-3 border-t">
+              <Button variant="outline" size="sm" className="w-full" onClick={openAllocate}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Assign Teacher
+              </Button>
             </div>
-          )}
-          <div className="p-3 border-t">
-            <Button variant="outline" size="sm" className="w-full" onClick={openAllocate}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Assign Teacher
-            </Button>
           </div>
         </div>
       </div>
@@ -488,7 +564,6 @@ export default function CourseAllocation() {
               </div>
             </div>
 
-            {/* Preference hint */}
             {newAllocTeacher && (() => {
               const pref = coursePreferences.find(p => p.teacherId === newAllocTeacher);
               if (!pref) return (
@@ -530,7 +605,7 @@ export default function CourseAllocation() {
               Copy Previous Semester
             </DialogTitle>
             <DialogDescription>
-              This will replace the current allocation for {course.code} with the staff from {semesters.find(s => s.id === "s1")?.name}.
+              This will replace the current allocation for {course.code} with staff from {semesters.find(s => s.id === "s1")?.name}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">

@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CalendarClock,
   CheckCircle2,
   Clock,
+  Copy,
+  ExternalLink,
   Filter,
-  GraduationCap,
   Layers,
   Lock,
   Search,
@@ -35,7 +37,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Select,
   SelectContent,
@@ -51,129 +52,24 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-// ─── Types ───────────────────────────────────────────────────
-
-type ClassType = "lecture" | "auditory" | "laboratory";
-
-interface ClassTypeConfig {
-  type: ClassType;
-  label: string;
-  icon: typeof BookOpen;
-  color: string;
-}
-
-const CLASS_TYPES: ClassTypeConfig[] = [
-  { type: "lecture", label: "Lectures", icon: Megaphone, color: "bg-primary/10 text-primary" },
-  { type: "auditory", label: "Auditory Ex.", icon: Users, color: "bg-accent/10 text-accent" },
-  { type: "laboratory", label: "Laboratory Ex.", icon: FlaskConical, color: "bg-warning/20 text-warning" },
-];
-
-type SemesterStatus = "preference_collection" | "allocation" | "finalized";
-
-interface Semester {
-  id: string;
-  name: string;
-  status: SemesterStatus;
-}
-
-interface Course {
-  id: string;
-  code: string;
-  name: string;
-  faculty: string;
-  classTypes: ClassType[];
-  totalGroups: Record<ClassType, number>;
-}
-
-interface TeacherPreference {
-  id: string;
-  teacherId: string;
-  teacherName: string;
-  teacherTitle: string;
-  courseId: string;
-  willingEnglish: boolean;
-  availableFromSemester: string;
-  sharedLectures: boolean;
-  onlineLectures: boolean;
-  preferredTypes: ClassType[];
-  submittedAt: string;
-}
-
-interface AllocationEntry {
-  id: string;
-  teacherId: string;
-  teacherName: string;
-  courseId: string;
-  classType: ClassType;
-  groups: number;
-}
-
-// ─── Mock Data ───────────────────────────────────────────────
-
-const semesters: Semester[] = [
-  { id: "s1", name: "Winter 2025/26", status: "finalized" },
-  { id: "s2", name: "Summer 2025/26", status: "allocation" },
-  { id: "s3", name: "Winter 2026/27", status: "preference_collection" },
-];
-
-const courses: Course[] = [
-  { id: "c1", code: "CS101", name: "Intro to Programming", faculty: "Computer Science", classTypes: ["lecture", "auditory", "laboratory"], totalGroups: { lecture: 2, auditory: 4, laboratory: 6 } },
-  { id: "c2", code: "CS201", name: "Data Structures", faculty: "Computer Science", classTypes: ["lecture", "auditory", "laboratory"], totalGroups: { lecture: 2, auditory: 3, laboratory: 4 } },
-  { id: "c3", code: "CS301", name: "Algorithms", faculty: "Computer Science", classTypes: ["lecture", "auditory"], totalGroups: { lecture: 2, auditory: 4, laboratory: 0 } },
-  { id: "c4", code: "MA101", name: "Calculus I", faculty: "Mathematics", classTypes: ["lecture", "auditory"], totalGroups: { lecture: 3, auditory: 6, laboratory: 0 } },
-  { id: "c5", code: "MA201", name: "Linear Algebra", faculty: "Mathematics", classTypes: ["lecture", "auditory"], totalGroups: { lecture: 2, auditory: 4, laboratory: 0 } },
-  { id: "c6", code: "PH101", name: "Physics I", faculty: "Physics", classTypes: ["lecture", "auditory", "laboratory"], totalGroups: { lecture: 2, auditory: 3, laboratory: 4 } },
-];
-
-const teachers = [
-  { id: "t1", name: "Dr. John Smith", title: "Associate Professor" },
-  { id: "t2", name: "Prof. Maria Garcia", title: "Full Professor" },
-  { id: "t3", name: "Prof. Anna Johnson", title: "Full Professor" },
-  { id: "t4", name: "Prof. David Lee", title: "Full Professor" },
-  { id: "t5", name: "Dr. Sarah Chen", title: "Assistant Professor" },
-  { id: "t6", name: "Dr. Michael Brown", title: "Senior Lecturer" },
-  { id: "t7", name: "Dr. Emily Wilson", title: "Lecturer" },
-  { id: "t8", name: "Dr. Robert Taylor", title: "Assistant Professor" },
-];
-
-const initialPreferences: TeacherPreference[] = [
-  { id: "p1", teacherId: "t1", teacherName: "Dr. John Smith", teacherTitle: "Associate Professor", courseId: "c1", willingEnglish: true, availableFromSemester: "s2", sharedLectures: false, onlineLectures: true, preferredTypes: ["lecture", "auditory"], submittedAt: "2025-09-15" },
-  { id: "p2", teacherId: "t1", teacherName: "Dr. John Smith", teacherTitle: "Associate Professor", courseId: "c2", willingEnglish: true, availableFromSemester: "s2", sharedLectures: true, onlineLectures: false, preferredTypes: ["lecture"], submittedAt: "2025-09-15" },
-  { id: "p3", teacherId: "t2", teacherName: "Prof. Maria Garcia", teacherTitle: "Full Professor", courseId: "c1", willingEnglish: false, availableFromSemester: "s2", sharedLectures: true, onlineLectures: false, preferredTypes: ["lecture"], submittedAt: "2025-09-14" },
-  { id: "p4", teacherId: "t2", teacherName: "Prof. Maria Garcia", teacherTitle: "Full Professor", courseId: "c3", willingEnglish: true, availableFromSemester: "s3", sharedLectures: false, onlineLectures: true, preferredTypes: ["lecture", "auditory"], submittedAt: "2025-09-14" },
-  { id: "p5", teacherId: "t3", teacherName: "Prof. Anna Johnson", teacherTitle: "Full Professor", courseId: "c4", willingEnglish: true, availableFromSemester: "s2", sharedLectures: true, onlineLectures: false, preferredTypes: ["lecture"], submittedAt: "2025-09-16" },
-  { id: "p6", teacherId: "t4", teacherName: "Prof. David Lee", teacherTitle: "Full Professor", courseId: "c4", willingEnglish: false, availableFromSemester: "s2", sharedLectures: false, onlineLectures: false, preferredTypes: ["lecture", "auditory"], submittedAt: "2025-09-13" },
-  { id: "p7", teacherId: "t5", teacherName: "Dr. Sarah Chen", teacherTitle: "Assistant Professor", courseId: "c1", willingEnglish: true, availableFromSemester: "s2", sharedLectures: false, onlineLectures: true, preferredTypes: ["laboratory", "auditory"], submittedAt: "2025-09-17" },
-  { id: "p8", teacherId: "t5", teacherName: "Dr. Sarah Chen", teacherTitle: "Assistant Professor", courseId: "c6", willingEnglish: true, availableFromSemester: "s2", sharedLectures: false, onlineLectures: false, preferredTypes: ["laboratory"], submittedAt: "2025-09-17" },
-  { id: "p9", teacherId: "t6", teacherName: "Dr. Michael Brown", teacherTitle: "Senior Lecturer", courseId: "c2", willingEnglish: false, availableFromSemester: "s2", sharedLectures: true, onlineLectures: false, preferredTypes: ["auditory", "laboratory"], submittedAt: "2025-09-12" },
-  { id: "p10", teacherId: "t7", teacherName: "Dr. Emily Wilson", teacherTitle: "Lecturer", courseId: "c5", willingEnglish: true, availableFromSemester: "s2", sharedLectures: false, onlineLectures: true, preferredTypes: ["lecture", "auditory"], submittedAt: "2025-09-18" },
-  { id: "p11", teacherId: "t8", teacherName: "Dr. Robert Taylor", teacherTitle: "Assistant Professor", courseId: "c3", willingEnglish: false, availableFromSemester: "s3", sharedLectures: true, onlineLectures: false, preferredTypes: ["auditory"], submittedAt: "2025-09-11" },
-  { id: "p12", teacherId: "t8", teacherName: "Dr. Robert Taylor", teacherTitle: "Assistant Professor", courseId: "c6", willingEnglish: true, availableFromSemester: "s2", sharedLectures: false, onlineLectures: true, preferredTypes: ["auditory", "laboratory"], submittedAt: "2025-09-11" },
-];
-
-const initialAllocations: AllocationEntry[] = [
-  { id: "a1", teacherId: "t1", teacherName: "Dr. John Smith", courseId: "c1", classType: "lecture", groups: 1 },
-  { id: "a2", teacherId: "t1", teacherName: "Dr. John Smith", courseId: "c2", classType: "lecture", groups: 2 },
-  { id: "a3", teacherId: "t2", teacherName: "Prof. Maria Garcia", courseId: "c1", classType: "lecture", groups: 1 },
-  { id: "a4", teacherId: "t5", teacherName: "Dr. Sarah Chen", courseId: "c1", classType: "laboratory", groups: 3 },
-  { id: "a5", teacherId: "t5", teacherName: "Dr. Sarah Chen", courseId: "c1", classType: "auditory", groups: 2 },
-  { id: "a6", teacherId: "t3", teacherName: "Prof. Anna Johnson", courseId: "c4", classType: "lecture", groups: 2 },
-  { id: "a7", teacherId: "t4", teacherName: "Prof. David Lee", courseId: "c4", classType: "lecture", groups: 1 },
-  { id: "a8", teacherId: "t4", teacherName: "Prof. David Lee", courseId: "c4", classType: "auditory", groups: 3 },
-  { id: "a9", teacherId: "t6", teacherName: "Dr. Michael Brown", courseId: "c2", classType: "auditory", groups: 2 },
-  { id: "a10", teacherId: "t6", teacherName: "Dr. Michael Brown", courseId: "c2", classType: "laboratory", groups: 3 },
-  { id: "a11", teacherId: "t7", teacherName: "Dr. Emily Wilson", courseId: "c5", classType: "lecture", groups: 2 },
-  { id: "a12", teacherId: "t7", teacherName: "Dr. Emily Wilson", courseId: "c5", classType: "auditory", groups: 2 },
-];
-
-// ─── Helpers ─────────────────────────────────────────────────
+import {
+  type ClassType,
+  type AllocationEntry,
+  type TeacherPreference,
+  type SemesterStatus,
+  courses,
+  teachers,
+  semesters,
+  initialPreferences,
+  initialAllocations,
+  previousAllocations,
+  getClassTypeConfig,
+  CLASS_TYPES,
+} from "@/data/allocation-data";
 
 const semesterStatusConfig: Record<SemesterStatus, { label: string; color: string; icon: typeof Clock }> = {
   preference_collection: { label: "Collecting Preferences", color: "bg-info/10 text-info border-info/20", icon: Clock },
@@ -181,13 +77,8 @@ const semesterStatusConfig: Record<SemesterStatus, { label: string; color: strin
   finalized: { label: "Finalized", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
 };
 
-function getClassTypeConfig(type: ClassType): ClassTypeConfig {
-  return CLASS_TYPES.find(ct => ct.type === type)!;
-}
-
-// ─── Component ───────────────────────────────────────────────
-
 export default function Allocation() {
+  const navigate = useNavigate();
   const [selectedSemester, setSelectedSemester] = useState("s2");
   const [preferences] = useState<TeacherPreference[]>(initialPreferences);
   const [allocations, setAllocations] = useState<AllocationEntry[]>(initialAllocations);
@@ -204,7 +95,10 @@ export default function Allocation() {
   const [allocCourseFilter, setAllocCourseFilter] = useState("all");
   const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set(["c1", "c4"]));
   const [allocateDialogOpen, setAllocateDialogOpen] = useState(false);
-  const [allocatingCourse, setAllocatingCourse] = useState<Course | null>(null);
+  const [allocatingCourse, setAllocatingCourse] = useState<typeof courses[0] | null>(null);
+
+  // Copy previous semester dialog
+  const [copyAllDialogOpen, setCopyAllDialogOpen] = useState(false);
 
   // Stats tab state
   const [statsView, setStatsView] = useState<"teacher" | "course">("teacher");
@@ -267,8 +161,7 @@ export default function Allocation() {
   const updateAllocationGroups = (allocationId: string, delta: number) => {
     setAllocations(prev => prev.map(a => {
       if (a.id !== allocationId) return a;
-      const newGroups = Math.max(0, a.groups + delta);
-      if (newGroups === 0) return a;
+      const newGroups = Math.max(1, a.groups + delta);
       return { ...a, groups: newGroups };
     }));
   };
@@ -278,7 +171,7 @@ export default function Allocation() {
   const [newAllocType, setNewAllocType] = useState<ClassType>("lecture");
   const [newAllocGroups, setNewAllocGroups] = useState(1);
 
-  const openAllocateDialog = (course: Course) => {
+  const openAllocateDialog = (course: typeof courses[0]) => {
     setAllocatingCourse(course);
     setNewAllocTeacher("");
     setNewAllocType(course.classTypes[0]);
@@ -310,6 +203,18 @@ export default function Allocation() {
     }
     setAllocateDialogOpen(false);
     toast.success(`Allocated ${teacher.name} to ${allocatingCourse.code}`);
+  };
+
+  // Copy all previous semester
+  const handleCopyAllPrevious = () => {
+    const newAllocs = previousAllocations.map((pa, i) => ({
+      ...pa,
+      id: `copied-all-${Date.now()}-${i}`,
+      semesterId: "s2",
+    }));
+    setAllocations(newAllocs);
+    setCopyAllDialogOpen(false);
+    toast.success(`Copied ${newAllocs.length} allocations from previous semester`);
   };
 
   // ── Statistics Tab ─────────────────────────────────────────
@@ -389,18 +294,25 @@ export default function Allocation() {
           {statusCfg.label}
         </div>
 
-        {semester.status === "preference_collection" && (
-          <Button size="sm" variant="outline" className="ml-auto" onClick={() => toast.info("Semester moved to allocation phase")}>
-            <Lock className="h-3.5 w-3.5 mr-1.5" />
-            Close Preferences & Start Allocation
+        <div className="flex items-center gap-2 ml-auto">
+          <Button size="sm" variant="outline" onClick={() => setCopyAllDialogOpen(true)}>
+            <Copy className="h-3.5 w-3.5 mr-1.5" />
+            Copy Previous Semester
           </Button>
-        )}
-        {semester.status === "allocation" && (
-          <Button size="sm" className="ml-auto" onClick={() => toast.info("Allocation finalized")}>
-            <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />
-            Finalize Allocation
-          </Button>
-        )}
+
+          {semester.status === "preference_collection" && (
+            <Button size="sm" variant="outline" onClick={() => toast.info("Semester moved to allocation phase")}>
+              <Lock className="h-3.5 w-3.5 mr-1.5" />
+              Close Preferences & Start Allocation
+            </Button>
+          )}
+          {semester.status === "allocation" && (
+            <Button size="sm" onClick={() => toast.info("Allocation finalized")}>
+              <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />
+              Finalize Allocation
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats Summary */}
@@ -615,31 +527,16 @@ export default function Allocation() {
                                     <User className="h-3.5 w-3.5 text-muted-foreground" />
                                     <span className="text-sm flex-1">{a.teacherName}</span>
                                     <div className="flex items-center gap-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                                        onClick={() => updateAllocationGroups(a.id, -1)}
-                                      >
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => updateAllocationGroups(a.id, -1)}>
                                         <Minus className="h-3 w-3" />
                                       </Button>
                                       <span className="text-sm font-medium tabular-nums w-6 text-center">{a.groups}</span>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                                        onClick={() => updateAllocationGroups(a.id, 1)}
-                                      >
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => updateAllocationGroups(a.id, 1)}>
                                         <Plus className="h-3 w-3" />
                                       </Button>
                                       <span className="text-xs text-muted-foreground mr-2">groups</span>
                                     </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-                                      onClick={() => removeAllocation(a.id)}
-                                    >
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive" onClick={() => removeAllocation(a.id)}>
                                       <X className="h-3 w-3" />
                                     </Button>
                                   </div>
@@ -655,13 +552,16 @@ export default function Allocation() {
                           <Plus className="h-3.5 w-3.5 mr-1.5" />
                           Assign Teacher
                         </Button>
-                        {/* Preference hints */}
+                        <Button size="sm" variant="ghost" onClick={() => navigate(`/allocation/${course.id}`)}>
+                          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                          Open Full View
+                        </Button>
                         {(() => {
                           const prefs = preferences.filter(p => p.courseId === course.id);
                           if (prefs.length === 0) return null;
                           return (
                             <span className="text-xs text-muted-foreground">
-                              {prefs.length} preference{prefs.length > 1 ? "s" : ""} submitted for this course
+                              {prefs.length} preference{prefs.length > 1 ? "s" : ""} submitted
                             </span>
                           );
                         })()}
@@ -922,7 +822,6 @@ export default function Allocation() {
                 </div>
               </div>
 
-              {/* Show preference hint if teacher selected */}
               {newAllocTeacher && (() => {
                 const pref = preferences.find(p => p.teacherId === newAllocTeacher && p.courseId === allocatingCourse.id);
                 if (!pref) return (
@@ -952,6 +851,52 @@ export default function Allocation() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAllocateDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleAllocate} disabled={!newAllocTeacher}>Assign</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ COPY ALL PREVIOUS SEMESTER DIALOG ═══ */}
+      <Dialog open={copyAllDialogOpen} onOpenChange={setCopyAllDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="h-4 w-4 text-accent" />
+              Copy Previous Semester Allocation
+            </DialogTitle>
+            <DialogDescription>
+              This will replace all current allocations with the staff from {semesters.find(s => s.id === "s1")?.name}. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            <p className="text-sm font-medium">{previousAllocations.length} allocations across {new Set(previousAllocations.map(a => a.courseId)).size} courses</p>
+            {courses.map(c => {
+              const courseAllocs = previousAllocations.filter(a => a.courseId === c.id);
+              if (courseAllocs.length === 0) return null;
+              return (
+                <div key={c.id} className="rounded-lg bg-muted/30 p-3">
+                  <p className="text-sm font-medium mb-1.5">{c.code} – {c.name}</p>
+                  <div className="space-y-0.5">
+                    {courseAllocs.map(a => {
+                      const cfg = getClassTypeConfig(a.classType);
+                      return (
+                        <div key={a.id} className="flex items-center gap-2 text-xs">
+                          <cfg.icon className="h-3 w-3 text-muted-foreground" />
+                          <span>{a.teacherName}</span>
+                          <span className="text-muted-foreground ml-auto tabular-nums">{a.groups} gr.</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCopyAllDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCopyAllPrevious}>
+              <Copy className="h-3.5 w-3.5 mr-1.5" />
+              Replace All & Copy
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

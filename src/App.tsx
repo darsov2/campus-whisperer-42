@@ -20,6 +20,7 @@ import RuleEngine from "./pages/RuleEngine";
 import Accreditations from "./pages/Accreditations";
 import Settings from "./pages/Settings";
 import Allocation from "./pages/Allocation";
+import CourseAllocation from "./pages/CourseAllocation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/master-courses" element={<MasterCourses />} />
             <Route path="/course-programmes" element={<CourseProgrammes />} />
             <Route path="/allocation" element={<Allocation />} />
+            <Route path="/allocation/:courseId" element={<CourseAllocation />} />
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/students" element={<Students />} />
             <Route path="/quotes" element={<Quotes />} />

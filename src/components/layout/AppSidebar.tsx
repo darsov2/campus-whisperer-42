@@ -17,6 +17,7 @@ import {
   Receipt,
   BarChart3,
   Layers,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ const navigation = [
   { name: "Courses", href: "/courses", icon: BookOpen },
   { name: "Master Courses", href: "/master-courses", icon: Layers },
   { name: "Course Overview", href: "/course-programmes", icon: Network },
+  { name: "Allocation", href: "/allocation", icon: CalendarClock },
   { name: "Teachers", href: "/teachers", icon: Users },
   { name: "Students", href: "/students", icon: UserCircle },
   { name: "Fee Quotes", href: "/quotes", icon: Receipt },

@@ -369,7 +369,6 @@ export default function Allocation() {
       <PageHeader
         title="Allocation"
         description="Assign professors and assistants to courses each semester"
-        icon={<CalendarClock className="h-8 w-8 text-accent" />}
       />
 
       {/* Semester Selector + Status */}

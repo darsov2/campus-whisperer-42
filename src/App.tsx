@@ -20,6 +20,7 @@ import RuleEngine from "./pages/RuleEngine";
 import Accreditations from "./pages/Accreditations";
 import Settings from "./pages/Settings";
 import Allocation from "./pages/Allocation";
+import CourseAllocation from "./pages/CourseAllocation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

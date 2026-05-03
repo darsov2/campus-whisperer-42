@@ -15,6 +15,7 @@ import MasterCourses from "./pages/MasterCourses";
 import Teachers from "./pages/Teachers";
 import Students from "./pages/Students";
 import Quotes from "./pages/Quotes";
+import QuotaPricing from "./pages/QuotaPricing";
 import Reports from "./pages/Reports";
 import RuleEngine from "./pages/RuleEngine";
 import Accreditations from "./pages/Accreditations";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/students" element={<Students />} />
             <Route path="/quotes" element={<Quotes />} />
+            <Route path="/quota-pricing" element={<QuotaPricing />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/rules" element={<RuleEngine />} />
             <Route path="/accreditations" element={<Accreditations />} />

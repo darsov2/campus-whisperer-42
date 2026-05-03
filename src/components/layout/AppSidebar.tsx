@@ -18,6 +18,7 @@ import {
   BarChart3,
   Layers,
   CalendarClock,
+  Euro,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,8 @@ const navigation = [
   { name: "Allocation", href: "/allocation", icon: CalendarClock },
   { name: "Teachers", href: "/teachers", icon: Users },
   { name: "Students", href: "/students", icon: UserCircle },
-  { name: "Fee Quotes", href: "/quotes", icon: Receipt },
+  { name: "Quotas", href: "/quotes", icon: Receipt },
+  { name: "Quota Pricing", href: "/quota-pricing", icon: Euro },
   { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Rule Engine", href: "/rules", icon: Workflow },
   { name: "Accreditations", href: "/accreditations", icon: FileCheck },

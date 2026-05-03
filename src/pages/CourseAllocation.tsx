@@ -437,57 +437,122 @@ export default function CourseAllocation() {
                   Assign First Teacher
                 </Button>
               </div>
-            ) : (
-              <div className="divide-y">
-                {course.classTypes.map(classType => {
-                  const cfg = getClassTypeConfig(classType);
-                  const typeAllocs = courseAllocations.filter(a => a.classType === classType);
-                  const allocated = getGroupsAllocated(classType);
-                  const total = course.totalGroups[classType];
-                  const Icon = cfg.icon;
+            ) : (() => {
+              // Group allocations by teacher
+              const teacherIds = Array.from(new Set(courseAllocations.map(a => a.teacherId)));
+              const rows = teacherIds.map(tid => {
+                const tAllocs = courseAllocations.filter(a => a.teacherId === tid);
+                return {
+                  teacherId: tid,
+                  teacherName: tAllocs[0].teacherName,
+                  byType: course.classTypes.reduce((acc, ct) => {
+                    acc[ct] = tAllocs.find(a => a.classType === ct);
+                    return acc;
+                  }, {} as Record<ClassType, AllocationEntry | undefined>),
+                };
+              });
 
-                  return (
-                    <div key={classType} className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Icon className={cn("h-4 w-4", cfg.color.split(" ")[1])} />
-                        <span className="text-sm font-medium">{cfg.label}</span>
-                        <span className={cn("text-xs tabular-nums ml-auto font-medium", allocated >= total ? "text-success" : "text-muted-foreground")}>
-                          {allocated}/{total} groups
-                        </span>
-                      </div>
-                      {typeAllocs.length === 0 ? (
-                        <p className="text-xs text-muted-foreground ml-6 italic">None assigned</p>
-                      ) : (
-                        <div className="space-y-1 ml-6">
-                          {typeAllocs.map(a => {
-                            const wasPrev = prevCourseAllocations.some(pa => pa.teacherId === a.teacherId && pa.classType === a.classType);
-                            return (
-                              <div key={a.id} className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-muted/30 group transition-colors">
-                                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-medium flex-1">{a.teacherName}</span>
-                                {wasPrev && <Badge variant="outline" className="text-[9px] py-0 px-1.5 border-muted-foreground/20 text-muted-foreground shrink-0">prev</Badge>}
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <Button variant="outline" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => updateGroups(a.id, -1)}>
-                                    <Minus className="h-3 w-3" />
-                                  </Button>
-                                  <span className="text-sm font-semibold tabular-nums w-7 text-center">{a.groups}</span>
-                                  <Button variant="outline" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => updateGroups(a.id, 1)}>
-                                    <Plus className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive shrink-0" onClick={() => removeAllocation(a.id)}>
-                                  <X className="h-3 w-3" />
-                                </Button>
+              const setGroupsFor = (teacherId: string, classType: ClassType, value: number) => {
+                const existing = courseAllocations.find(a => a.teacherId === teacherId && a.classType === classType);
+                if (value <= 0) {
+                  if (existing) setAllocations(prev => prev.filter(a => a.id !== existing.id));
+                  return;
+                }
+                if (existing) {
+                  setAllocations(prev => prev.map(a => a.id === existing.id ? { ...a, groups: value } : a));
+                } else {
+                  const teacher = teachers.find(t => t.id === teacherId);
+                  if (!teacher) return;
+                  setAllocations(prev => [...prev, {
+                    id: `a${Date.now()}-${classType}`,
+                    teacherId,
+                    teacherName: teacher.name,
+                    courseId: course.id,
+                    classType,
+                    groups: value,
+                    semesterId: "s2",
+                  }]);
+                }
+              };
+
+              const removeTeacher = (teacherId: string) => {
+                setAllocations(prev => prev.filter(a => !(a.teacherId === teacherId && a.courseId === course.id)));
+                toast.success("Teacher removed from allocation");
+              };
+
+              return (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/20">
+                        <th className="text-left font-semibold p-3">Teacher</th>
+                        {course.classTypes.map(ct => {
+                          const cfg = getClassTypeConfig(ct);
+                          const Icon = cfg.icon;
+                          const allocated = getGroupsAllocated(ct);
+                          const total = course.totalGroups[ct];
+                          return (
+                            <th key={ct} className="font-semibold p-3 text-center min-w-[120px]">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <Icon className={cn("h-3.5 w-3.5", cfg.color.split(" ")[1])} />
+                                <span>{cfg.label}</span>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                              <div className={cn("text-[10px] font-normal mt-0.5", allocated >= total ? "text-success" : "text-muted-foreground")}>
+                                {allocated}/{total}
+                              </div>
+                            </th>
+                          );
+                        })}
+                        <th className="font-semibold p-3 text-center">Total</th>
+                        <th className="w-10" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {rows.map(row => {
+                        const total = course.classTypes.reduce((s, ct) => s + (row.byType[ct]?.groups ?? 0), 0);
+                        const wasPrev = prevCourseAllocations.some(pa => pa.teacherId === row.teacherId);
+                        return (
+                          <tr key={row.teacherId} className="group hover:bg-muted/20 transition-colors">
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">{row.teacherName}</span>
+                                {wasPrev && <Badge variant="outline" className="text-[9px] py-0 px-1.5 border-muted-foreground/20 text-muted-foreground">prev</Badge>}
+                              </div>
+                            </td>
+                            {course.classTypes.map(ct => {
+                              const entry = row.byType[ct];
+                              const value = entry?.groups ?? 0;
+                              return (
+                                <td key={ct} className="p-2 text-center">
+                                  <div className="inline-flex items-center gap-1 rounded-md border border-border/50 bg-background">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setGroupsFor(row.teacherId, ct, value - 1)} disabled={value === 0}>
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className={cn("text-sm font-semibold tabular-nums w-6 text-center", value === 0 && "text-muted-foreground/40")}>{value}</span>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setGroupsFor(row.teacherId, ct, value + 1)}>
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              );
+                            })}
+                            <td className="p-3 text-center">
+                              <span className="text-sm font-semibold tabular-nums">{total}</span>
+                            </td>
+                            <td className="p-2">
+                              <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive" onClick={() => removeTeacher(row.teacherId)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
             <div className="p-3 border-t">
               <Button variant="outline" size="sm" className="w-full" onClick={openAllocate}>
                 <Plus className="h-3.5 w-3.5 mr-1.5" />

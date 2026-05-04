@@ -42,6 +42,10 @@ import {
 import { ProgrammeCourseRuleDialog } from "@/components/dialogs/ProgrammeCourseRuleDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
+import {
+  ProgrammeCourseEquivalentsDialog,
+  type EquivalentCourseRef,
+} from "@/components/dialogs/ProgrammeCourseEquivalentsDialog";
 import { CourseGroupsSection } from "@/components/programmes/CourseGroupsSection";
 import { ManageCoursesModal } from "@/components/programmes/ManageCoursesModal";
 import { ConfigureSlotsModal } from "@/components/programmes/ConfigureSlotsModal";
@@ -607,6 +611,10 @@ export default function Programmes() {
   const [teachersCourse, setTeachersCourse] = useState<ProgrammeCourse | null>(null);
   const [teachersDialogOpen, setTeachersDialogOpen] = useState(false);
 
+  // Equivalents management
+  const [equivalentsCourse, setEquivalentsCourse] = useState<ProgrammeCourse | null>(null);
+  const [equivalentsDialogOpen, setEquivalentsDialogOpen] = useState(false);
+
   const filteredProgrammes = programmes.filter((programme) => {
     const matchesSearch =
       programme.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -916,6 +924,10 @@ export default function Programmes() {
           setTeachersCourse(course);
           setTeachersDialogOpen(true);
         }}
+        onManageEquivalents={(course) => {
+          setEquivalentsCourse(course);
+          setEquivalentsDialogOpen(true);
+        }}
         onRemoveCourse={(courseId) => {
           setDeletingCourseId(courseId);
           setDeleteCourseDialogOpen(true);
@@ -1005,6 +1017,46 @@ export default function Programmes() {
                 : null
             );
             toast.success("Teachers updated for " + teachersCourse.courseCode);
+          }}
+        />
+      )}
+
+      {/* Equivalents Dialog */}
+      {equivalentsCourse && (
+        <ProgrammeCourseEquivalentsDialog
+          open={equivalentsDialogOpen}
+          onOpenChange={setEquivalentsDialogOpen}
+          courseCode={equivalentsCourse.courseCode}
+          courseName={equivalentsCourse.courseName}
+          ects={equivalentsCourse.ects}
+          equivalents={equivalentsCourse.equivalents ?? []}
+          catalog={catalogCourses
+            .filter((c) => c.id !== equivalentsCourse.courseId)
+            .map((c) => ({ id: c.id, code: c.code, name: c.name, ects: c.ects }))}
+          onSave={(equivalents: EquivalentCourseRef[]) => {
+            if (!selectedProgramme || !equivalentsCourse) return;
+            setProgrammes((prev) =>
+              prev.map((p) =>
+                p.id === selectedProgramme.id
+                  ? {
+                      ...p,
+                      courses: p.courses.map((c) =>
+                        c.id === equivalentsCourse.id ? { ...c, equivalents } : c,
+                      ),
+                    }
+                  : p,
+              ),
+            );
+            setSelectedProgramme((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    courses: prev.courses.map((c) =>
+                      c.id === equivalentsCourse.id ? { ...c, equivalents } : c,
+                    ),
+                  }
+                : null,
+            );
           }}
         />
       )}

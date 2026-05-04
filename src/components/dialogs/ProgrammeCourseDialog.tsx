@@ -58,6 +58,7 @@ export interface ProgrammeCourse {
   type: "mandatory" | "elective";
   rules: ProgrammeCourseRules;
   teachers?: { id: string; name: string; role: "coordinator" | "lecturer" | "assistant" }[];
+  equivalents?: { id: string; code: string; name: string; ects: number }[];
 }
 
 // Legacy rule format for backwards compatibility

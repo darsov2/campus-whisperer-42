@@ -7,6 +7,7 @@ import {
   MoreHorizontal,
   Eye,
   Users,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,7 @@ interface ManageCoursesModalProps {
   onEditCourse: (course: ProgrammeCourse) => void;
   onConfigureRules: (course: ProgrammeCourse) => void;
   onManageTeachers: (course: ProgrammeCourse) => void;
+  onManageEquivalents: (course: ProgrammeCourse) => void;
   onRemoveCourse: (courseId: string) => void;
 }
 
@@ -53,6 +55,7 @@ export function ManageCoursesModal({
   onEditCourse,
   onConfigureRules,
   onManageTeachers,
+  onManageEquivalents,
   onRemoveCourse,
 }: ManageCoursesModalProps) {
   const [visualRulesCourse, setVisualRulesCourse] = useState<ProgrammeCourse | null>(null);
@@ -207,6 +210,13 @@ export function ManageCoursesModal({
                                           {course.teachers!.length !== 1 && "s"}
                                         </span>
                                       )}
+                                      {(course.equivalents?.length ?? 0) > 0 && (
+                                        <span className="font-medium flex items-center gap-1 text-info">
+                                          <Link2 className="h-3 w-3" />
+                                          {course.equivalents!.length} equivalent
+                                          {course.equivalents!.length !== 1 && "s"}
+                                        </span>
+                                      )}
                                       {conditionsCount > 0 && (
                                         <span className="text-accent font-medium flex items-center gap-1">
                                           <GitBranch className="h-3 w-3" />
@@ -247,6 +257,14 @@ export function ManageCoursesModal({
                                     >
                                       <GitBranch className="h-4 w-4" />
                                     </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => onManageEquivalents(course)}
+                                      title="Manage equivalents"
+                                    >
+                                      <Link2 className="h-4 w-4" />
+                                    </Button>
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="sm">
@@ -273,6 +291,12 @@ export function ManageCoursesModal({
                                         >
                                           <GitBranch className="h-4 w-4 mr-2" />
                                           Configure Rules
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => onManageEquivalents(course)}
+                                        >
+                                          <Link2 className="h-4 w-4 mr-2" />
+                                          Manage Equivalents
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem

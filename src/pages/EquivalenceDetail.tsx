@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Check,
   X,
+  Plus,
   Sparkles,
   AlertTriangle,
   GraduationCap,
@@ -126,6 +127,7 @@ export default function EquivalenceDetail() {
   const [confirmAction, setConfirmAction] = useState<PipelineAction | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<string | null>(null);
   const [draggingExamId, setDraggingExamId] = useState<string | null>(null);
+  const [pickerSlot, setPickerSlot] = useState<TargetSlot | null>(null);
 
   if (!request) {
     return (

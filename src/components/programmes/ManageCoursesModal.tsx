@@ -213,8 +213,13 @@ export function ManageCoursesModal({
                                       {(course.equivalents?.length ?? 0) > 0 && (
                                         <span className="font-medium flex items-center gap-1 text-info">
                                           <Link2 className="h-3 w-3" />
-                                          {course.equivalents!.length} equivalent
+                                          {course.equivalents!.length} equivalence
                                           {course.equivalents!.length !== 1 && "s"}
+                                          {course.equivalents!.some((g) => g.courses.length > 1) && (
+                                            <span className="text-[10px] uppercase text-muted-foreground ml-1">
+                                              incl. combined
+                                            </span>
+                                          )}
                                         </span>
                                       )}
                                       {conditionsCount > 0 && (

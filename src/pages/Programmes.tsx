@@ -44,7 +44,7 @@ import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
 import {
   ProgrammeCourseEquivalentsDialog,
-  type EquivalentCourseRef,
+  type EquivalentGroup,
 } from "@/components/dialogs/ProgrammeCourseEquivalentsDialog";
 import { CourseGroupsSection } from "@/components/programmes/CourseGroupsSection";
 import { ManageCoursesModal } from "@/components/programmes/ManageCoursesModal";
@@ -1033,7 +1033,7 @@ export default function Programmes() {
           catalog={catalogCourses
             .filter((c) => c.id !== equivalentsCourse.courseId)
             .map((c) => ({ id: c.id, code: c.code, name: c.name, ects: c.ects }))}
-          onSave={(equivalents: EquivalentCourseRef[]) => {
+          onSave={(equivalents: EquivalentGroup[]) => {
             if (!selectedProgramme || !equivalentsCourse) return;
             setProgrammes((prev) =>
               prev.map((p) =>

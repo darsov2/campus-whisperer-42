@@ -22,6 +22,8 @@ import Accreditations from "./pages/Accreditations";
 import Settings from "./pages/Settings";
 import Allocation from "./pages/Allocation";
 import CourseAllocation from "./pages/CourseAllocation";
+import Equivalences from "./pages/Equivalences";
+import EquivalenceDetail from "./pages/EquivalenceDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +48,8 @@ const App = () => (
             <Route path="/allocation/:courseId" element={<CourseAllocation />} />
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/students" element={<Students />} />
+            <Route path="/equivalences" element={<Equivalences />} />
+            <Route path="/equivalences/:id" element={<EquivalenceDetail />} />
             <Route path="/quotes" element={<Quotes />} />
             <Route path="/quota-pricing" element={<QuotaPricing />} />
             <Route path="/reports" element={<Reports />} />

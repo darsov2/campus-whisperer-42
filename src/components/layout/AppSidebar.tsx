@@ -19,6 +19,7 @@ import {
   Layers,
   CalendarClock,
   Euro,
+  ArrowRightLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const navigation = [
   { name: "Allocation", href: "/allocation", icon: CalendarClock },
   { name: "Teachers", href: "/teachers", icon: Users },
   { name: "Students", href: "/students", icon: UserCircle },
+  { name: "Equivalences", href: "/equivalences", icon: ArrowRightLeft },
   { name: "Quotas", href: "/quotes", icon: Receipt },
   { name: "Quota Pricing", href: "/quota-pricing", icon: Euro },
   { name: "Reports", href: "/reports", icon: BarChart3 },

@@ -924,6 +924,10 @@ export default function Programmes() {
           setTeachersCourse(course);
           setTeachersDialogOpen(true);
         }}
+        onManageEquivalents={(course) => {
+          setEquivalentsCourse(course);
+          setEquivalentsDialogOpen(true);
+        }}
         onRemoveCourse={(courseId) => {
           setDeletingCourseId(courseId);
           setDeleteCourseDialogOpen(true);

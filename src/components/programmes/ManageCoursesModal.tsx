@@ -7,6 +7,7 @@ import {
   MoreHorizontal,
   Eye,
   Users,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,7 @@ interface ManageCoursesModalProps {
   onEditCourse: (course: ProgrammeCourse) => void;
   onConfigureRules: (course: ProgrammeCourse) => void;
   onManageTeachers: (course: ProgrammeCourse) => void;
+  onManageEquivalents: (course: ProgrammeCourse) => void;
   onRemoveCourse: (courseId: string) => void;
 }
 
@@ -53,6 +55,7 @@ export function ManageCoursesModal({
   onEditCourse,
   onConfigureRules,
   onManageTeachers,
+  onManageEquivalents,
   onRemoveCourse,
 }: ManageCoursesModalProps) {
   const [visualRulesCourse, setVisualRulesCourse] = useState<ProgrammeCourse | null>(null);

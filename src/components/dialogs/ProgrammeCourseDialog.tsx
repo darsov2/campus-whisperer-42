@@ -58,7 +58,9 @@ export interface ProgrammeCourse {
   type: "mandatory" | "elective";
   rules: ProgrammeCourseRules;
   teachers?: { id: string; name: string; role: "coordinator" | "lecturer" | "assistant" }[];
-  equivalents?: { id: string; code: string; name: string; ects: number }[];
+  // Equivalents are stored as groups (alternatives). Each group lists one or more
+  // courses that TOGETHER are considered equivalent to this programme course.
+  equivalents?: { id: string; courses: { id: string; code: string; name: string; ects: number }[] }[];
 }
 
 // Legacy rule format for backwards compatibility

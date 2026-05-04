@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Check,
   X,
+  Plus,
   Sparkles,
   AlertTriangle,
   GraduationCap,
@@ -126,6 +127,7 @@ export default function EquivalenceDetail() {
   const [confirmAction, setConfirmAction] = useState<PipelineAction | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<string | null>(null);
   const [draggingExamId, setDraggingExamId] = useState<string | null>(null);
+  const [pickerSlot, setPickerSlot] = useState<TargetSlot | null>(null);
 
   if (!request) {
     return (
@@ -473,22 +475,30 @@ export default function EquivalenceDetail() {
                         {/* Assignment area */}
                         <div className="flex-1 min-w-0">
                           {assigned.length === 0 ? (
-                            <div
+                            <button
+                              type="button"
+                              disabled={!editable || request.passedExams.length === 0}
+                              onClick={() => editable && setPickerSlot(slot)}
                               className={cn(
-                                "rounded-lg border-2 border-dashed px-3 py-3 text-sm text-center transition-colors",
+                                "w-full rounded-lg border-2 border-dashed px-3 py-3 text-sm text-center transition-colors flex items-center justify-center gap-2",
                                 isOver
                                   ? "border-primary bg-primary/10 text-primary"
                                   : editable
-                                  ? "border-border text-muted-foreground"
-                                  : "border-border bg-muted/30 text-muted-foreground",
+                                  ? "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-accent/40 cursor-pointer"
+                                  : "border-border bg-muted/30 text-muted-foreground cursor-not-allowed",
                               )}
                             >
-                              {editable
-                                ? isOver
-                                  ? "Drop to assign"
-                                  : "Drop a passed exam here"
-                                : "No equivalence"}
-                            </div>
+                              {isOver ? (
+                                "Drop to assign"
+                              ) : editable ? (
+                                <>
+                                  <Plus className="h-3.5 w-3.5" />
+                                  Click or drop a passed exam
+                                </>
+                              ) : (
+                                "No equivalence"
+                              )}
+                            </button>
                           ) : (
                             <div
                               className={cn(
@@ -522,9 +532,14 @@ export default function EquivalenceDetail() {
                                   </div>
                                 ))}
                                 {editable && (
-                                  <span className="inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs text-muted-foreground">
-                                    Drop to merge
-                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPickerSlot(slot)}
+                                    className="inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-accent/30 transition-colors"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                    Add / merge
+                                  </button>
                                 )}
                               </div>
 
@@ -659,6 +674,77 @@ export default function EquivalenceDetail() {
             </Card>
           </div>
         </div>
+
+        {/* Picker dialog */}
+        <Dialog open={!!pickerSlot} onOpenChange={(o) => !o && setPickerSlot(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Assign exam to slot</DialogTitle>
+              <DialogDescription>
+                {pickerSlot && (
+                  <>
+                    Pick a passed exam to map onto{" "}
+                    <span className="font-medium text-foreground">{pickerSlot.courseName}</span> (
+                    {pickerSlot.ects} ECTS). Multiple exams can be merged into one slot.
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto -mx-2 px-2 space-y-1">
+              {request.passedExams.map((exam) => {
+                const usedIn = examToSlot.get(exam.id);
+                const usedHere = usedIn === pickerSlot?.id;
+                const disabled = !!usedIn && !usedHere;
+                return (
+                  <button
+                    key={exam.id}
+                    disabled={disabled || usedHere}
+                    onClick={() => {
+                      if (pickerSlot) {
+                        moveExamToSlot(exam.id, pickerSlot.id);
+                        setPickerSlot(null);
+                      }
+                    }}
+                    className={cn(
+                      "w-full text-left rounded-md border p-3 text-sm transition-colors",
+                      usedHere
+                        ? "border-success/30 bg-success/5"
+                        : disabled
+                        ? "opacity-50 cursor-not-allowed bg-muted/30"
+                        : "hover:border-primary/50 hover:bg-accent/50",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {exam.courseCode}
+                          </span>
+                          <span className="font-medium">{exam.courseName}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {exam.ects} ECTS · Grade {exam.grade} · S{exam.semester} ·{" "}
+                          {exam.academicYear}
+                        </p>
+                      </div>
+                      {usedHere && (
+                        <Badge className="bg-success/15 text-success border-success/20">
+                          Already in slot
+                        </Badge>
+                      )}
+                      {disabled && <span className="text-xs text-muted-foreground">In use</span>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPickerSlot(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={!!confirmAction} onOpenChange={(o) => !o && setConfirmAction(null)}>
           <DialogContent>

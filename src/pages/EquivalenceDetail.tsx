@@ -475,22 +475,30 @@ export default function EquivalenceDetail() {
                         {/* Assignment area */}
                         <div className="flex-1 min-w-0">
                           {assigned.length === 0 ? (
-                            <div
+                            <button
+                              type="button"
+                              disabled={!editable || request.passedExams.length === 0}
+                              onClick={() => editable && setPickerSlot(slot)}
                               className={cn(
-                                "rounded-lg border-2 border-dashed px-3 py-3 text-sm text-center transition-colors",
+                                "w-full rounded-lg border-2 border-dashed px-3 py-3 text-sm text-center transition-colors flex items-center justify-center gap-2",
                                 isOver
                                   ? "border-primary bg-primary/10 text-primary"
                                   : editable
-                                  ? "border-border text-muted-foreground"
-                                  : "border-border bg-muted/30 text-muted-foreground",
+                                  ? "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-accent/40 cursor-pointer"
+                                  : "border-border bg-muted/30 text-muted-foreground cursor-not-allowed",
                               )}
                             >
-                              {editable
-                                ? isOver
-                                  ? "Drop to assign"
-                                  : "Drop a passed exam here"
-                                : "No equivalence"}
-                            </div>
+                              {isOver ? (
+                                "Drop to assign"
+                              ) : editable ? (
+                                <>
+                                  <Plus className="h-3.5 w-3.5" />
+                                  Click or drop a passed exam
+                                </>
+                              ) : (
+                                "No equivalence"
+                              )}
+                            </button>
                           ) : (
                             <div
                               className={cn(
@@ -524,9 +532,14 @@ export default function EquivalenceDetail() {
                                   </div>
                                 ))}
                                 {editable && (
-                                  <span className="inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs text-muted-foreground">
-                                    Drop to merge
-                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPickerSlot(slot)}
+                                    className="inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-accent/30 transition-colors"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                    Add / merge
+                                  </button>
                                 )}
                               </div>
 

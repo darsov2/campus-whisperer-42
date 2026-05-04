@@ -42,6 +42,10 @@ import {
 import { ProgrammeCourseRuleDialog } from "@/components/dialogs/ProgrammeCourseRuleDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { CourseTeachersDialog, type CourseTeacher } from "@/components/dialogs/CourseTeachersDialog";
+import {
+  ProgrammeCourseEquivalentsDialog,
+  type EquivalentCourseRef,
+} from "@/components/dialogs/ProgrammeCourseEquivalentsDialog";
 import { CourseGroupsSection } from "@/components/programmes/CourseGroupsSection";
 import { ManageCoursesModal } from "@/components/programmes/ManageCoursesModal";
 import { ConfigureSlotsModal } from "@/components/programmes/ConfigureSlotsModal";
@@ -606,6 +610,10 @@ export default function Programmes() {
   // Teacher management
   const [teachersCourse, setTeachersCourse] = useState<ProgrammeCourse | null>(null);
   const [teachersDialogOpen, setTeachersDialogOpen] = useState(false);
+
+  // Equivalents management
+  const [equivalentsCourse, setEquivalentsCourse] = useState<ProgrammeCourse | null>(null);
+  const [equivalentsDialogOpen, setEquivalentsDialogOpen] = useState(false);
 
   const filteredProgrammes = programmes.filter((programme) => {
     const matchesSearch =

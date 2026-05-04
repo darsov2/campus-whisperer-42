@@ -1021,6 +1021,46 @@ export default function Programmes() {
         />
       )}
 
+      {/* Equivalents Dialog */}
+      {equivalentsCourse && (
+        <ProgrammeCourseEquivalentsDialog
+          open={equivalentsDialogOpen}
+          onOpenChange={setEquivalentsDialogOpen}
+          courseCode={equivalentsCourse.courseCode}
+          courseName={equivalentsCourse.courseName}
+          ects={equivalentsCourse.ects}
+          equivalents={equivalentsCourse.equivalents ?? []}
+          catalog={catalogCourses
+            .filter((c) => c.id !== equivalentsCourse.courseId)
+            .map((c) => ({ id: c.id, code: c.code, name: c.name, ects: c.ects }))}
+          onSave={(equivalents: EquivalentCourseRef[]) => {
+            if (!selectedProgramme || !equivalentsCourse) return;
+            setProgrammes((prev) =>
+              prev.map((p) =>
+                p.id === selectedProgramme.id
+                  ? {
+                      ...p,
+                      courses: p.courses.map((c) =>
+                        c.id === equivalentsCourse.id ? { ...c, equivalents } : c,
+                      ),
+                    }
+                  : p,
+              ),
+            );
+            setSelectedProgramme((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    courses: prev.courses.map((c) =>
+                      c.id === equivalentsCourse.id ? { ...c, equivalents } : c,
+                    ),
+                  }
+                : null,
+            );
+          }}
+        />
+      )}
+
       {/* Delete Course Dialog */}
       <DeleteDialog
         open={deleteCourseDialogOpen}

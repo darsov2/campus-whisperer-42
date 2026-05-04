@@ -257,6 +257,14 @@ export function ManageCoursesModal({
                                     >
                                       <GitBranch className="h-4 w-4" />
                                     </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => onManageEquivalents(course)}
+                                      title="Manage equivalents"
+                                    >
+                                      <Link2 className="h-4 w-4" />
+                                    </Button>
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="sm">
@@ -283,6 +291,12 @@ export function ManageCoursesModal({
                                         >
                                           <GitBranch className="h-4 w-4 mr-2" />
                                           Configure Rules
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => onManageEquivalents(course)}
+                                        >
+                                          <Link2 className="h-4 w-4 mr-2" />
+                                          Manage Equivalents
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem

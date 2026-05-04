@@ -210,6 +210,13 @@ export function ManageCoursesModal({
                                           {course.teachers!.length !== 1 && "s"}
                                         </span>
                                       )}
+                                      {(course.equivalents?.length ?? 0) > 0 && (
+                                        <span className="font-medium flex items-center gap-1 text-info">
+                                          <Link2 className="h-3 w-3" />
+                                          {course.equivalents!.length} equivalent
+                                          {course.equivalents!.length !== 1 && "s"}
+                                        </span>
+                                      )}
                                       {conditionsCount > 0 && (
                                         <span className="text-accent font-medium flex items-center gap-1">
                                           <GitBranch className="h-3 w-3" />

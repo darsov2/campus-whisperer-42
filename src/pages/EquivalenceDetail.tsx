@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Plus,
   X,
   Sparkles,
   AlertTriangle,
@@ -12,8 +11,9 @@ import {
   Search,
   Lock,
   CheckCircle2,
-  Edit3,
   StickyNote,
+  GripVertical,
+  Inbox,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -36,7 +35,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -94,27 +92,27 @@ const STATUS_ORDER: EquivalenceStatus[] = [
 function PipelineProgress({ status }: { status: EquivalenceStatus }) {
   const idx = STATUS_ORDER.indexOf(status);
   const isClosed = status === "CANCELLED" || status === "ARCHIVED";
-
   return (
     <div className="flex items-center gap-1">
       {STATUS_ORDER.map((s, i) => {
         const reached = !isClosed && i <= idx;
         const current = !isClosed && i === idx;
         return (
-          <div key={s} className="flex items-center gap-1">
-            <div
-              className={cn(
-                "h-2 w-8 rounded-full transition-colors",
-                reached ? (current ? "bg-primary" : "bg-success") : "bg-muted",
-              )}
-              title={EQUIVALENCE_STATUS_LABEL[s]}
-            />
-          </div>
+          <div
+            key={s}
+            className={cn(
+              "h-2 w-8 rounded-full transition-colors",
+              reached ? (current ? "bg-primary" : "bg-success") : "bg-muted",
+            )}
+            title={EQUIVALENCE_STATUS_LABEL[s]}
+          />
         );
       })}
     </div>
   );
 }
+
+const DRAG_MIME = "application/x-passed-exam";
 
 export default function EquivalenceDetail() {
   const { id } = useParams();
@@ -125,9 +123,9 @@ export default function EquivalenceDetail() {
     initial ? structuredClone(initial) : undefined,
   );
   const [examSearch, setExamSearch] = useState("");
-  const [pickerSlot, setPickerSlot] = useState<TargetSlot | null>(null);
-  const [editingMapping, setEditingMapping] = useState<{ slot: TargetSlot; mapping: SlotMapping } | null>(null);
   const [confirmAction, setConfirmAction] = useState<PipelineAction | null>(null);
+  const [dragOverSlot, setDragOverSlot] = useState<string | null>(null);
+  const [draggingExamId, setDraggingExamId] = useState<string | null>(null);
 
   if (!request) {
     return (
@@ -148,7 +146,6 @@ export default function EquivalenceDetail() {
     request.status === "CANCELLED";
   const editable = !readOnly;
 
-  // exam id -> slotId where it's used
   const examToSlot = useMemo(() => {
     const map = new Map<string, string>();
     request.mappings.forEach((m) => m.passedExamIds.forEach((e) => map.set(e, m.slotId)));
@@ -174,64 +171,49 @@ export default function EquivalenceDetail() {
   const filteredExams = request.passedExams.filter((e) => {
     if (!examSearch) return true;
     const q = examSearch.toLowerCase();
-    return (
-      e.courseName.toLowerCase().includes(q) ||
-      e.courseCode.toLowerCase().includes(q)
-    );
+    return e.courseName.toLowerCase().includes(q) || e.courseCode.toLowerCase().includes(q);
   });
 
-  const getMapping = (slotId: string): SlotMapping => {
-    return (
-      request.mappings.find((m) => m.slotId === slotId) ?? {
-        slotId,
-        passedExamIds: [],
-      }
-    );
-  };
+  const getMapping = (slotId: string): SlotMapping =>
+    request.mappings.find((m) => m.slotId === slotId) ?? { slotId, passedExamIds: [] };
 
-  const updateMapping = (slotId: string, updater: (m: SlotMapping) => SlotMapping) => {
-    setRequest((prev) => {
-      if (!prev) return prev;
-      const exists = prev.mappings.some((m) => m.slotId === slotId);
-      const newMappings = exists
-        ? prev.mappings.map((m) => (m.slotId === slotId ? updater(m) : m))
-        : [...prev.mappings, updater({ slotId, passedExamIds: [] })];
-      return { ...prev, mappings: newMappings };
-    });
-  };
-
-  const assignExamToSlot = (slotId: string, examId: string) => {
-    // Remove from any previous slot first (1 exam -> 1 slot rule)
+  const moveExamToSlot = (examId: string, targetSlotId: string | null) => {
     setRequest((prev) => {
       if (!prev) return prev;
       const cleaned = prev.mappings.map((m) => ({
         ...m,
         passedExamIds: m.passedExamIds.filter((e) => e !== examId),
+        confirmed: m.passedExamIds.includes(examId) ? false : m.confirmed,
       }));
-      const exists = cleaned.some((m) => m.slotId === slotId);
+      if (!targetSlotId) {
+        return { ...prev, mappings: cleaned.filter((m) => m.passedExamIds.length > 0 || m.note) };
+      }
+      const exists = cleaned.some((m) => m.slotId === targetSlotId);
       const next = exists
         ? cleaned.map((m) =>
-            m.slotId === slotId ? { ...m, passedExamIds: [...m.passedExamIds, examId], confirmed: false } : m,
+            m.slotId === targetSlotId
+              ? { ...m, passedExamIds: [...m.passedExamIds, examId], confirmed: false }
+              : m,
           )
-        : [...cleaned, { slotId, passedExamIds: [examId], confirmed: false }];
+        : [...cleaned, { slotId: targetSlotId, passedExamIds: [examId], confirmed: false }];
       return { ...prev, mappings: next };
     });
   };
 
-  const removeExamFromSlot = (slotId: string, examId: string) => {
-    updateMapping(slotId, (m) => ({
-      ...m,
-      passedExamIds: m.passedExamIds.filter((e) => e !== examId),
-      confirmed: false,
-    }));
-  };
+  const removeExamFromSlot = (slotId: string, examId: string) => moveExamToSlot(examId, null);
 
   const toggleSlotConfirmed = (slotId: string) => {
-    updateMapping(slotId, (m) => ({ ...m, confirmed: !m.confirmed }));
+    setRequest((prev) => {
+      if (!prev) return prev;
+      const exists = prev.mappings.some((m) => m.slotId === slotId);
+      const newMappings = exists
+        ? prev.mappings.map((m) => (m.slotId === slotId ? { ...m, confirmed: !m.confirmed } : m))
+        : prev.mappings;
+      return { ...prev, mappings: newMappings };
+    });
   };
 
   const runAutoEquivalence = () => {
-    // Mock: simple name-similarity assignment for unmapped slots
     setRequest((prev) => {
       if (!prev) return prev;
       const used = new Set<string>();
@@ -242,7 +224,6 @@ export default function EquivalenceDetail() {
         if (slot.type === "optional") return;
         const existing = newMappings.find((m) => m.slotId === slot.id);
         if (existing && existing.passedExamIds.length > 0) return;
-        // find best by ECTS proximity & name token overlap
         const slotTokens = slot.courseName.toLowerCase().split(/\W+/).filter((t) => t.length > 3);
         const candidate = prev.passedExams
           .filter((e) => !used.has(e.id))
@@ -255,11 +236,8 @@ export default function EquivalenceDetail() {
           .sort((a, b) => b.score - a.score)[0];
         if (candidate && candidate.score > 0) {
           used.add(candidate.e.id);
-          if (existing) {
-            existing.passedExamIds = [candidate.e.id];
-          } else {
-            newMappings.push({ slotId: slot.id, passedExamIds: [candidate.e.id] });
-          }
+          if (existing) existing.passedExamIds = [candidate.e.id];
+          else newMappings.push({ slotId: slot.id, passedExamIds: [candidate.e.id] });
         }
       });
 
@@ -269,10 +247,7 @@ export default function EquivalenceDetail() {
   };
 
   const performAction = (action: PipelineAction) => {
-    if (action.id === "auto") {
-      runAutoEquivalence();
-      return;
-    }
+    if (action.id === "auto") return runAutoEquivalence();
     setRequest((prev) => (prev ? { ...prev, status: action.toStatus } : prev));
     toast.success(`Status changed to "${EQUIVALENCE_STATUS_LABEL[action.toStatus]}"`);
   };
@@ -280,13 +255,53 @@ export default function EquivalenceDetail() {
   const actions = getPipelineActions(request.status);
   const dangerous = ["cancel", "archive"];
 
+  // Drag handlers
+  const handleDragStart = (examId: string) => (e: React.DragEvent) => {
+    if (!editable) return;
+    e.dataTransfer.setData(DRAG_MIME, examId);
+    e.dataTransfer.effectAllowed = "move";
+    setDraggingExamId(examId);
+  };
+  const handleDragEnd = () => {
+    setDraggingExamId(null);
+    setDragOverSlot(null);
+  };
+  const handleSlotDragOver = (slotId: string) => (e: React.DragEvent) => {
+    if (!editable) return;
+    if (e.dataTransfer.types.includes(DRAG_MIME)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setDragOverSlot(slotId);
+    }
+  };
+  const handleSlotDragLeave = () => setDragOverSlot(null);
+  const handleSlotDrop = (slotId: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    const examId = e.dataTransfer.getData(DRAG_MIME);
+    if (examId) moveExamToSlot(examId, slotId);
+    setDragOverSlot(null);
+    setDraggingExamId(null);
+  };
+  const handlePoolDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const examId = e.dataTransfer.getData(DRAG_MIME);
+    if (examId && examToSlot.has(examId)) moveExamToSlot(examId, null);
+    setDraggingExamId(null);
+  };
+  const handlePoolDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes(DRAG_MIME)) e.preventDefault();
+  };
+
   return (
     <TooltipProvider>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <button onClick={() => navigate("/equivalences")} className="hover:text-foreground inline-flex items-center gap-1">
+            <button
+              onClick={() => navigate("/equivalences")}
+              className="hover:text-foreground inline-flex items-center gap-1"
+            >
               <ArrowLeft className="h-4 w-4" />
               Equivalences
             </button>
@@ -385,6 +400,13 @@ export default function EquivalenceDetail() {
               </div>
             )}
           </Card>
+
+          {editable && request.passedExams.length > 0 && (
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              <GripVertical className="h-3.5 w-3.5" />
+              Drag passed exams from the right panel onto a target slot. Multiple exams can be merged into one slot.
+            </div>
+          )}
         </div>
 
         {/* Two-column workspace */}
@@ -419,9 +441,19 @@ export default function EquivalenceDetail() {
                     const grade = computedGrade(request, mapping);
                     const assignedEcts = assigned.reduce((s, e) => s + e.ects, 0);
                     const ectsMismatch = assigned.length > 0 && assignedEcts < slot.ects;
+                    const isOver = dragOverSlot === slot.id;
 
                     return (
-                      <div key={slot.id} className="p-4 flex flex-col md:flex-row md:items-start gap-3">
+                      <div
+                        key={slot.id}
+                        onDragOver={handleSlotDragOver(slot.id)}
+                        onDragLeave={handleSlotDragLeave}
+                        onDrop={handleSlotDrop(slot.id)}
+                        className={cn(
+                          "p-4 flex flex-col md:flex-row md:items-start gap-3 transition-colors",
+                          isOver && "bg-primary/5 ring-2 ring-inset ring-primary/40",
+                        )}
+                      >
                         {/* Slot info */}
                         <div className="md:w-64 flex-shrink-0">
                           <div className="flex items-center gap-2">
@@ -441,28 +473,30 @@ export default function EquivalenceDetail() {
                         {/* Assignment area */}
                         <div className="flex-1 min-w-0">
                           {assigned.length === 0 ? (
-                            <button
-                              disabled={!editable || request.passedExams.length === 0}
-                              onClick={() => setPickerSlot(slot)}
+                            <div
                               className={cn(
-                                "w-full text-left rounded-lg border-2 border-dashed px-3 py-2.5 text-sm transition-colors",
-                                editable
-                                  ? "border-border hover:border-primary/50 hover:bg-accent/50 text-muted-foreground"
-                                  : "border-border bg-muted/30 text-muted-foreground cursor-not-allowed",
+                                "rounded-lg border-2 border-dashed px-3 py-3 text-sm text-center transition-colors",
+                                isOver
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : editable
+                                  ? "border-border text-muted-foreground"
+                                  : "border-border bg-muted/30 text-muted-foreground",
                               )}
                             >
-                              <span className="inline-flex items-center gap-2">
-                                <Plus className="h-3.5 w-3.5" />
-                                Assign passed exam…
-                              </span>
-                            </button>
+                              {editable
+                                ? isOver
+                                  ? "Drop to assign"
+                                  : "Drop a passed exam here"
+                                : "No equivalence"}
+                            </div>
                           ) : (
                             <div
                               className={cn(
-                                "rounded-lg border p-3 space-y-2",
+                                "rounded-lg border p-3 space-y-2 transition-colors",
                                 mapping.confirmed
                                   ? "border-success/30 bg-success/5"
                                   : "border-info/30 bg-info/5",
+                                isOver && "ring-2 ring-primary/40",
                               )}
                             >
                               <div className="flex flex-wrap gap-2">
@@ -488,23 +522,17 @@ export default function EquivalenceDetail() {
                                   </div>
                                 ))}
                                 {editable && (
-                                  <button
-                                    onClick={() => setPickerSlot(slot)}
-                                    className="inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                    Merge another
-                                  </button>
+                                  <span className="inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs text-muted-foreground">
+                                    Drop to merge
+                                  </span>
                                 )}
                               </div>
 
                               <div className="flex items-center justify-between text-xs gap-3 flex-wrap">
                                 <div className="flex items-center gap-3">
                                   <span className="text-muted-foreground">
-                                    Resulting grade: <span className="font-semibold text-foreground">{grade ?? "—"}</span>
-                                    {mapping.grade !== undefined && (
-                                      <Badge variant="outline" className="ml-1.5 text-[10px]">manual</Badge>
-                                    )}
+                                    Resulting grade:{" "}
+                                    <span className="font-semibold text-foreground">{grade ?? "—"}</span>
                                   </span>
                                   {ectsMismatch && (
                                     <Tooltip>
@@ -519,35 +547,17 @@ export default function EquivalenceDetail() {
                                       </TooltipContent>
                                     </Tooltip>
                                   )}
-                                  {mapping.note && (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <StickyNote className="h-3 w-3 text-muted-foreground" />
-                                      </TooltipTrigger>
-                                      <TooltipContent className="max-w-xs">{mapping.note}</TooltipContent>
-                                    </Tooltip>
-                                  )}
                                 </div>
                                 {editable && (
-                                  <div className="flex items-center gap-1">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-7"
-                                      onClick={() => setEditingMapping({ slot, mapping })}
-                                    >
-                                      <Edit3 className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant={mapping.confirmed ? "default" : "outline"}
-                                      className="h-7"
-                                      onClick={() => toggleSlotConfirmed(slot.id)}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                      {mapping.confirmed ? "Confirmed" : "Confirm"}
-                                    </Button>
-                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant={mapping.confirmed ? "default" : "outline"}
+                                    className="h-7"
+                                    onClick={() => toggleSlotConfirmed(slot.id)}
+                                  >
+                                    <Check className="h-3 w-3" />
+                                    {mapping.confirmed ? "Confirmed" : "Confirm"}
+                                  </Button>
                                 )}
                               </div>
                             </div>
@@ -563,7 +573,11 @@ export default function EquivalenceDetail() {
 
           {/* RIGHT — passed exams pool */}
           <div className="xl:sticky xl:top-4 self-start">
-            <Card className="overflow-hidden">
+            <Card
+              className="overflow-hidden"
+              onDragOver={handlePoolDragOver}
+              onDrop={handlePoolDrop}
+            >
               <div className="px-4 py-3 border-b bg-muted/30">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-sm">Passed Exams</h3>
@@ -588,147 +602,64 @@ export default function EquivalenceDetail() {
               </div>
               <div className="max-h-[70vh] overflow-y-auto divide-y">
                 {filteredExams.length === 0 && (
-                  <div className="p-6 text-center text-sm text-muted-foreground">
-                    No exams match.
-                  </div>
+                  <div className="p-6 text-center text-sm text-muted-foreground">No exams match.</div>
                 )}
                 {filteredExams.map((exam) => {
                   const usedIn = examToSlot.get(exam.id);
                   const usedSlot = usedIn ? request.targetSlots.find((s) => s.id === usedIn) : null;
+                  const isDragging = draggingExamId === exam.id;
                   return (
                     <div
                       key={exam.id}
+                      draggable={editable}
+                      onDragStart={handleDragStart(exam.id)}
+                      onDragEnd={handleDragEnd}
                       className={cn(
-                        "p-3 transition-colors",
+                        "p-3 transition-all flex items-start gap-2",
+                        editable && "cursor-grab active:cursor-grabbing hover:bg-accent/50",
                         usedIn && "bg-muted/30 opacity-70",
+                        isDragging && "opacity-40",
                       )}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-mono text-muted-foreground">{exam.courseCode}</span>
-                            <span className="text-xs text-muted-foreground">· S{exam.semester}</span>
-                          </div>
-                          <p className="text-sm font-medium truncate">{exam.courseName}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                            <span>{exam.ects} ECTS</span>
-                            <span>·</span>
-                            <span>Grade <span className="text-foreground font-medium">{exam.grade}</span></span>
-                          </div>
+                      {editable && (
+                        <GripVertical className="h-3.5 w-3.5 text-muted-foreground/60 flex-shrink-0 mt-1" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-mono text-muted-foreground">{exam.courseCode}</span>
+                          <span className="text-xs text-muted-foreground">· S{exam.semester}</span>
                         </div>
-                        {usedIn && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Lock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-1" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Used in: {usedSlot?.courseName}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
+                        <p className="text-sm font-medium truncate">{exam.courseName}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                          <span>{exam.ects} ECTS</span>
+                          <span>·</span>
+                          <span>
+                            Grade <span className="text-foreground font-medium">{exam.grade}</span>
+                          </span>
+                        </div>
                       </div>
+                      {usedIn && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Lock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-1" />
+                          </TooltipTrigger>
+                          <TooltipContent>Used in: {usedSlot?.courseName}</TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
                   );
                 })}
               </div>
+              {editable && (
+                <div className="px-3 py-2 border-t bg-muted/20 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Inbox className="h-3.5 w-3.5" />
+                  Drop here to unassign an exam.
+                </div>
+              )}
             </Card>
           </div>
         </div>
 
-        {/* Exam picker dialog */}
-        <Dialog open={!!pickerSlot} onOpenChange={(o) => !o && setPickerSlot(null)}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Assign exam to slot</DialogTitle>
-              <DialogDescription>
-                {pickerSlot && (
-                  <>
-                    Pick a passed exam to map onto{" "}
-                    <span className="font-medium text-foreground">{pickerSlot.courseName}</span> ({pickerSlot.ects} ECTS).
-                    Multiple exams can be merged into one slot.
-                  </>
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto -mx-2 px-2 space-y-1">
-              {request.passedExams.map((exam) => {
-                const usedIn = examToSlot.get(exam.id);
-                const usedHere = usedIn === pickerSlot?.id;
-                const disabled = !!usedIn && !usedHere;
-                return (
-                  <button
-                    key={exam.id}
-                    disabled={disabled || usedHere}
-                    onClick={() => {
-                      if (pickerSlot) {
-                        assignExamToSlot(pickerSlot.id, exam.id);
-                        setPickerSlot(null);
-                      }
-                    }}
-                    className={cn(
-                      "w-full text-left rounded-md border p-3 text-sm transition-colors",
-                      usedHere
-                        ? "border-success/30 bg-success/5"
-                        : disabled
-                        ? "opacity-50 cursor-not-allowed bg-muted/30"
-                        : "hover:border-primary/50 hover:bg-accent/50",
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs text-muted-foreground">{exam.courseCode}</span>
-                          <span className="font-medium">{exam.courseName}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {exam.ects} ECTS · Grade {exam.grade} · S{exam.semester} · {exam.academicYear}
-                        </p>
-                      </div>
-                      {usedHere && <Badge className="bg-success/15 text-success border-success/20">Already in slot</Badge>}
-                      {disabled && <span className="text-xs text-muted-foreground">In use</span>}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setPickerSlot(null)}>
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit mapping dialog (manual grade + note) */}
-        <Dialog open={!!editingMapping} onOpenChange={(o) => !o && setEditingMapping(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit equivalence</DialogTitle>
-              <DialogDescription>
-                {editingMapping && <>Override the resulting grade or attach a note for "{editingMapping.slot.courseName}".</>}
-              </DialogDescription>
-            </DialogHeader>
-            {editingMapping && (
-              <EditMappingForm
-                request={request}
-                slot={editingMapping.slot}
-                mapping={editingMapping.mapping}
-                onSave={(grade, note) => {
-                  updateMapping(editingMapping.slot.id, (m) => ({
-                    ...m,
-                    grade,
-                    note,
-                  }));
-                  setEditingMapping(null);
-                  toast.success("Equivalence updated");
-                }}
-                onCancel={() => setEditingMapping(null)}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Confirm destructive action */}
         <Dialog open={!!confirmAction} onOpenChange={(o) => !o && setConfirmAction(null)}>
           <DialogContent>
             <DialogHeader>
@@ -763,70 +694,5 @@ export default function EquivalenceDetail() {
         </Dialog>
       </div>
     </TooltipProvider>
-  );
-}
-
-function EditMappingForm({
-  request,
-  slot,
-  mapping,
-  onSave,
-  onCancel,
-}: {
-  request: EquivalenceRequest;
-  slot: TargetSlot;
-  mapping: SlotMapping;
-  onSave: (grade: number | undefined, note: string | undefined) => void;
-  onCancel: () => void;
-}) {
-  const computed = computedGrade(request, { ...mapping, grade: undefined });
-  const [grade, setGrade] = useState<string>(mapping.grade?.toString() ?? "");
-  const [note, setNote] = useState<string>(mapping.note ?? "");
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-md bg-muted/40 p-3 text-sm">
-        <p className="text-xs text-muted-foreground uppercase tracking-wide">Computed grade</p>
-        <p className="font-semibold mt-0.5">{computed ?? "—"}</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Weighted by ECTS across {mapping.passedExamIds.length} exam(s).
-        </p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="grade">Manual grade override</Label>
-        <Input
-          id="grade"
-          type="number"
-          min={6}
-          max={10}
-          step={1}
-          placeholder={computed?.toString() ?? ""}
-          value={grade}
-          onChange={(e) => setGrade(e.target.value)}
-        />
-        <p className="text-xs text-muted-foreground">Leave empty to use the computed grade.</p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="note">Note</Label>
-        <Textarea
-          id="note"
-          rows={3}
-          placeholder="Reason for override, comments for the commission…"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button
-          onClick={() => {
-            const g = grade.trim() === "" ? undefined : Number(grade);
-            onSave(g, note.trim() === "" ? undefined : note);
-          }}
-        >
-          Save
-        </Button>
-      </DialogFooter>
-    </div>
   );
 }

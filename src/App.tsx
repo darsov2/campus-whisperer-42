@@ -49,6 +49,7 @@ const App = () => (
             <Route path="/allocation/:courseId" element={<CourseAllocation />} />
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/students" element={<Students />} />
+            <Route path="/students/:id" element={<StudentProfile />} />
             <Route path="/equivalences" element={<Equivalences />} />
             <Route path="/equivalences/:id" element={<EquivalenceDetail />} />
             <Route path="/quotes" element={<Quotes />} />

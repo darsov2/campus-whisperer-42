@@ -33,6 +33,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 // Types
 interface StudentPersonalData {

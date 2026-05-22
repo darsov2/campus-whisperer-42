@@ -14,6 +14,7 @@ import CourseProgrammes from "./pages/CourseProgrammes";
 import MasterCourses from "./pages/MasterCourses";
 import Teachers from "./pages/Teachers";
 import Students from "./pages/Students";
+import StudentProfile from "./pages/StudentProfile";
 import Quotes from "./pages/Quotes";
 import QuotaPricing from "./pages/QuotaPricing";
 import Reports from "./pages/Reports";

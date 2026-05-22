@@ -382,6 +382,16 @@ export default function Students() {
                   <p className="font-semibold">{student.gpa.toFixed(2)}</p>
                   <p className="text-xs text-muted-foreground">GPA</p>
                 </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/students/${student.id}`);
+                  }}
+                >
+                  Open profile
+                </Button>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </div>
             </div>

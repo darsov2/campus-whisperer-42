@@ -33,6 +33,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 // Types
 interface StudentPersonalData {
@@ -214,6 +215,7 @@ function getInitials(firstName: string, lastName: string) {
 }
 
 export default function Students() {
+  const navigate = useNavigate();
   const [students] = useState<Student[]>(mockStudents);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -380,6 +382,16 @@ export default function Students() {
                   <p className="font-semibold">{student.gpa.toFixed(2)}</p>
                   <p className="text-xs text-muted-foreground">GPA</p>
                 </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/students/${student.id}`);
+                  }}
+                >
+                  Open profile
+                </Button>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </div>
             </div>

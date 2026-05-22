@@ -14,6 +14,7 @@ import CourseProgrammes from "./pages/CourseProgrammes";
 import MasterCourses from "./pages/MasterCourses";
 import Teachers from "./pages/Teachers";
 import Students from "./pages/Students";
+import StudentProfile from "./pages/StudentProfile";
 import Quotes from "./pages/Quotes";
 import QuotaPricing from "./pages/QuotaPricing";
 import Reports from "./pages/Reports";
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/allocation/:courseId" element={<CourseAllocation />} />
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/students" element={<Students />} />
+            <Route path="/students/:id" element={<StudentProfile />} />
             <Route path="/equivalences" element={<Equivalences />} />
             <Route path="/equivalences/:id" element={<EquivalenceDetail />} />
             <Route path="/quotes" element={<Quotes />} />

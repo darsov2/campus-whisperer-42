@@ -214,6 +214,7 @@ function getInitials(firstName: string, lastName: string) {
 }
 
 export default function Students() {
+  const navigate = useNavigate();
   const [students] = useState<Student[]>(mockStudents);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");

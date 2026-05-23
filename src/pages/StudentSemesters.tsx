@@ -6,14 +6,10 @@ import {
   BookOpen,
   Calendar,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   CircleDot,
   Clock,
   FileSignature,
   Plus,
-  ShieldCheck,
-  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +26,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getStudentProfile } from "@/data/students-data";
@@ -48,43 +43,16 @@ const statusStyles: Record<SemesterStatus, string> = {
   FINISHED: "bg-success/15 text-success border-success/30",
 };
 
-function fmtMoney(v: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
-}
-
-function DetailRow({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: React.ReactNode;
-  icon?: React.ComponentType<{ className?: string }>;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4 py-2 border-b border-border last:border-0">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground inline-flex items-center gap-1.5">
-        {Icon && <Icon className="h-3.5 w-3.5" />}
-        {label}
-      </span>
-      <span className="text-sm font-medium text-right">{value}</span>
-    </div>
-  );
-}
-
 function SemesterCard({
   semester,
-  expanded,
-  onToggle,
   studentId,
   onEnrollCourses,
 }: {
   semester: StudentSemester;
-  expanded: boolean;
-  onToggle: () => void;
   studentId: string;
   onEnrollCourses: () => void;
 }) {
+  const navigate = useNavigate();
   const sigPct =
     semester.signaturesTotal > 0
       ? Math.round((semester.signaturesAcquired / semester.signaturesTotal) * 100)
@@ -92,152 +60,75 @@ function SemesterCard({
   const hasCourses = semester.courses.length > 0;
 
   return (
-    <Card className="w-full overflow-hidden transition-shadow hover:shadow-elevated">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full text-left"
-        aria-expanded={expanded}
-      >
-        <CardContent className="p-5">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary shrink-0">
-              <Calendar className="h-5 w-5" />
-            </div>
+    <Card
+      className="w-full overflow-hidden transition-shadow hover:shadow-elevated cursor-pointer"
+      onClick={() => navigate(`/students/${studentId}/semesters/${semester.id}`)}
+    >
+      <CardContent className="p-5">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary shrink-0">
+            <Calendar className="h-5 w-5" />
+          </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base font-semibold">Semester {semester.number}</h3>
-                <span className="text-sm text-muted-foreground">{semester.label}</span>
-                <Badge variant="outline" className={cn("text-xs", statusStyles[semester.status])}>
-                  {semester.status === "FINISHED" && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                  {semester.status === "STARTED" && <CircleDot className="h-3 w-3 mr-1" />}
-                  {semester.status === "NOT STARTED" && <Clock className="h-3 w-3 mr-1" />}
-                  {semester.status}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base font-semibold">Semester {semester.number}</h3>
+              <span className="text-sm text-muted-foreground">{semester.label}</span>
+              <Badge variant="outline" className={cn("text-xs", statusStyles[semester.status])}>
+                {semester.status === "FINISHED" && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                {semester.status === "STARTED" && <CircleDot className="h-3 w-3 mr-1" />}
+                {semester.status === "NOT STARTED" && <Clock className="h-3 w-3 mr-1" />}
+                {semester.status}
+              </Badge>
+              {semester.isEmpty && (
+                <Badge variant="outline" className="text-xs">
+                  Empty semester
                 </Badge>
-                {semester.isEmpty && (
-                  <Badge variant="outline" className="text-xs">
-                    Empty semester
-                  </Badge>
-                )}
-              </div>
-              <div className="mt-2 flex items-center gap-4 flex-wrap text-sm">
-                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                  <FileSignature className="h-3.5 w-3.5" />
-                  <span className="font-medium text-foreground">
-                    {semester.signaturesAcquired}/{semester.signaturesTotal || 0}
-                  </span>{" "}
-                  signatures
-                </span>
-                {semester.signaturesTotal > 0 && (
-                  <div className="w-32">
-                    <Progress value={sigPct} className="h-1.5" />
-                  </div>
-                )}
-                <span className="text-muted-foreground">
-                  {semester.courses.length} {semester.courses.length === 1 ? "course" : "courses"}
-                </span>
-              </div>
+              )}
             </div>
-
-            <div className="flex items-center gap-2 ml-auto">
-              {hasCourses ? (
-                <Button
-                  asChild
-                  size="sm"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Link to={`/students/${studentId}/semesters/${semester.id}/courses`}>
-                    <BookOpen className="h-4 w-4 mr-1.5" /> View courses
-                    <ArrowRight className="h-4 w-4 ml-1.5" />
-                  </Link>
-                </Button>
-              ) : (
-                !semester.isEmpty && (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEnrollCourses();
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-1.5" /> Enroll courses
-                  </Button>
-                )
+            <div className="mt-2 flex items-center gap-4 flex-wrap text-sm">
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                <FileSignature className="h-3.5 w-3.5" />
+                <span className="font-medium text-foreground">
+                  {semester.signaturesAcquired}/{semester.signaturesTotal || 0}
+                </span>{" "}
+                signatures
+              </span>
+              {semester.signaturesTotal > 0 && (
+                <div className="w-32">
+                  <Progress value={sigPct} className="h-1.5" />
+                </div>
               )}
-              {expanded ? (
-                <ChevronUp className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              )}
+              <span className="text-muted-foreground">
+                {semester.courses.length} {semester.courses.length === 1 ? "course" : "courses"}
+              </span>
             </div>
           </div>
-        </CardContent>
-      </button>
 
-      {expanded && (
-        <>
-          <Separator />
-          <CardContent className="p-5 grid md:grid-cols-2 gap-x-8 gap-y-1 bg-muted/20">
-            <DetailRow label="Quota" value={semester.quota} />
-            <DetailRow label="Price" value={fmtMoney(semester.price)} />
-            <DetailRow label="Paid to faculty" value={fmtMoney(semester.paidToFaculty)} />
-            <DetailRow label="Paid to university" value={fmtMoney(semester.paidToUniversity)} />
-            <DetailRow label="Created" value={semester.createdAt} />
-            <DetailRow label="Last change" value={semester.lastChangedAt} />
-            <DetailRow
-              label="Verified"
-              icon={ShieldCheck}
-              value={
-                semester.verified ? (
-                  <span className="inline-flex items-center gap-1 text-success">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Yes
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-muted-foreground">
-                    <XCircle className="h-3.5 w-3.5" /> No
-                  </span>
-                )
-              }
-            />
-            <DetailRow
-              label="Validated"
-              icon={CheckCircle2}
-              value={
-                semester.validated ? (
-                  <span className="inline-flex items-center gap-1 text-success">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Yes
-                    {semester.validatedAt && (
-                      <span className="text-muted-foreground ml-1 font-normal">on {semester.validatedAt}</span>
-                    )}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-muted-foreground">
-                    <XCircle className="h-3.5 w-3.5" /> No
-                  </span>
-                )
-              }
-            />
-            <div className="md:col-span-2 mt-3 space-y-3">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                  Student services note
-                </p>
-                <p className="text-sm rounded-md bg-card border p-3">
-                  {semester.studentServicesNote || <span className="text-muted-foreground">No note.</span>}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Student note</p>
-                <p className="text-sm rounded-md bg-card border p-3">
-                  {semester.studentNote || <span className="text-muted-foreground">No note.</span>}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </>
-      )}
+          <div className="flex items-center gap-2 ml-auto" onClick={(e) => e.stopPropagation()}>
+            {hasCourses ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to={`/students/${studentId}/semesters/${semester.id}/courses`}>
+                  <BookOpen className="h-4 w-4 mr-1.5" /> View courses
+                </Link>
+              </Button>
+            ) : (
+              !semester.isEmpty && (
+                <Button size="sm" variant="default" onClick={onEnrollCourses}>
+                  <Plus className="h-4 w-4 mr-1.5" /> Enroll courses
+                </Button>
+              )
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => navigate(`/students/${studentId}/semesters/${semester.id}`)}
+            >
+              Details <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -396,7 +287,6 @@ export default function StudentSemesters() {
   const student = id ? getStudentProfile(id) : undefined;
   const semesters = id ? getStudentSemesters(id) : [];
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [enrollTargetId, setEnrollTargetId] = useState<string | null>(null);
 
@@ -469,8 +359,6 @@ export default function StudentSemesters() {
           <SemesterCard
             key={sem.id}
             semester={sem}
-            expanded={expandedId === sem.id}
-            onToggle={() => setExpandedId((prev) => (prev === sem.id ? null : sem.id))}
             studentId={id!}
             onEnrollCourses={() => {
               setEnrollTargetId(sem.id);

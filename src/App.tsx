@@ -16,6 +16,7 @@ import Teachers from "./pages/Teachers";
 import Students from "./pages/Students";
 import StudentProfile from "./pages/StudentProfile";
 import StudentSemesters from "./pages/StudentSemesters";
+import StudentSemesterDetail from "./pages/StudentSemesterDetail";
 import Quotes from "./pages/Quotes";
 import QuotaPricing from "./pages/QuotaPricing";
 import Reports from "./pages/Reports";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/students" element={<Students />} />
             <Route path="/students/:id" element={<StudentProfile />} />
             <Route path="/students/:id/semesters" element={<StudentSemesters />} />
+            <Route path="/students/:id/semesters/:semesterId" element={<StudentSemesterDetail />} />
             <Route path="/equivalences" element={<Equivalences />} />
             <Route path="/equivalences/:id" element={<EquivalenceDetail />} />
             <Route path="/quotes" element={<Quotes />} />

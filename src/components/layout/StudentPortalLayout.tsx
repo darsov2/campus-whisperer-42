@@ -43,7 +43,7 @@ export function StudentPortalLayout({ children }: Props) {
 
           <nav className="hidden md:flex items-center gap-1">
             {nav.map((n) => {
-              const active = location.pathname === n.to || (n.to !== `/students/${id}` && location.pathname.startsWith(n.to));
+              const active = n.exact ? location.pathname === n.to : location.pathname.startsWith(n.to);
               return (
                 <Link
                   key={n.to}

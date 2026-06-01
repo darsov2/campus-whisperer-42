@@ -16,8 +16,14 @@ export function StudentPortalLayout({ children }: Props) {
   const student = id ? getStudentProfile(id) : undefined;
 
   const nav = [
-    { label: "Overview", to: `/students/${id}` },
+    { label: "Dashboard", to: `/students/${id}`, exact: true },
+    { label: "Profile", to: `/students/${id}/profile` },
     { label: "Semesters", to: `/students/${id}/semesters` },
+    { label: "Courses", to: `/students/${id}/courses` },
+    { label: "Exams", to: `/students/${id}/exams` },
+    { label: "Grades", to: `/students/${id}/grades` },
+    { label: "Finance", to: `/students/${id}/finance` },
+    { label: "Documents", to: `/students/${id}/documents` },
   ];
 
   return (

@@ -2,8 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
+import { ReactNode } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { StudentPortalLayout } from "@/components/layout/StudentPortalLayout";
 import Index from "./pages/Index";
 import Semesters from "./pages/Semesters";
 import Faculties from "./pages/Faculties";
@@ -31,40 +33,44 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const Admin = ({ children }: { children: ReactNode }) => <MainLayout>{children}</MainLayout>;
+const Portal = ({ children }: { children: ReactNode }) => <StudentPortalLayout>{children}</StudentPortalLayout>;
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/semesters" element={<Semesters />} />
-            <Route path="/faculties" element={<Faculties />} />
-            <Route path="/programmes" element={<Programmes />} />
-            <Route path="/courses" element={<Courses />} />
-            <Route path="/courses/:courseId/teachers" element={<CourseTeachers />} />
-            <Route path="/master-courses" element={<MasterCourses />} />
-            <Route path="/course-programmes" element={<CourseProgrammes />} />
-            <Route path="/allocation" element={<Allocation />} />
-            <Route path="/allocation/:courseId" element={<CourseAllocation />} />
-            <Route path="/teachers" element={<Teachers />} />
-            <Route path="/students" element={<Students />} />
-            <Route path="/students/:id" element={<StudentProfile />} />
-            <Route path="/students/:id/semesters" element={<StudentSemesters />} />
-            <Route path="/students/:id/semesters/:semesterId" element={<StudentSemesterDetail />} />
-            <Route path="/equivalences" element={<Equivalences />} />
-            <Route path="/equivalences/:id" element={<EquivalenceDetail />} />
-            <Route path="/quotes" element={<Quotes />} />
-            <Route path="/quota-pricing" element={<QuotaPricing />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/rules" element={<RuleEngine />} />
-            <Route path="/accreditations" element={<Accreditations />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </MainLayout>
+        <Routes>
+          {/* Student portal — standalone shell */}
+          <Route path="/students/:id" element={<Portal><StudentProfile /></Portal>} />
+          <Route path="/students/:id/semesters" element={<Portal><StudentSemesters /></Portal>} />
+          <Route path="/students/:id/semesters/:semesterId" element={<Portal><StudentSemesterDetail /></Portal>} />
+
+          {/* Admin app */}
+          <Route path="/" element={<Admin><Index /></Admin>} />
+          <Route path="/semesters" element={<Admin><Semesters /></Admin>} />
+          <Route path="/faculties" element={<Admin><Faculties /></Admin>} />
+          <Route path="/programmes" element={<Admin><Programmes /></Admin>} />
+          <Route path="/courses" element={<Admin><Courses /></Admin>} />
+          <Route path="/courses/:courseId/teachers" element={<Admin><CourseTeachers /></Admin>} />
+          <Route path="/master-courses" element={<Admin><MasterCourses /></Admin>} />
+          <Route path="/course-programmes" element={<Admin><CourseProgrammes /></Admin>} />
+          <Route path="/allocation" element={<Admin><Allocation /></Admin>} />
+          <Route path="/allocation/:courseId" element={<Admin><CourseAllocation /></Admin>} />
+          <Route path="/teachers" element={<Admin><Teachers /></Admin>} />
+          <Route path="/students" element={<Admin><Students /></Admin>} />
+          <Route path="/equivalences" element={<Admin><Equivalences /></Admin>} />
+          <Route path="/equivalences/:id" element={<Admin><EquivalenceDetail /></Admin>} />
+          <Route path="/quotes" element={<Admin><Quotes /></Admin>} />
+          <Route path="/quota-pricing" element={<Admin><QuotaPricing /></Admin>} />
+          <Route path="/reports" element={<Admin><Reports /></Admin>} />
+          <Route path="/rules" element={<Admin><RuleEngine /></Admin>} />
+          <Route path="/accreditations" element={<Admin><Accreditations /></Admin>} />
+          <Route path="/settings" element={<Admin><Settings /></Admin>} />
+          <Route path="*" element={<Admin><NotFound /></Admin>} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

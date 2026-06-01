@@ -1,7 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 import {
-  ArrowLeft,
   BookOpen,
   Calendar,
   FileText,
@@ -17,67 +16,92 @@ import {
   Download,
   TrendingUp,
   CheckCircle2,
+  Sparkles,
+  ChevronRight,
+  CalendarClock,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { getStudentProfile, StudentStatus } from "@/data/students-data";
 
-const statusColors: Record<StudentStatus, string> = {
+const statusStyles: Record<StudentStatus, string> = {
   active: "bg-success/15 text-success border-success/30",
   suspended: "bg-destructive/15 text-destructive border-destructive/30",
   graduated: "bg-accent/15 text-accent border-accent/30",
   withdrawn: "bg-muted text-muted-foreground border-border",
 };
 
-function initials(first: string, last: string) {
-  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
-}
-
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="font-medium text-sm">{value ?? <span className="text-muted-foreground">—</span>}</p>
+      <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</p>
+      <p className="text-sm text-foreground">{value ?? <span className="text-muted-foreground">—</span>}</p>
     </div>
   );
 }
 
-function InfoBlock({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider border-b pb-2">{title}</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">{children}</div>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="h-7 w-7 rounded-md bg-accent/10 flex items-center justify-center">
+          <Icon className="h-3.5 w-3.5 text-accent" />
+        </div>
+        <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5 pl-9">{children}</div>
     </div>
   );
 }
 
-// Mock announcements
+// Progress ring
+function Ring({ value, label, sub }: { value: number; label: string; sub: string }) {
+  const r = 32;
+  const c = 2 * Math.PI * r;
+  const offset = c - (value / 100) * c;
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative h-20 w-20">
+        <svg className="h-20 w-20 -rotate-90" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r={r} strokeWidth="6" className="stroke-white/15 fill-none" />
+          <circle
+            cx="40"
+            cy="40"
+            r={r}
+            strokeWidth="6"
+            strokeLinecap="round"
+            className="stroke-accent fill-none transition-all duration-700"
+            strokeDasharray={c}
+            strokeDashoffset={offset}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-lg font-bold">{value}%</span>
+        </div>
+      </div>
+      <div>
+        <p className="text-[11px] uppercase tracking-wider opacity-70">{label}</p>
+        <p className="text-sm font-medium">{sub}</p>
+      </div>
+    </div>
+  );
+}
+
 const announcements = [
-  {
-    id: "1",
-    title: "Exam schedule for January session published",
-    date: "2026-05-28",
-    type: "exam",
-    summary: "The schedule for the January exam session is now available. Check the Exams tab for details.",
-  },
-  {
-    id: "2",
-    title: "Tuition payment reminder",
-    date: "2026-05-20",
-    type: "finance",
-    summary: "Second installment of tuition is due by June 15. Please check your finance section.",
-  },
-  {
-    id: "3",
-    title: "Course enrollment for fall semester opens June 1",
-    date: "2026-05-15",
-    type: "enrollment",
-    summary: "Enrollment for the upcoming semester opens next week. Make sure your prior obligations are settled.",
-  },
+  { id: "1", title: "January exam schedule published", date: "May 28", tag: "Exams", tagClass: "bg-accent/15 text-accent" },
+  { id: "2", title: "Tuition installment due June 15", date: "May 20", tag: "Finance", tagClass: "bg-warning/15 text-warning" },
+  { id: "3", title: "Fall enrollment opens June 1", date: "May 15", tag: "Enrollment", tagClass: "bg-info/15 text-info" },
+];
+
+const upcoming = [
+  { title: "Software Engineering — Final exam", when: "Jun 12 · 10:00", where: "Hall A201" },
+  { title: "Database Systems — Lab submission", when: "Jun 8 · 23:59", where: "Online" },
+  { title: "Tuition — Installment 2", when: "Jun 15", where: "Finance office" },
 ];
 
 export default function StudentProfile() {
@@ -87,216 +111,272 @@ export default function StudentProfile() {
   const [tab, setTab] = useState("overview");
 
   if (!student) {
-    return (
-      <div className="page-container">
-        <p className="text-muted-foreground">Student not found.</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/students")}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Students
-        </Button>
-      </div>
-    );
+    return <p className="text-muted-foreground">Student not found.</p>;
   }
 
   const ectsPct = Math.min(100, Math.round((student.totalEcts / student.targetEcts) * 100));
+  const gradePct = Math.round((student.averageGrade / 10) * 100);
 
   return (
-    <div className="page-container space-y-4">
-      <Button variant="ghost" size="sm" onClick={() => navigate("/students")} className="-ml-2">
-        <ArrowLeft className="h-4 w-4 mr-2" /> Back to Students
-      </Button>
+    <div className="space-y-6">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[hsl(222_47%_14%)] via-[hsl(222_47%_20%)] to-[hsl(222_47%_28%)] text-primary-foreground shadow-[var(--shadow-lg)]">
+        {/* decorative */}
+        <div className="absolute inset-0 opacity-[0.07]" style={{
+          backgroundImage: "radial-gradient(circle at 20% 20%, white 1px, transparent 1px), radial-gradient(circle at 80% 60%, white 1px, transparent 1px)",
+          backgroundSize: "40px 40px, 60px 60px"
+        }} />
+        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
 
-      {/* Compact identity bar (legacy-inspired) */}
-      <div className="rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-elevated">
-        <div className="flex flex-col md:flex-row md:items-center gap-4 p-4 md:p-5">
-          <Avatar className="h-14 w-14 ring-2 ring-primary-foreground/30">
-            {student.photoUrl && <AvatarImage src={student.photoUrl} />}
-            <AvatarFallback className="bg-primary-foreground/15 text-primary-foreground font-semibold">
-              {initials(student.firstName, student.lastName)}
-            </AvatarFallback>
-          </Avatar>
+        <div className="relative p-6 md:p-8 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
+          <div>
+            <div className="flex items-center gap-2 text-xs text-white/60 uppercase tracking-[0.18em]">
+              <Sparkles className="h-3 w-3 text-accent" />
+              {student.academicYear} · {student.faculty}
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold mt-3 tracking-tight">
+              Welcome back, {student.firstName}.
+            </h1>
+            <p className="text-white/70 mt-2 max-w-xl">
+              {student.programme} · Year {Math.ceil(student.currentSemester / 2)} · Semester {student.currentSemester}.
+              You've completed <span className="text-accent font-medium">{student.totalEcts} of {student.targetEcts} ECTS</span>.
+            </p>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="font-mono text-sm opacity-80">{student.studentId}</span>
-              <h1 className="text-lg md:text-xl font-semibold truncate">
-                {student.firstName} {student.lastName}
-              </h1>
-              <Badge variant="outline" className={cn("capitalize border-0", statusColors[student.status])}>
+            <div className="flex flex-wrap items-center gap-2 mt-5">
+              <Badge variant="outline" className={cn("capitalize border", statusStyles[student.status])}>
                 {student.status}
               </Badge>
+              <Badge variant="outline" className="border-white/20 text-white/80 bg-white/5">
+                <span className="font-mono">{student.studentId}</span>
+              </Badge>
+              <Badge variant="outline" className="border-white/20 text-white/80 bg-white/5">
+                {student.studyMode}
+              </Badge>
+              <Badge variant="outline" className="border-white/20 text-white/80 bg-white/5">
+                Expected graduation · {student.expectedGraduation}
+              </Badge>
             </div>
-            <p className="text-sm opacity-90 mt-0.5 truncate">
-              <GraduationCap className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-              {student.programme} • Year {Math.ceil(student.currentSemester / 2)} • Sem {student.currentSemester} • {student.academicYear}
-            </p>
           </div>
 
-          <div className="flex gap-6 md:gap-8 md:border-l md:border-primary-foreground/20 md:pl-6">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider opacity-70">ECTS</p>
-              <p className="text-2xl font-bold leading-tight">{student.totalEcts}</p>
-              <p className="text-[11px] opacity-70">of {student.targetEcts}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider opacity-70">Average</p>
-              <p className="text-2xl font-bold leading-tight">{student.averageGrade.toFixed(2)}</p>
-              <p className="text-[11px] opacity-70">grade</p>
-            </div>
-            <div className="hidden sm:block">
-              <p className="text-[10px] uppercase tracking-wider opacity-70">Progress</p>
-              <p className="text-2xl font-bold leading-tight">{ectsPct}%</p>
-              <p className="text-[11px] opacity-70">completed</p>
-            </div>
+          <div className="flex flex-wrap gap-8 lg:gap-10">
+            <Ring value={ectsPct} label="ECTS progress" sub={`${student.totalEcts} / ${student.targetEcts}`} />
+            <Ring value={gradePct} label="Average grade" sub={student.averageGrade.toFixed(2)} />
           </div>
         </div>
       </div>
 
+      {/* Quick tiles */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {[
+          { label: "Semesters", icon: Calendar, count: student.counts.semesters, to: `/students/${student.id}/semesters` },
+          { label: "Courses", icon: BookOpen, count: student.counts.courses },
+          { label: "Exams", icon: ClipboardList, count: student.counts.exams },
+          { label: "Grades", icon: Award, count: student.counts.grades },
+          { label: "Documents", icon: FileText, count: student.counts.documents },
+        ].map((c) => {
+          const Icon = c.icon;
+          return (
+            <button
+              key={c.label}
+              onClick={() => c.to && navigate(c.to)}
+              className="group text-left rounded-xl border bg-card p-4 hover:border-accent/50 hover:shadow-[var(--shadow-md)] transition-all"
+            >
+              <div className="flex items-center justify-between">
+                <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                  <Icon className="h-4 w-4" />
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <p className="text-2xl font-bold mt-3">{c.count}</p>
+              <p className="text-xs text-muted-foreground">{c.label}</p>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <TabsList className="w-full justify-start h-auto p-1 bg-muted/60 overflow-x-auto flex-nowrap">
-          <TabsTrigger value="overview" className="gap-1.5"><Bell className="h-3.5 w-3.5" />Overview</TabsTrigger>
-          <TabsTrigger value="profile" className="gap-1.5"><User className="h-3.5 w-3.5" />Profile</TabsTrigger>
-          <TabsTrigger value="semesters" className="gap-1.5"><Calendar className="h-3.5 w-3.5" />Semesters</TabsTrigger>
-          <TabsTrigger value="courses" className="gap-1.5"><BookOpen className="h-3.5 w-3.5" />Courses</TabsTrigger>
-          <TabsTrigger value="exams" className="gap-1.5"><ClipboardList className="h-3.5 w-3.5" />Exams</TabsTrigger>
-          <TabsTrigger value="grades" className="gap-1.5"><Award className="h-3.5 w-3.5" />Grades</TabsTrigger>
-          <TabsTrigger value="documents" className="gap-1.5"><FileText className="h-3.5 w-3.5" />Documents</TabsTrigger>
-          <TabsTrigger value="edocs" className="gap-1.5"><FileCheck className="h-3.5 w-3.5" />E-Documents</TabsTrigger>
-        </TabsList>
+        <div className="border-b">
+          <TabsList className="h-auto p-0 bg-transparent gap-1 flex-wrap justify-start">
+            {[
+              { v: "overview", l: "Overview", I: Bell },
+              { v: "profile", l: "Profile", I: User },
+              { v: "academic", l: "Academic record", I: GraduationCap },
+              { v: "finance", l: "Finance", I: Wallet },
+              { v: "documents", l: "Documents", I: FileText },
+              { v: "edocs", l: "E-Documents", I: FileCheck },
+            ].map(({ v, l, I }) => (
+              <TabsTrigger
+                key={v}
+                value={v}
+                className="data-[state=active]:bg-transparent data-[state=active]:text-accent data-[state=active]:shadow-none rounded-none border-b-2 border-transparent data-[state=active]:border-accent px-4 py-2.5 gap-2"
+              >
+                <I className="h-3.5 w-3.5" />
+                {l}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         {/* OVERVIEW */}
-        <TabsContent value="overview" className="mt-4 space-y-4">
+        <TabsContent value="overview" className="mt-6 space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <Card className="lg:col-span-2">
+            <Card className="lg:col-span-2 border-0 shadow-[var(--shadow-card)]">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2"><Bell className="h-4 w-4 text-accent" />Announcements</CardTitle>
-                <Badge variant="secondary">{announcements.length} new</Badge>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-accent" />Announcements
+                </CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs">View all</Button>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 {announcements.map((a) => (
-                  <div key={a.id} className="border-l-2 border-accent/60 bg-muted/30 hover:bg-muted/50 transition-colors rounded-r-md p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{a.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{a.summary}</p>
+                  <div key={a.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn("text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded", a.tagClass)}>{a.tag}</span>
+                        <span className="text-[11px] text-muted-foreground">{a.date}</span>
                       </div>
-                      <span className="text-[11px] text-muted-foreground whitespace-nowrap">{a.date}</span>
+                      <p className="text-sm font-medium">{a.title}</p>
                     </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground mt-1" />
                   </div>
                 ))}
               </CardContent>
             </Card>
 
-            <div className="space-y-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="h-4 w-4 text-accent" />Academic snapshot</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2.5 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Semesters</span><span className="font-medium">{student.counts.semesters}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Courses</span><span className="font-medium">{student.counts.courses}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Exams passed</span><span className="font-medium">{student.counts.exams}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Documents</span><span className="font-medium">{student.counts.documents}</span></div>
-                  <div className="pt-2 border-t flex justify-between"><span className="text-muted-foreground">Expected graduation</span><span className="font-medium">{student.expectedGraduation}</span></div>
-                </CardContent>
-              </Card>
+            <Card className="border-0 shadow-[var(--shadow-card)]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CalendarClock className="h-4 w-4 text-accent" />Upcoming
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {upcoming.map((u, i) => (
+                  <div key={i} className="flex gap-3 pb-3 last:pb-0 last:border-0 border-b">
+                    <div className="h-9 w-9 rounded-md bg-accent/10 text-accent flex items-center justify-center shrink-0">
+                      <CalendarClock className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{u.title}</p>
+                      <p className="text-xs text-muted-foreground">{u.when} · {u.where}</p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" />Quick actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => navigate(`/students/${student.id}/semesters`)}>
-                    <Calendar className="h-4 w-4 mr-2" />Go to semesters
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setTab("exams")}>
-                    <ClipboardList className="h-4 w-4 mr-2" />Apply for exam
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setTab("edocs")}>
-                    <Download className="h-4 w-4 mr-2" />Request transcript
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="border-0 shadow-[var(--shadow-card)]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="h-4 w-4 text-accent" />Performance</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Average grade</span><span className="font-semibold">{student.averageGrade.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">ECTS this year</span><span className="font-semibold">52</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Passed exams</span><span className="font-semibold">{student.counts.exams}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Standing</span><span className="font-semibold text-success">Good</span></div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-[var(--shadow-card)]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" />Quick actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => navigate(`/students/${student.id}/semesters`)}>
+                  <Calendar className="h-4 w-4 mr-2" />Go to semesters
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <ClipboardList className="h-4 w-4 mr-2" />Apply for exam
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Download className="h-4 w-4 mr-2" />Request transcript
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-[var(--shadow-card)] bg-gradient-to-br from-accent/10 to-accent/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2"><Sparkles className="h-4 w-4 text-accent" />Tip</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-foreground/80">
+                Stay on track for graduation — you need <span className="font-semibold text-foreground">{student.targetEcts - student.totalEcts} ECTS</span> more.
+                Enroll in fall semester courses when registration opens on June 1.
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
         {/* PROFILE */}
-        <TabsContent value="profile" className="mt-4">
-          <Card>
-            <CardContent className="pt-6 space-y-6">
-              <InfoBlock title="Basic">
+        <TabsContent value="profile" className="mt-6">
+          <Card className="border-0 shadow-[var(--shadow-card)]">
+            <CardContent className="pt-6 space-y-8">
+              <Section title="Basic" icon={User}>
                 <Field label="Full name" value={`${student.firstName} ${student.lastName}`} />
-                <Field label="Student ID" value={student.studentId} />
+                <Field label="Student ID" value={<span className="font-mono">{student.studentId}</span>} />
                 <Field label="Programme" value={`${student.programme} (${student.programmeCode})`} />
                 <Field label="Faculty" value={student.faculty} />
                 <Field label="Current semester" value={student.currentSemester} />
                 <Field label="Status" value={<span className="capitalize">{student.status}</span>} />
-              </InfoBlock>
+              </Section>
 
-              <InfoBlock title="Birth">
+              <Section title="Birth" icon={Calendar}>
                 <Field label="Date of birth" value={student.dateOfBirth} />
                 <Field label="Place of birth" value={student.placeOfBirth} />
-                <Field label="Country of birth" value={student.countryOfBirth} />
+                <Field label="Country" value={student.countryOfBirth} />
                 <Field label="Gender" value={student.gender} />
                 <Field label="Nationality" value={student.nationality} />
                 <Field label="Citizenship" value={student.citizenship} />
-              </InfoBlock>
+              </Section>
 
-              <InfoBlock title="Previous education">
+              <Section title="Previous education" icon={GraduationCap}>
                 <Field label="High school" value={student.highSchoolName} />
                 <Field label="Country" value={student.highSchoolCountry} />
                 <Field label="Graduation year" value={student.highSchoolGraduationYear} />
                 <Field label="GPA" value={student.highSchoolGpa} />
                 <Field label="Prior university" value={student.priorUniversity} />
                 <Field label="Transferred credits" value={student.priorCredits ? `${student.priorCredits} ECTS` : undefined} />
-              </InfoBlock>
+              </Section>
 
-              <InfoBlock title="University enrollment">
+              <Section title="University enrollment" icon={Award}>
                 <Field label="Start year" value={student.enrolledYear} />
                 <Field label="Enrollment date" value={student.enrollmentDate} />
-                <Field label="Enrollment type" value={student.enrollmentType} />
+                <Field label="Type" value={student.enrollmentType} />
                 <Field label="Study mode" value={student.studyMode} />
                 <Field label="Academic year" value={student.academicYear} />
                 <Field label="Expected graduation" value={student.expectedGraduation} />
-              </InfoBlock>
+              </Section>
 
-              <InfoBlock title="Contact">
+              <Section title="Contact" icon={Mail}>
                 <Field label="Email" value={<span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-muted-foreground" />{student.email}</span>} />
                 <Field label="Phone" value={<span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{student.phone}</span>} />
                 <Field label="Permanent address" value={<span className="inline-flex items-start gap-1.5"><MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />{student.permanentAddress}</span>} />
                 <Field label="Current address" value={<span className="inline-flex items-start gap-1.5"><MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />{student.currentAddress}</span>} />
                 <Field label="Emergency contact" value={student.emergencyContactName} />
                 <Field label="Emergency phone" value={student.emergencyContactPhone} />
-              </InfoBlock>
+              </Section>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Placeholder tabs */}
-        <TabsContent value="semesters" className="mt-4">
-          <Card>
-            <CardContent className="pt-6 text-center space-y-3">
-              <Calendar className="h-10 w-10 text-muted-foreground mx-auto" />
-              <p className="text-sm text-muted-foreground">View detailed semester data, financial breakdown and enrolled courses.</p>
+        <TabsContent value="academic" className="mt-6">
+          <Card className="border-0 shadow-[var(--shadow-card)]">
+            <CardContent className="py-10 text-center space-y-3">
+              <GraduationCap className="h-10 w-10 text-muted-foreground mx-auto" />
+              <p className="text-sm text-muted-foreground">Full academic record — semesters, courses, exams and grades.</p>
               <Button onClick={() => navigate(`/students/${student.id}/semesters`)}>Open semesters</Button>
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="courses" className="mt-4">
-          <Card><CardContent className="pt-6 text-center text-sm text-muted-foreground">Course list coming soon.</CardContent></Card>
+        <TabsContent value="finance" className="mt-6">
+          <Card className="border-0 shadow-[var(--shadow-card)]"><CardContent className="py-10 text-center text-sm text-muted-foreground">Tuition, payments and balances — coming soon.</CardContent></Card>
         </TabsContent>
-        <TabsContent value="exams" className="mt-4">
-          <Card><CardContent className="pt-6 text-center text-sm text-muted-foreground">Exam applications and schedule coming soon.</CardContent></Card>
+        <TabsContent value="documents" className="mt-6">
+          <Card className="border-0 shadow-[var(--shadow-card)]"><CardContent className="py-10 text-center text-sm text-muted-foreground">Documents library — coming soon.</CardContent></Card>
         </TabsContent>
-        <TabsContent value="grades" className="mt-4">
-          <Card><CardContent className="pt-6 text-center text-sm text-muted-foreground">Grade book coming soon.</CardContent></Card>
-        </TabsContent>
-        <TabsContent value="documents" className="mt-4">
-          <Card><CardContent className="pt-6 text-center text-sm text-muted-foreground">Documents library coming soon.</CardContent></Card>
-        </TabsContent>
-        <TabsContent value="edocs" className="mt-4">
-          <Card><CardContent className="pt-6 text-center text-sm text-muted-foreground">E-Documents (transcripts, certificates) coming soon.</CardContent></Card>
+        <TabsContent value="edocs" className="mt-6">
+          <Card className="border-0 shadow-[var(--shadow-card)]"><CardContent className="py-10 text-center text-sm text-muted-foreground">E-Documents (transcripts, certificates) — coming soon.</CardContent></Card>
         </TabsContent>
       </Tabs>
     </div>

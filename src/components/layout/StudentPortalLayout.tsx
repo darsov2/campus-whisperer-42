@@ -16,8 +16,14 @@ export function StudentPortalLayout({ children }: Props) {
   const student = id ? getStudentProfile(id) : undefined;
 
   const nav = [
-    { label: "Overview", to: `/students/${id}` },
+    { label: "Dashboard", to: `/students/${id}`, exact: true },
+    { label: "Profile", to: `/students/${id}/profile` },
     { label: "Semesters", to: `/students/${id}/semesters` },
+    { label: "Courses", to: `/students/${id}/courses` },
+    { label: "Exams", to: `/students/${id}/exams` },
+    { label: "Grades", to: `/students/${id}/grades` },
+    { label: "Finance", to: `/students/${id}/finance` },
+    { label: "Documents", to: `/students/${id}/documents` },
   ];
 
   return (
@@ -37,7 +43,7 @@ export function StudentPortalLayout({ children }: Props) {
 
           <nav className="hidden md:flex items-center gap-1">
             {nav.map((n) => {
-              const active = location.pathname === n.to || (n.to !== `/students/${id}` && location.pathname.startsWith(n.to));
+              const active = n.exact ? location.pathname === n.to : location.pathname.startsWith(n.to);
               return (
                 <Link
                   key={n.to}

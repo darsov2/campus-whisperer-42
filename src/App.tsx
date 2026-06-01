@@ -17,8 +17,11 @@ import MasterCourses from "./pages/MasterCourses";
 import Teachers from "./pages/Teachers";
 import Students from "./pages/Students";
 import StudentProfile from "./pages/StudentProfile";
+import StudentProfileInfo from "./pages/StudentProfileInfo";
+import { StudentPlaceholderPage } from "./pages/StudentPlaceholderPage";
 import StudentSemesters from "./pages/StudentSemesters";
 import StudentSemesterDetail from "./pages/StudentSemesterDetail";
+import { BookOpen, ClipboardList, Award, FileText, Wallet, FileCheck } from "lucide-react";
 import Quotes from "./pages/Quotes";
 import QuotaPricing from "./pages/QuotaPricing";
 import Reports from "./pages/Reports";
@@ -45,8 +48,15 @@ const App = () => (
         <Routes>
           {/* Student portal — standalone shell */}
           <Route path="/students/:id" element={<Portal><StudentProfile /></Portal>} />
+          <Route path="/students/:id/profile" element={<Portal><StudentProfileInfo /></Portal>} />
           <Route path="/students/:id/semesters" element={<Portal><StudentSemesters /></Portal>} />
           <Route path="/students/:id/semesters/:semesterId" element={<Portal><StudentSemesterDetail /></Portal>} />
+          <Route path="/students/:id/courses" element={<Portal><StudentPlaceholderPage title="Courses" description="All courses you are enrolled in across semesters." icon={BookOpen} /></Portal>} />
+          <Route path="/students/:id/exams" element={<Portal><StudentPlaceholderPage title="Exams" description="Apply for exams, view schedule and history." icon={ClipboardList} /></Portal>} />
+          <Route path="/students/:id/grades" element={<Portal><StudentPlaceholderPage title="Grades" description="Your full grade book and transcripts." icon={Award} /></Portal>} />
+          <Route path="/students/:id/finance" element={<Portal><StudentPlaceholderPage title="Finance" description="Tuition, payments and balances." icon={Wallet} /></Portal>} />
+          <Route path="/students/:id/documents" element={<Portal><StudentPlaceholderPage title="Documents" description="Uploaded documents and submissions." icon={FileText} /></Portal>} />
+          <Route path="/students/:id/e-documents" element={<Portal><StudentPlaceholderPage title="E-Documents" description="Official digital transcripts and certificates." icon={FileCheck} /></Portal>} />
 
           {/* Admin app */}
           <Route path="/" element={<Admin><Index /></Admin>} />

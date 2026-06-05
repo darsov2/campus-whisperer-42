@@ -22,13 +22,14 @@ export function ReportEnrolled() {
     <ReportPageShell
       backTo={`/teachers/${id}/reports`}
       title="Enrolled Students"
-      description="Students enrolled in a subject for the selected semester."
+      description="All students enrolled in the subject for the selected semester, regardless of assigned professor."
       filename="enrolled-students"
       columns={[
         { key: "index",     header: "Student ID" },
         { key: "name",      header: "Name" },
         { key: "programme", header: "Programme" },
         { key: "year",      header: "Year" },
+        { key: "professor", header: "Professor" },
         { key: "status",    header: "Status", render: (r: any) => <Badge variant="outline" className={statusClass(r.status)}>{r.statusLabel}</Badge> },
       ]}
       build={({ semesterId, subjectId }) =>
@@ -38,12 +39,14 @@ export function ReportEnrolled() {
           name: `${r.student.firstName} ${r.student.lastName}`,
           programme: r.student.programme,
           year: r.student.year,
+          professor: getProfessorForStudent(subjectId, r.student.id),
           status: r.enrollment.status,
           statusLabel: r.enrollment.status.replace("_", " "),
         }))
       }
       toExportRow={(r) => ({
-        "Student ID": r.index, Name: r.name, Programme: r.programme, Year: r.year, Status: r.statusLabel,
+        "Student ID": r.index, Name: r.name, Programme: r.programme, Year: r.year,
+        Professor: r.professor, Status: r.statusLabel,
       })}
     />
   );

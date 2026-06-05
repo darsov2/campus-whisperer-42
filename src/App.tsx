@@ -6,6 +6,17 @@ import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { ReactNode } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { StudentPortalLayout } from "@/components/layout/StudentPortalLayout";
+import { TeacherPortalLayout } from "@/components/layout/TeacherPortalLayout";
+import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import TeacherProfilePage from "./pages/teacher/TeacherProfile";
+import TeacherCoursesPage from "./pages/teacher/TeacherCourses";
+import TeacherExamSessionsPage from "./pages/teacher/TeacherExamSessions";
+import TeacherStudentLookup from "./pages/teacher/TeacherStudentLookup";
+import TeacherStudentDetail from "./pages/teacher/TeacherStudentDetail";
+import { TeacherEntryPage } from "./pages/teacher/TeacherEntryPage";
+import TeacherReportsHub from "./pages/teacher/TeacherReportsHub";
+import { ReportEnrolled, ReportPassed, ReportExamApplications } from "./pages/teacher/TeacherReports";
+import TeacherEmail from "./pages/teacher/TeacherEmail";
 import Index from "./pages/Index";
 import Semesters from "./pages/Semesters";
 import Faculties from "./pages/Faculties";
@@ -38,6 +49,7 @@ const queryClient = new QueryClient();
 
 const Admin = ({ children }: { children: ReactNode }) => <MainLayout>{children}</MainLayout>;
 const Portal = ({ children }: { children: ReactNode }) => <StudentPortalLayout>{children}</StudentPortalLayout>;
+const Teach = ({ children }: { children: ReactNode }) => <TeacherPortalLayout>{children}</TeacherPortalLayout>;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -57,6 +69,26 @@ const App = () => (
           <Route path="/students/:id/finance" element={<Portal><StudentPlaceholderPage title="Finance" description="Tuition, payments and balances." icon={Wallet} /></Portal>} />
           <Route path="/students/:id/documents" element={<Portal><StudentPlaceholderPage title="Documents" description="Uploaded documents and submissions." icon={FileText} /></Portal>} />
           <Route path="/students/:id/e-documents" element={<Portal><StudentPlaceholderPage title="E-Documents" description="Official digital transcripts and certificates." icon={FileCheck} /></Portal>} />
+
+          {/* Teacher portal */}
+          <Route path="/teachers/:id" element={<Teach><TeacherDashboard /></Teach>} />
+          <Route path="/teachers/:id/profile" element={<Teach><TeacherProfilePage /></Teach>} />
+          <Route path="/teachers/:id/courses" element={<Teach><TeacherCoursesPage /></Teach>} />
+          <Route path="/teachers/:id/exam-sessions" element={<Teach><TeacherExamSessionsPage /></Teach>} />
+          <Route path="/teachers/:id/lookup" element={<Teach><TeacherStudentLookup /></Teach>} />
+          <Route path="/teachers/:id/lookup/:studentId" element={<Teach><TeacherStudentDetail tab="courses" /></Teach>} />
+          <Route path="/teachers/:id/lookup/:studentId/courses" element={<Teach><TeacherStudentDetail tab="courses" /></Teach>} />
+          <Route path="/teachers/:id/lookup/:studentId/grades" element={<Teach><TeacherStudentDetail tab="grades" /></Teach>} />
+          <Route path="/teachers/:id/lookup/:studentId/violations" element={<Teach><TeacherStudentDetail tab="violations" /></Teach>} />
+          <Route path="/teachers/:id/grades" element={<Teach><TeacherEntryPage mode="regular" kind="grade" /></Teach>} />
+          <Route path="/teachers/:id/grades/conditional" element={<Teach><TeacherEntryPage mode="conditional" kind="grade" /></Teach>} />
+          <Route path="/teachers/:id/signatures" element={<Teach><TeacherEntryPage mode="regular" kind="signature" /></Teach>} />
+          <Route path="/teachers/:id/signatures/conditional" element={<Teach><TeacherEntryPage mode="conditional" kind="signature" /></Teach>} />
+          <Route path="/teachers/:id/reports" element={<Teach><TeacherReportsHub /></Teach>} />
+          <Route path="/teachers/:id/reports/enrolled" element={<Teach><ReportEnrolled /></Teach>} />
+          <Route path="/teachers/:id/reports/passed" element={<Teach><ReportPassed /></Teach>} />
+          <Route path="/teachers/:id/reports/exam-applications" element={<Teach><ReportExamApplications /></Teach>} />
+          <Route path="/teachers/:id/email" element={<Teach><TeacherEmail /></Teach>} />
 
           {/* Admin app */}
           <Route path="/" element={<Admin><Index /></Admin>} />

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 import { Upload, Save, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,13 +25,16 @@ import { toast } from "sonner";
 interface Props {
   mode: "regular" | "conditional";
   kind: "grade" | "signature";
-  baseHref: string;
+  /** Optional explicit base href; otherwise derived from URL params. */
+  baseHref?: string;
 }
 
 const signatureValues = ["granted", "refused", "pending"] as const;
 type SignatureValue = typeof signatureValues[number];
 
-export function TeacherEntryPage({ mode, kind, baseHref }: Props) {
+export function TeacherEntryPage({ mode, kind, baseHref: baseHrefProp }: Props) {
+  const params = useParams<{ id: string }>();
+  const baseHref = baseHrefProp ?? `/teachers/${params.id}/${kind === "grade" ? "grades" : "signatures"}`;
   const [subjectId, setSubject] = useState(subjects[0].id);
   const [semesterId, setSemester] = useState(semesters[0].id);
   const [examSessionId, setSession] = useState<string | "all">(examSessions[0].id);

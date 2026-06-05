@@ -6,6 +6,17 @@ import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { ReactNode } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { StudentPortalLayout } from "@/components/layout/StudentPortalLayout";
+import { TeacherPortalLayout } from "@/components/layout/TeacherPortalLayout";
+import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import TeacherProfilePage from "./pages/teacher/TeacherProfile";
+import TeacherCoursesPage from "./pages/teacher/TeacherCourses";
+import TeacherExamSessionsPage from "./pages/teacher/TeacherExamSessions";
+import TeacherStudentLookup from "./pages/teacher/TeacherStudentLookup";
+import TeacherStudentDetail from "./pages/teacher/TeacherStudentDetail";
+import { TeacherEntryPage } from "./pages/teacher/TeacherEntryPage";
+import TeacherReportsHub from "./pages/teacher/TeacherReportsHub";
+import { ReportEnrolled, ReportPassed, ReportExamApplications } from "./pages/teacher/TeacherReports";
+import TeacherEmail from "./pages/teacher/TeacherEmail";
 import Index from "./pages/Index";
 import Semesters from "./pages/Semesters";
 import Faculties from "./pages/Faculties";
@@ -38,6 +49,7 @@ const queryClient = new QueryClient();
 
 const Admin = ({ children }: { children: ReactNode }) => <MainLayout>{children}</MainLayout>;
 const Portal = ({ children }: { children: ReactNode }) => <StudentPortalLayout>{children}</StudentPortalLayout>;
+const Teach = ({ children }: { children: ReactNode }) => <TeacherPortalLayout>{children}</TeacherPortalLayout>;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

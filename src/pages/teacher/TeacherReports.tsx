@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/select";
 import {
   studentsForSubject, applicationsForSubject, examSessions, getExamSession, getSubject,
+  getProfessorForStudent,
 } from "@/data/teacher-portal-data";
 import { useState } from "react";
 

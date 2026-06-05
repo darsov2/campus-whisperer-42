@@ -64,6 +64,7 @@ export function ReportPassed() {
         { key: "index",      header: "Student ID" },
         { key: "name",       header: "Name" },
         { key: "programme",  header: "Programme" },
+        { key: "professor",  header: "Professor" },
         { key: "grade",      header: "Grade", render: (r: any) => <Badge variant="outline" className="bg-success/10 text-success border-success/30">{r.grade}</Badge> },
         { key: "examDate",   header: "Exam date" },
         { key: "session",    header: "Session" },
@@ -77,6 +78,7 @@ export function ReportPassed() {
             index: r.student.index,
             name: `${r.student.firstName} ${r.student.lastName}`,
             programme: r.student.programme,
+            professor: getProfessorForStudent(subjectId, r.student.id),
             grade: r.grade!.grade,
             examDate: r.grade!.examDate ?? "—",
             session: r.grade!.examSessionId ? getExamSession(r.grade!.examSessionId)?.label : "—",
@@ -84,8 +86,8 @@ export function ReportPassed() {
           }))
       }
       toExportRow={(r) => ({
-        "Student ID": r.index, Name: r.name, Programme: r.programme, Grade: r.grade,
-        "Exam date": r.examDate, Session: r.session, "Attempt #": r.attempt,
+        "Student ID": r.index, Name: r.name, Programme: r.programme, Professor: r.professor,
+        Grade: r.grade, "Exam date": r.examDate, Session: r.session, "Attempt #": r.attempt,
       })}
     />
   );

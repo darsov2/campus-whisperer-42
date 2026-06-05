@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/select";
 import {
   studentsForSubject, applicationsForSubject, examSessions, getExamSession, getSubject,
+  getProfessorForStudent,
 } from "@/data/teacher-portal-data";
 import { useState } from "react";
 
@@ -21,13 +22,14 @@ export function ReportEnrolled() {
     <ReportPageShell
       backTo={`/teachers/${id}/reports`}
       title="Enrolled Students"
-      description="Students enrolled in a subject for the selected semester."
+      description="All students enrolled in the subject for the selected semester, regardless of assigned professor."
       filename="enrolled-students"
       columns={[
         { key: "index",     header: "Student ID" },
         { key: "name",      header: "Name" },
         { key: "programme", header: "Programme" },
         { key: "year",      header: "Year" },
+        { key: "professor", header: "Professor" },
         { key: "status",    header: "Status", render: (r: any) => <Badge variant="outline" className={statusClass(r.status)}>{r.statusLabel}</Badge> },
       ]}
       build={({ semesterId, subjectId }) =>
@@ -37,12 +39,14 @@ export function ReportEnrolled() {
           name: `${r.student.firstName} ${r.student.lastName}`,
           programme: r.student.programme,
           year: r.student.year,
+          professor: getProfessorForStudent(subjectId, r.student.id),
           status: r.enrollment.status,
           statusLabel: r.enrollment.status.replace("_", " "),
         }))
       }
       toExportRow={(r) => ({
-        "Student ID": r.index, Name: r.name, Programme: r.programme, Year: r.year, Status: r.statusLabel,
+        "Student ID": r.index, Name: r.name, Programme: r.programme, Year: r.year,
+        Professor: r.professor, Status: r.statusLabel,
       })}
     />
   );
@@ -60,6 +64,7 @@ export function ReportPassed() {
         { key: "index",      header: "Student ID" },
         { key: "name",       header: "Name" },
         { key: "programme",  header: "Programme" },
+        { key: "professor",  header: "Professor" },
         { key: "grade",      header: "Grade", render: (r: any) => <Badge variant="outline" className="bg-success/10 text-success border-success/30">{r.grade}</Badge> },
         { key: "examDate",   header: "Exam date" },
         { key: "session",    header: "Session" },
@@ -73,6 +78,7 @@ export function ReportPassed() {
             index: r.student.index,
             name: `${r.student.firstName} ${r.student.lastName}`,
             programme: r.student.programme,
+            professor: getProfessorForStudent(subjectId, r.student.id),
             grade: r.grade!.grade,
             examDate: r.grade!.examDate ?? "—",
             session: r.grade!.examSessionId ? getExamSession(r.grade!.examSessionId)?.label : "—",
@@ -80,8 +86,8 @@ export function ReportPassed() {
           }))
       }
       toExportRow={(r) => ({
-        "Student ID": r.index, Name: r.name, Programme: r.programme, Grade: r.grade,
-        "Exam date": r.examDate, Session: r.session, "Attempt #": r.attempt,
+        "Student ID": r.index, Name: r.name, Programme: r.programme, Professor: r.professor,
+        Grade: r.grade, "Exam date": r.examDate, Session: r.session, "Attempt #": r.attempt,
       })}
     />
   );
@@ -95,7 +101,7 @@ export function ReportExamApplications() {
     <ReportPageShell
       backTo={`/teachers/${id}/reports`}
       title="Exam Applications"
-      description="Students registered for exams in subjects where you are assigned."
+      description="All students registered for exams on the selected subject, regardless of assigned professor."
       filename="exam-applications"
       extraFilters={
         <div className="space-y-1">
@@ -113,6 +119,7 @@ export function ReportExamApplications() {
         { key: "index",     header: "Student ID" },
         { key: "name",      header: "Name" },
         { key: "subject",   header: "Subject" },
+        { key: "professor", header: "Professor" },
         { key: "session",   header: "Exam session" },
         { key: "appDate",   header: "Application" },
         { key: "role",      header: "Professor role", render: (r: any) => <Badge variant="outline" className="capitalize">{r.role}</Badge> },
@@ -125,6 +132,7 @@ export function ReportExamApplications() {
             index: r.student.index,
             name: `${r.student.firstName} ${r.student.lastName}`,
             subject: getSubject(r.application.subjectId)?.code,
+            professor: getProfessorForStudent(r.application.subjectId, r.student.id),
             session: getExamSession(r.application.examSessionId)?.label,
             appDate: r.application.applicationDate,
             role: r.application.professorRole,
@@ -132,8 +140,8 @@ export function ReportExamApplications() {
           }))
       }
       toExportRow={(r) => ({
-        "Student ID": r.index, Name: r.name, Subject: r.subject, Session: r.session,
-        "Application date": r.appDate, "Professor role": r.role, Status: r.status,
+        "Student ID": r.index, Name: r.name, Subject: r.subject, Professor: r.professor,
+        Session: r.session, "Application date": r.appDate, "Professor role": r.role, Status: r.status,
       })}
     />
   );

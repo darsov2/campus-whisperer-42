@@ -83,7 +83,6 @@ const App = () => (
           <Route path="/teachers/:id/grades" element={<Teach><TeacherEntryPage mode="regular" kind="grade" /></Teach>} />
           <Route path="/teachers/:id/grades/conditional" element={<Teach><TeacherEntryPage mode="conditional" kind="grade" /></Teach>} />
           <Route path="/teachers/:id/signatures" element={<Teach><TeacherEntryPage mode="regular" kind="signature" /></Teach>} />
-          <Route path="/teachers/:id/signatures/conditional" element={<Teach><TeacherEntryPage mode="conditional" kind="signature" /></Teach>} />
           <Route path="/teachers/:id/reports" element={<Teach><TeacherReportsHub /></Teach>} />
           <Route path="/teachers/:id/reports/enrolled" element={<Teach><ReportEnrolled /></Teach>} />
           <Route path="/teachers/:id/reports/passed" element={<Teach><ReportPassed /></Teach>} />

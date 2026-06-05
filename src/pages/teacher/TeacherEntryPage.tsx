@@ -134,16 +134,18 @@ export function TeacherEntryPage({ mode, kind, baseHref: baseHrefProp }: Props) 
         </div>
       </div>
 
-      <Tabs value={mode}>
-        <TabsList>
-          <TabsTrigger value="regular" asChild>
-            <a href={`${baseHref}`}>Regular</a>
-          </TabsTrigger>
-          <TabsTrigger value="conditional" asChild>
-            <a href={`${baseHref}/conditional`}>Conditional</a>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {kind === "grade" && (
+        <Tabs value={mode}>
+          <TabsList>
+            <TabsTrigger value="regular" asChild>
+              <a href={`${baseHref}`}>Regular</a>
+            </TabsTrigger>
+            <TabsTrigger value="conditional" asChild>
+              <a href={`${baseHref}/conditional`}>Conditional</a>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
 
       <Card className="border-0 shadow-[var(--shadow-card)]">
         <CardContent className="p-4 flex flex-wrap items-end gap-3">

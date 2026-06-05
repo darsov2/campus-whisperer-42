@@ -140,8 +140,8 @@ export function ReportExamApplications() {
           }))
       }
       toExportRow={(r) => ({
-        "Student ID": r.index, Name: r.name, Subject: r.subject, Session: r.session,
-        "Application date": r.appDate, "Professor role": r.role, Status: r.status,
+        "Student ID": r.index, Name: r.name, Subject: r.subject, Professor: r.professor,
+        Session: r.session, "Application date": r.appDate, "Professor role": r.role, Status: r.status,
       })}
     />
   );

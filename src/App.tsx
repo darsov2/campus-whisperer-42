@@ -70,6 +70,26 @@ const App = () => (
           <Route path="/students/:id/documents" element={<Portal><StudentPlaceholderPage title="Documents" description="Uploaded documents and submissions." icon={FileText} /></Portal>} />
           <Route path="/students/:id/e-documents" element={<Portal><StudentPlaceholderPage title="E-Documents" description="Official digital transcripts and certificates." icon={FileCheck} /></Portal>} />
 
+          {/* Teacher portal */}
+          <Route path="/teachers/:id" element={<Teach><TeacherDashboard /></Teach>} />
+          <Route path="/teachers/:id/profile" element={<Teach><TeacherProfilePage /></Teach>} />
+          <Route path="/teachers/:id/courses" element={<Teach><TeacherCoursesPage /></Teach>} />
+          <Route path="/teachers/:id/exam-sessions" element={<Teach><TeacherExamSessionsPage /></Teach>} />
+          <Route path="/teachers/:id/lookup" element={<Teach><TeacherStudentLookup /></Teach>} />
+          <Route path="/teachers/:id/lookup/:studentId" element={<Teach><TeacherStudentDetail tab="courses" /></Teach>} />
+          <Route path="/teachers/:id/lookup/:studentId/courses" element={<Teach><TeacherStudentDetail tab="courses" /></Teach>} />
+          <Route path="/teachers/:id/lookup/:studentId/grades" element={<Teach><TeacherStudentDetail tab="grades" /></Teach>} />
+          <Route path="/teachers/:id/lookup/:studentId/violations" element={<Teach><TeacherStudentDetail tab="violations" /></Teach>} />
+          <Route path="/teachers/:id/grades" element={<Teach><TeacherEntryPage mode="regular" kind="grade" baseHref={`/teachers/:id/grades`} /></Teach>} />
+          <Route path="/teachers/:id/grades/conditional" element={<Teach><TeacherEntryPage mode="conditional" kind="grade" baseHref={`/teachers/:id/grades`} /></Teach>} />
+          <Route path="/teachers/:id/signatures" element={<Teach><TeacherEntryPage mode="regular" kind="signature" baseHref={`/teachers/:id/signatures`} /></Teach>} />
+          <Route path="/teachers/:id/signatures/conditional" element={<Teach><TeacherEntryPage mode="conditional" kind="signature" baseHref={`/teachers/:id/signatures`} /></Teach>} />
+          <Route path="/teachers/:id/reports" element={<Teach><TeacherReportsHub /></Teach>} />
+          <Route path="/teachers/:id/reports/enrolled" element={<Teach><ReportEnrolled /></Teach>} />
+          <Route path="/teachers/:id/reports/passed" element={<Teach><ReportPassed /></Teach>} />
+          <Route path="/teachers/:id/reports/exam-applications" element={<Teach><ReportExamApplications /></Teach>} />
+          <Route path="/teachers/:id/email" element={<Teach><TeacherEmail /></Teach>} />
+
           {/* Admin app */}
           <Route path="/" element={<Admin><Index /></Admin>} />
           <Route path="/semesters" element={<Admin><Semesters /></Admin>} />

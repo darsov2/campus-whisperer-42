@@ -128,6 +128,22 @@ export const subjects: PortalSubject[] = [
   { id: "sub-os401", code: "OS401", name: "Operating Systems", ects: 6, semesterIds: ["s-2024-w"], role: "assistant" },
 ];
 
+// Full professor roster per subject (the current teacher is always included).
+// Used so reports list every student on the subject, regardless of which
+// professor they are personally assigned to.
+export const professorsBySubject: Record<string, string[]> = {
+  "sub-se301": ["J. Smith", "M. Garcia", "L. Petrović"],
+  "sub-db201": ["J. Smith", "A. Novak", "R. Kim"],
+  "sub-al101": ["J. Smith", "P. Andersson", "E. Müller"],
+  "sub-os401": ["J. Smith", "D. Costa"],
+};
+
+export function getProfessorForStudent(subjectId: string, studentId: string): string {
+  const list = professorsBySubject[subjectId] ?? ["J. Smith"];
+  const n = studentId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return list[n % list.length];
+}
+
 export const examSessions: PortalExamSession[] = [
   { id: "es-jan25", label: "January 2025", startDate: "2025-01-15", endDate: "2025-02-05", semesterId: "s-2024-w" },
   { id: "es-feb25", label: "February 2025", startDate: "2025-02-10", endDate: "2025-02-25", semesterId: "s-2024-w" },

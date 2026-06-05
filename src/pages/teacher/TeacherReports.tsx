@@ -101,7 +101,7 @@ export function ReportExamApplications() {
     <ReportPageShell
       backTo={`/teachers/${id}/reports`}
       title="Exam Applications"
-      description="Students registered for exams in subjects where you are assigned."
+      description="All students registered for exams on the selected subject, regardless of assigned professor."
       filename="exam-applications"
       extraFilters={
         <div className="space-y-1">
@@ -119,6 +119,7 @@ export function ReportExamApplications() {
         { key: "index",     header: "Student ID" },
         { key: "name",      header: "Name" },
         { key: "subject",   header: "Subject" },
+        { key: "professor", header: "Professor" },
         { key: "session",   header: "Exam session" },
         { key: "appDate",   header: "Application" },
         { key: "role",      header: "Professor role", render: (r: any) => <Badge variant="outline" className="capitalize">{r.role}</Badge> },
@@ -131,6 +132,7 @@ export function ReportExamApplications() {
             index: r.student.index,
             name: `${r.student.firstName} ${r.student.lastName}`,
             subject: getSubject(r.application.subjectId)?.code,
+            professor: getProfessorForStudent(r.application.subjectId, r.student.id),
             session: getExamSession(r.application.examSessionId)?.label,
             appDate: r.application.applicationDate,
             role: r.application.professorRole,

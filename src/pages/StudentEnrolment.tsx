@@ -1116,7 +1116,10 @@ export default function StudentEnrolment() {
                 )}
               </CardContent>
             </Card>
+            )}
+            </div>
           </div>
+
 
           {/* -------------------------- additional ---------------------------- */}
 

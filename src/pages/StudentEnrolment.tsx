@@ -846,28 +846,40 @@ export default function StudentEnrolment() {
                         const chosen =
                           slot.kind === "elective" ? electiveChoices[slot.id] : slot.subject;
                         const active = slot.id === selectedSlotId;
+                        const expanded = !selectedSlot;
                         return (
                           <button
                             key={slot.id}
                             type="button"
-                            onClick={() => setSelectedSlotId(slot.id)}
+                            onClick={() =>
+                              setSelectedSlotId((prev) => (prev === slot.id ? null : slot.id))
+                            }
                             className={cn(
-                              "w-full border-b border-l-2 border-l-transparent px-4 py-3 text-left transition-colors hover:bg-muted/50",
+                              "group w-full border-b border-l-2 border-l-transparent px-4 py-3 text-left transition-colors hover:bg-muted/50",
                               active && "border-l-primary bg-muted/60",
+                              expanded && "flex items-center gap-4",
                             )}
                           >
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                              {slot.title}
-                            </p>
-                            <p
+                            <div className={cn("min-w-0", expanded && "flex-1")}>
+                              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                                {slot.title}
+                              </p>
+                              <p
+                                className={cn(
+                                  "mt-0.5 truncate text-sm font-medium",
+                                  !chosen && "font-normal text-muted-foreground",
+                                )}
+                              >
+                                {chosen ? chosen.name : "Subject selection required"}
+                              </p>
+                            </div>
+                            <div
                               className={cn(
-                                "mt-0.5 truncate text-sm font-medium",
-                                !chosen && "font-normal text-muted-foreground",
+                                "flex items-center gap-2",
+                                !expanded && "mt-1.5",
+                                expanded && "shrink-0",
                               )}
                             >
-                              {chosen ? chosen.name : "Subject selection required"}
-                            </p>
-                            <div className="mt-1.5 flex items-center gap-2">
                               <StatusBadge tone={status.tone} icon={status.icon}>
                                 {status.label}
                               </StatusBadge>
@@ -876,8 +888,12 @@ export default function StudentEnrolment() {
                                   {chosen.ects} ECTS
                                 </span>
                               )}
+                              {expanded && (
+                                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                              )}
                             </div>
                           </button>
+
                         );
                       })}
                     </div>

@@ -26,6 +26,8 @@ export type SlotKind = "reenrolled" | "mandatory" | "elective";
 export interface EnrolmentSlot {
   id: string;
   kind: SlotKind;
+  /** Programme semester this slot belongs to (may be an earlier, still-open semester). */
+  semester: number;
   /** Student-facing requirement title, e.g. "Software Engineering Elective". */
   title: string;
   /** For elective slots: subjects belonging to this requirement's group. */
@@ -161,21 +163,28 @@ const informationSystemsGroup: Subject[] = [
 export const enrolmentSlots: EnrolmentSlot[] = [
   {
     id: "slot-re-1",
+    semester: 3,
     kind: "reenrolled",
     title: "Repeated mandatory subject",
     subject: databases,
   },
   {
     id: "slot-re-2",
+    semester: 3,
     kind: "reenrolled",
     title: "Repeated mandatory subject",
     subject: operatingSystems,
     gradePending: true,
   },
-  { id: "slot-m-1", kind: "mandatory", title: "Mandatory subject", subject: softwareArchitecture },
-  { id: "slot-m-2", kind: "mandatory", title: "Mandatory subject", subject: webProgramming },
+  {
+    id: "slot-m-1",
+    semester: 5, kind: "mandatory", title: "Mandatory subject", subject: softwareArchitecture },
+  {
+    id: "slot-m-2",
+    semester: 5, kind: "mandatory", title: "Mandatory subject", subject: webProgramming },
   {
     id: "slot-m-3",
+    semester: 5,
     kind: "mandatory",
     title: "Mandatory subject",
     subject: advancedAlgorithms,
@@ -183,12 +192,14 @@ export const enrolmentSlots: EnrolmentSlot[] = [
   },
   {
     id: "slot-e-1",
+    semester: 2,
     kind: "elective",
     title: "Software Engineering Elective",
     groupSubjects: softwareEngineeringGroup,
   },
   {
     id: "slot-e-2",
+    semester: 5,
     kind: "elective",
     title: "Information Systems Elective",
     groupSubjects: informationSystemsGroup,

@@ -801,15 +801,25 @@ export default function StudentEnrolment() {
           </div>
 
           {/* --------------------- desktop two-panel planner ------------------ */}
-          <div className="hidden lg:grid grid-cols-[minmax(0,340px)_minmax(0,1fr)] gap-4 items-start">
+          <div
+            className={cn(
+              "hidden lg:grid gap-4 items-start transition-all duration-300 ease-out",
+              selectedSlot
+                ? "grid-cols-[minmax(0,380px)_minmax(0,1fr)]"
+                : "grid-cols-[minmax(0,1fr)_0px]",
+            )}
+          >
             <div className="rounded-xl border bg-card overflow-hidden">
               <div className="px-4 py-3 border-b">
                 <p className="text-sm font-semibold">Programme slots</p>
                 <p className="text-xs text-muted-foreground">
-                  Grouped by the semester each slot belongs to
+                  {selectedSlot
+                    ? "Grouped by the semester each slot belongs to"
+                    : "Select a slot to view details or choose a subject"}
                 </p>
               </div>
-              <div className="max-h-[70vh] overflow-y-auto">
+              <div className={cn("overflow-y-auto", selectedSlot && "max-h-[70vh]")}>
+
                 {semesterGroups.map((group) => {
                   const open = group.slots.filter(
                     (s) => s.kind === "elective" && !electiveChoices[s.id],

@@ -753,8 +753,286 @@ export default function StudentEnrolment() {
               })}
             </Section>
           )}
+          </div>
+
+          {/* --------------------- desktop two-panel planner ------------------ */}
+          <div className="hidden lg:grid grid-cols-[minmax(0,340px)_minmax(0,1fr)] gap-4 items-start">
+            <div className="rounded-xl border bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b">
+                <p className="text-sm font-semibold">Programme slots</p>
+                <p className="text-xs text-muted-foreground">
+                  Grouped by the semester each slot belongs to
+                </p>
+              </div>
+              <div className="max-h-[70vh] overflow-y-auto">
+                {semesterGroups.map((group) => {
+                  const open = group.slots.filter(
+                    (s) => s.kind === "elective" && !electiveChoices[s.id],
+                  ).length;
+                  return (
+                    <div key={group.semester}>
+                      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-y bg-muted/70 px-4 py-1.5 backdrop-blur">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Semester {group.semester}
+                          {group.semester < enrolmentContext.semesterNumber && (
+                            <span className="ml-1.5 font-normal normal-case tracking-normal">
+                              carried over
+                            </span>
+                          )}
+                        </p>
+                        {open > 0 && (
+                          <span className="text-[11px] font-medium text-warning">
+                            {open} to fill
+                          </span>
+                        )}
+                      </div>
+                      {group.slots.map((slot) => {
+                        const status = slotStatus(slot);
+                        const chosen =
+                          slot.kind === "elective" ? electiveChoices[slot.id] : slot.subject;
+                        const active = slot.id === selectedSlotId;
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            onClick={() => setSelectedSlotId(slot.id)}
+                            className={cn(
+                              "w-full border-b border-l-2 border-l-transparent px-4 py-3 text-left transition-colors hover:bg-muted/50",
+                              active && "border-l-primary bg-muted/60",
+                            )}
+                          >
+                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                              {slot.title}
+                            </p>
+                            <p
+                              className={cn(
+                                "mt-0.5 truncate text-sm font-medium",
+                                !chosen && "font-normal text-muted-foreground",
+                              )}
+                            >
+                              {chosen ? chosen.name : "Subject selection required"}
+                            </p>
+                            <div className="mt-1.5 flex items-center gap-2">
+                              <StatusBadge tone={status.tone} icon={status.icon}>
+                                {status.label}
+                              </StatusBadge>
+                              {chosen && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  {chosen.ects} ECTS
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ------------------------- detail panel ------------------------- */}
+            <Card className="min-h-[420px]">
+              <CardContent className="p-5 space-y-4">
+                {!selectedSlot ? (
+                  <p className="text-sm text-muted-foreground">
+                    Select a slot on the left to see its details.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          Semester {selectedSlot.semester} · {selectedSlot.title}
+                        </p>
+                        <h2 className="mt-0.5 text-base font-semibold">
+                          {selectedSlot.kind === "elective"
+                            ? electiveChoices[selectedSlot.id]?.name ?? "Choose a subject"
+                            : selectedSlot.subject?.name}
+                        </h2>
+                      </div>
+                      <StatusBadge
+                        tone={slotStatus(selectedSlot).tone}
+                        icon={slotStatus(selectedSlot).icon}
+                      >
+                        {slotStatus(selectedSlot).label}
+                      </StatusBadge>
+                    </div>
+
+                    <Separator />
+
+                    {selectedSlot.kind === "reenrolled" && (
+                      <div className="space-y-3">
+                        <SubjectLine subject={selectedSlot.subject!} />
+                        <p className="text-xs text-muted-foreground">
+                          Previously failed mandatory subject. It cannot be removed from this
+                          semester.
+                        </p>
+                        {replacements[selectedSlot.id] ? (
+                          <div className="rounded-lg border border-dashed bg-muted/30 p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                                  Replacement
+                                </p>
+                                <SubjectLine subject={replacements[selectedSlot.id]} />
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs"
+                                onClick={() =>
+                                  setReplacements((p) => {
+                                    const n = { ...p };
+                                    delete n[selectedSlot.id];
+                                    return n;
+                                  })
+                                }
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              Only one of these two subjects will be active.
+                            </p>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 -ml-2 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => setReplaceSlot(selectedSlot.id)}
+                          >
+                            <Repeat2 className="h-3.5 w-3.5 mr-1.5" /> Pick replacement
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedSlot.kind === "mandatory" && (
+                      <div className="space-y-3">
+                        <SubjectLine subject={selectedSlot.subject!} />
+                        <div className="rounded-md border bg-muted/40 p-3">
+                          <RequirementList requirements={selectedSlot.subject!.requirements} />
+                        </div>
+                        {!selectedSlot.blocked && (
+                          <p className="text-xs text-muted-foreground">
+                            This subject is enrolled automatically — no action needed.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedSlot.kind === "elective" && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              value={detailQuery}
+                              onChange={(e) => setDetailQuery(e.target.value)}
+                              placeholder="Search subjects for this slot"
+                              className="pl-8"
+                            />
+                          </div>
+                          {electiveChoices[selectedSlot.id] && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setElectiveChoices((p) => {
+                                  const n = { ...p };
+                                  delete n[selectedSlot.id];
+                                  return n;
+                                })
+                              }
+                            >
+                              Clear selection
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="max-h-[46vh] space-y-2 overflow-y-auto pr-1">
+                          {detailOptions.eligible.map((s) => {
+                            const isChosen = electiveChoices[selectedSlot.id]?.id === s.id;
+                            const overload =
+                              !isChosen &&
+                              s.ects >
+                                remaining + (electiveChoices[selectedSlot.id]?.ects ?? 0);
+                            return (
+                              <div
+                                key={s.id}
+                                className={cn(
+                                  "flex items-start gap-3 rounded-lg border p-3",
+                                  isChosen && "border-accent bg-accent/5",
+                                  overload && "opacity-70",
+                                )}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <SubjectLine subject={s} />
+                                  <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-success">
+                                    <Check className="h-3.5 w-3.5" /> Prerequisites fulfilled
+                                  </p>
+                                  {overload && (
+                                    <p className="mt-1.5 text-xs text-muted-foreground">
+                                      Adding this subject would exceed the maximum workload of{" "}
+                                      {MAX_SEMESTER_ECTS} ECTS.
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant={isChosen ? "default" : "outline"}
+                                  disabled={overload}
+                                  onClick={() =>
+                                    setElectiveChoices((p) => ({ ...p, [selectedSlot.id]: s }))
+                                  }
+                                >
+                                  {isChosen ? "Selected" : "Select"}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                          {detailOptions.eligible.length === 0 && (
+                            <p className="text-sm text-muted-foreground">
+                              No available subjects match your search.
+                            </p>
+                          )}
+
+                          {detailOptions.blocked.length > 0 && (
+                            <div className="space-y-2 pt-1">
+                              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                Unavailable ({detailOptions.blocked.length})
+                              </p>
+                              {detailOptions.blocked.map((s) => (
+                                <div
+                                  key={s.id}
+                                  className="rounded-lg border border-dashed bg-muted/30 p-3"
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <SubjectLine subject={s} />
+                                    <StatusBadge tone="danger" icon={Lock}>
+                                      Not eligible
+                                    </StatusBadge>
+                                  </div>
+                                  <div className="mt-2">
+                                    <RequirementList requirements={s.requirements} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* -------------------------- additional ---------------------------- */}
+
           {unfilledElectives === 0 && (
             <Section
               title="Additional subjects"

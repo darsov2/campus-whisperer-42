@@ -523,12 +523,12 @@ export default function StudentEnrolment() {
       .map(([semester, slots]) => ({ semester, slots }));
   }, []);
 
-  const firstOpen = electives.find((s) => !electiveChoices[s.id]);
-  const [selectedSlotId, setSelectedSlotId] = useState<string>(
-    firstOpen?.id ?? enrolmentSlots[0].id,
-  );
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [detailQuery, setDetailQuery] = useState("");
-  const selectedSlot = enrolmentSlots.find((s) => s.id === selectedSlotId);
+  const selectedSlot = selectedSlotId
+    ? enrolmentSlots.find((s) => s.id === selectedSlotId)
+    : undefined;
+
 
   const slotStatus = (slot: (typeof enrolmentSlots)[number]) => {
     if (slot.kind === "reenrolled")

@@ -467,6 +467,16 @@ export default function StudentEnrolment() {
   const activePicker = electives.find((s) => s.id === pickerSlot);
   const activeReplace = reenrolled.find((s) => s.id === replaceSlot);
 
+  const confirmedList: Subject[] = [
+    ...reenrolled.map((s) => s.subject!),
+    ...mandatory.filter((s) => !s.blocked).map((s) => s.subject!),
+    ...Object.values(electiveChoices),
+    ...additional
+      .filter((a) => a.status === "added" || a.status === "approved")
+      .map((a) => a.subject),
+  ];
+
+
   return (
     <div className="space-y-6">
       {/* ------------------------------ header ------------------------------- */}

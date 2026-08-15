@@ -548,7 +548,7 @@ export default function StudentEnrolment() {
     const list = pool.filter(
       (s) =>
         (!q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)) &&
-        (!takenIds.has(s.name) || electiveChoices[selectedSlotId]?.name === s.name),
+        (!takenIds.has(s.name) || electiveChoices[selectedSlotId ?? ""]?.name === s.name),
     );
     return { eligible: list.filter(isEligible), blocked: list.filter((s) => !isEligible(s)) };
     // eslint-disable-next-line react-hooks/exhaustive-deps

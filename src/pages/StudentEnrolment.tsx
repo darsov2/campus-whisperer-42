@@ -715,8 +715,10 @@ export default function StudentEnrolment() {
               {mandatory.map((slot) => (
                 <Card key={slot.id} className={cn(slot.blocked && "border-destructive/30")}>
                   <CardContent className="p-4 space-y-2">
+                    <SemesterTag semester={slot.semester} />
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <SubjectLine subject={slot.subject!} />
+
                       {slot.blocked ? (
                         <StatusBadge tone="danger" icon={AlertCircle}>
                           Requirements not fulfilled

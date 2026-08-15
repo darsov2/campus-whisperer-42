@@ -572,6 +572,8 @@ export default function StudentEnrolment() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
         <div className="space-y-8">
+          <div className="space-y-8 lg:hidden">
+
           {/* --------------------------- re-enrolled -------------------------- */}
           {reenrolled.length > 0 && (
             <Section

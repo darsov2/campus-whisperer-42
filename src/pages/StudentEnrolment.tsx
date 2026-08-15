@@ -7,6 +7,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   Clock,
   GraduationCap,
   Info,
@@ -523,12 +524,12 @@ export default function StudentEnrolment() {
       .map(([semester, slots]) => ({ semester, slots }));
   }, []);
 
-  const firstOpen = electives.find((s) => !electiveChoices[s.id]);
-  const [selectedSlotId, setSelectedSlotId] = useState<string>(
-    firstOpen?.id ?? enrolmentSlots[0].id,
-  );
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [detailQuery, setDetailQuery] = useState("");
-  const selectedSlot = enrolmentSlots.find((s) => s.id === selectedSlotId);
+  const selectedSlot = selectedSlotId
+    ? enrolmentSlots.find((s) => s.id === selectedSlotId)
+    : undefined;
+
 
   const slotStatus = (slot: (typeof enrolmentSlots)[number]) => {
     if (slot.kind === "reenrolled")
@@ -548,11 +549,20 @@ export default function StudentEnrolment() {
     const list = pool.filter(
       (s) =>
         (!q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)) &&
-        (!takenIds.has(s.name) || electiveChoices[selectedSlotId]?.name === s.name),
+        (!takenIds.has(s.name) || electiveChoices[selectedSlotId ?? ""]?.name === s.name),
     );
     return { eligible: list.filter(isEligible), blocked: list.filter((s) => !isEligible(s)) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSlot, detailQuery, electiveChoices, selectedSlotId]);
+
+  const SemesterTag = ({ semester }: { semester: number }) => (
+    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+      Semester {semester}
+      {semester < enrolmentContext.semesterNumber && (
+        <span className="font-normal">· carried over</span>
+      )}
+    </span>
+  );
 
 
   return (
@@ -629,9 +639,11 @@ export default function StudentEnrolment() {
                 return (
                   <Card key={slot.id}>
                     <CardContent className="p-4 space-y-3">
+                      <SemesterTag semester={slot.semester} />
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <SubjectLine subject={slot.subject!} />
                         <div className="flex items-center gap-1.5">
+
                           <StatusBadge tone="muted" icon={Repeat2}>
                             Re-enrolled
                           </StatusBadge>
@@ -703,8 +715,10 @@ export default function StudentEnrolment() {
               {mandatory.map((slot) => (
                 <Card key={slot.id} className={cn(slot.blocked && "border-destructive/30")}>
                   <CardContent className="p-4 space-y-2">
+                    <SemesterTag semester={slot.semester} />
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <SubjectLine subject={slot.subject!} />
+
                       {slot.blocked ? (
                         <StatusBadge tone="danger" icon={AlertCircle}>
                           Requirements not fulfilled
@@ -736,11 +750,15 @@ export default function StudentEnrolment() {
                 return (
                   <Card key={slot.id} className={cn(!chosen && "border-dashed")}>
                     <CardContent className="p-4">
+                      <div className="mb-2">
+                        <SemesterTag semester={slot.semester} />
+                      </div>
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <div className="min-w-0">
                           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                             {slot.title}
                           </p>
+
                           {chosen ? (
                             <div className="mt-1">
                               <SubjectLine subject={chosen} />
@@ -801,15 +819,25 @@ export default function StudentEnrolment() {
           </div>
 
           {/* --------------------- desktop two-panel planner ------------------ */}
-          <div className="hidden lg:grid grid-cols-[minmax(0,340px)_minmax(0,1fr)] gap-4 items-start">
+          <div
+            className={cn(
+              "hidden lg:grid gap-4 items-start transition-all duration-300 ease-out",
+              selectedSlot
+                ? "grid-cols-[minmax(0,380px)_minmax(0,1fr)]"
+                : "grid-cols-[minmax(0,1fr)_0px]",
+            )}
+          >
             <div className="rounded-xl border bg-card overflow-hidden">
               <div className="px-4 py-3 border-b">
                 <p className="text-sm font-semibold">Programme slots</p>
                 <p className="text-xs text-muted-foreground">
-                  Grouped by the semester each slot belongs to
+                  {selectedSlot
+                    ? "Grouped by the semester each slot belongs to"
+                    : "Select a slot to view details or choose a subject"}
                 </p>
               </div>
-              <div className="max-h-[70vh] overflow-y-auto">
+              <div className={cn("overflow-y-auto", selectedSlot && "max-h-[70vh]")}>
+
                 {semesterGroups.map((group) => {
                   const open = group.slots.filter(
                     (s) => s.kind === "elective" && !electiveChoices[s.id],
@@ -836,28 +864,40 @@ export default function StudentEnrolment() {
                         const chosen =
                           slot.kind === "elective" ? electiveChoices[slot.id] : slot.subject;
                         const active = slot.id === selectedSlotId;
+                        const expanded = !selectedSlot;
                         return (
                           <button
                             key={slot.id}
                             type="button"
-                            onClick={() => setSelectedSlotId(slot.id)}
+                            onClick={() =>
+                              setSelectedSlotId((prev) => (prev === slot.id ? null : slot.id))
+                            }
                             className={cn(
-                              "w-full border-b border-l-2 border-l-transparent px-4 py-3 text-left transition-colors hover:bg-muted/50",
+                              "group w-full border-b border-l-2 border-l-transparent px-4 py-3 text-left transition-colors hover:bg-muted/50",
                               active && "border-l-primary bg-muted/60",
+                              expanded && "flex items-center gap-4",
                             )}
                           >
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                              {slot.title}
-                            </p>
-                            <p
+                            <div className={cn("min-w-0", expanded && "flex-1")}>
+                              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                                {slot.title}
+                              </p>
+                              <p
+                                className={cn(
+                                  "mt-0.5 truncate text-sm font-medium",
+                                  !chosen && "font-normal text-muted-foreground",
+                                )}
+                              >
+                                {chosen ? chosen.name : "Subject selection required"}
+                              </p>
+                            </div>
+                            <div
                               className={cn(
-                                "mt-0.5 truncate text-sm font-medium",
-                                !chosen && "font-normal text-muted-foreground",
+                                "flex items-center gap-2",
+                                !expanded && "mt-1.5",
+                                expanded && "shrink-0",
                               )}
                             >
-                              {chosen ? chosen.name : "Subject selection required"}
-                            </p>
-                            <div className="mt-1.5 flex items-center gap-2">
                               <StatusBadge tone={status.tone} icon={status.icon}>
                                 {status.label}
                               </StatusBadge>
@@ -866,8 +906,12 @@ export default function StudentEnrolment() {
                                   {chosen.ects} ECTS
                                 </span>
                               )}
+                              {expanded && (
+                                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                              )}
                             </div>
                           </button>
+
                         );
                       })}
                     </div>
@@ -877,13 +921,16 @@ export default function StudentEnrolment() {
             </div>
 
             {/* ------------------------- detail panel ------------------------- */}
-            <Card className="min-h-[420px]">
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-300 ease-out",
+                selectedSlot ? "opacity-100" : "w-0 opacity-0 pointer-events-none",
+              )}
+            >
+            {selectedSlot && (
+            <Card className="min-h-[420px] animate-scale-in">
               <CardContent className="p-5 space-y-4">
-                {!selectedSlot ? (
-                  <p className="text-sm text-muted-foreground">
-                    Select a slot on the left to see its details.
-                  </p>
-                ) : (
+                {(
                   <>
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div>
@@ -896,13 +943,25 @@ export default function StudentEnrolment() {
                             : selectedSlot.subject?.name}
                         </h2>
                       </div>
-                      <StatusBadge
-                        tone={slotStatus(selectedSlot).tone}
-                        icon={slotStatus(selectedSlot).icon}
-                      >
-                        {slotStatus(selectedSlot).label}
-                      </StatusBadge>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge
+                          tone={slotStatus(selectedSlot).tone}
+                          icon={slotStatus(selectedSlot).icon}
+                        >
+                          {slotStatus(selectedSlot).label}
+                        </StatusBadge>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground"
+                          onClick={() => setSelectedSlotId(null)}
+                          aria-label="Close slot details"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
+
 
                     <Separator />
 
@@ -1074,7 +1133,10 @@ export default function StudentEnrolment() {
                 )}
               </CardContent>
             </Card>
+            )}
+            </div>
           </div>
+
 
           {/* -------------------------- additional ---------------------------- */}
 

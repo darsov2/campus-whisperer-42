@@ -639,9 +639,11 @@ export default function StudentEnrolment() {
                 return (
                   <Card key={slot.id}>
                     <CardContent className="p-4 space-y-3">
+                      <SemesterTag semester={slot.semester} />
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <SubjectLine subject={slot.subject!} />
                         <div className="flex items-center gap-1.5">
+
                           <StatusBadge tone="muted" icon={Repeat2}>
                             Re-enrolled
                           </StatusBadge>

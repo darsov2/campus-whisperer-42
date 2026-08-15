@@ -427,6 +427,8 @@ export default function StudentEnrolment() {
   const [replaceSlot, setReplaceSlot] = useState<string | null>(null);
   const [additionalOpen, setAdditionalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
 
   const reenrolled = enrolmentSlots.filter((s) => s.kind === "reenrolled");
   const mandatory = enrolmentSlots.filter((s) => s.kind === "mandatory");

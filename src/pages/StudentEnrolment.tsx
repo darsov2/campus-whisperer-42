@@ -511,6 +511,49 @@ export default function StudentEnrolment() {
       .map((a) => a.subject),
   ];
 
+  /* --------------------- desktop planner (two-panel) ---------------------- */
+
+  const semesterGroups = useMemo(() => {
+    const map = new Map<number, typeof enrolmentSlots>();
+    enrolmentSlots.forEach((s) => {
+      map.set(s.semester, [...(map.get(s.semester) ?? []), s]);
+    });
+    return [...map.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([semester, slots]) => ({ semester, slots }));
+  }, []);
+
+  const firstOpen = electives.find((s) => !electiveChoices[s.id]);
+  const [selectedSlotId, setSelectedSlotId] = useState<string>(
+    firstOpen?.id ?? enrolmentSlots[0].id,
+  );
+  const [detailQuery, setDetailQuery] = useState("");
+  const selectedSlot = enrolmentSlots.find((s) => s.id === selectedSlotId);
+
+  const slotStatus = (slot: (typeof enrolmentSlots)[number]) => {
+    if (slot.kind === "reenrolled")
+      return { label: "Re-enrolled", tone: "muted" as Tone, icon: Repeat2 };
+    if (slot.kind === "mandatory")
+      return slot.blocked
+        ? { label: "Requirements not fulfilled", tone: "danger" as Tone, icon: AlertCircle }
+        : { label: "Automatically enrolled", tone: "success" as Tone, icon: CheckCircle2 };
+    return electiveChoices[slot.id]
+      ? { label: "Selected", tone: "accent" as Tone, icon: Check }
+      : { label: "Action required", tone: "warning" as Tone, icon: AlertCircle };
+  };
+
+  const detailOptions = useMemo(() => {
+    const pool = selectedSlot?.groupSubjects ?? [];
+    const q = detailQuery.trim().toLowerCase();
+    const list = pool.filter(
+      (s) =>
+        (!q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)) &&
+        (!takenIds.has(s.name) || electiveChoices[selectedSlotId]?.name === s.name),
+    );
+    return { eligible: list.filter(isEligible), blocked: list.filter((s) => !isEligible(s)) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSlot, detailQuery, electiveChoices, selectedSlotId]);
+
 
   return (
     <div className="space-y-6">

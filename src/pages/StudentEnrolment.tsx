@@ -144,12 +144,20 @@ function SubjectLine({ subject }: { subject: Subject }) {
 
 /* ------------------------------- picker dialog ------------------------------- */
 
+interface SubjectGroup {
+  id: string;
+  label: string;
+  subjects: Subject[];
+}
+
 interface PickerProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   title: string;
   description: string;
-  subjects: Subject[];
+  subjects?: Subject[];
+  groups?: SubjectGroup[];
+  defaultGroupId?: string;
   remainingEcts: number;
   onSelect: (s: Subject, justification?: string) => void;
   requireJustification?: boolean;
@@ -162,6 +170,8 @@ function SubjectPicker({
   title,
   description,
   subjects,
+  groups,
+  defaultGroupId,
   remainingEcts,
   onSelect,
   requireJustification,
@@ -170,13 +180,31 @@ function SubjectPicker({
   const [chosen, setChosen] = useState<Subject | null>(null);
   const [justification, setJustification] = useState("");
   const [showUnavailable, setShowUnavailable] = useState(false);
+  const [query, setQuery] = useState("");
+  const [groupId, setGroupId] = useState<string>(defaultGroupId ?? "all");
 
-  const available = subjects.filter(isEligible);
-  const unavailable = subjects.filter((s) => !isEligible(s));
+  const pool = useMemo(() => {
+    if (!groups) return subjects ?? [];
+    if (groupId === "all") return groups.flatMap((g) => g.subjects);
+    return groups.find((g) => g.id === groupId)?.subjects ?? [];
+  }, [groups, subjects, groupId]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return pool;
+    return pool.filter(
+      (s) => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q),
+    );
+  }, [pool, query]);
+
+  const available = filtered.filter(isEligible);
+  const unavailable = filtered.filter((s) => !isEligible(s));
 
   const close = () => {
     setChosen(null);
     setJustification("");
+    setQuery("");
+    setGroupId(defaultGroupId ?? "all");
     onOpenChange(false);
   };
 
@@ -197,7 +225,34 @@ function SubjectPicker({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[55vh] overflow-y-auto -mx-1 px-1 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by subject name or code"
+              className="pl-8"
+            />
+          </div>
+          {groups && groups.length > 0 && (
+            <Select value={groupId} onValueChange={setGroupId}>
+              <SelectTrigger className="sm:w-56">
+                <SelectValue placeholder="All groups" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All groups</SelectItem>
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        <div className="max-h-[50vh] overflow-y-auto -mx-1 px-1 space-y-4">
           <div className="space-y-2">
             {available.map((s) => {
               const overload = s.ects > remainingEcts;
@@ -237,7 +292,7 @@ function SubjectPicker({
             })}
             {available.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No subjects are currently available for this requirement.
+                No subjects match your search for this requirement.
               </p>
             )}
           </div>
@@ -306,6 +361,7 @@ function SubjectPicker({
     </Dialog>
   );
 }
+
 
 /* --------------------------------- section ----------------------------------- */
 

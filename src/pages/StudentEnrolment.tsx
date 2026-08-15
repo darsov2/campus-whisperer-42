@@ -927,14 +927,24 @@ export default function StudentEnrolment() {
                         </h2>
                       </div>
                       <div className="flex items-center gap-2">
-
-                      <StatusBadge
-                        tone={slotStatus(selectedSlot).tone}
-                        icon={slotStatus(selectedSlot).icon}
-                      >
-                        {slotStatus(selectedSlot).label}
-                      </StatusBadge>
+                        <StatusBadge
+                          tone={slotStatus(selectedSlot).tone}
+                          icon={slotStatus(selectedSlot).icon}
+                        >
+                          {slotStatus(selectedSlot).label}
+                        </StatusBadge>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground"
+                          onClick={() => setSelectedSlotId(null)}
+                          aria-label="Close slot details"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
+
 
                     <Separator />
 

@@ -13,8 +13,10 @@ import {
   Lock,
   Plus,
   Repeat2,
+  Search,
   Sparkles,
   X,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +26,16 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -144,12 +155,20 @@ function SubjectLine({ subject }: { subject: Subject }) {
 
 /* ------------------------------- picker dialog ------------------------------- */
 
+interface SubjectGroup {
+  id: string;
+  label: string;
+  subjects: Subject[];
+}
+
 interface PickerProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   title: string;
   description: string;
-  subjects: Subject[];
+  subjects?: Subject[];
+  groups?: SubjectGroup[];
+  defaultGroupId?: string;
   remainingEcts: number;
   onSelect: (s: Subject, justification?: string) => void;
   requireJustification?: boolean;
@@ -162,6 +181,8 @@ function SubjectPicker({
   title,
   description,
   subjects,
+  groups,
+  defaultGroupId,
   remainingEcts,
   onSelect,
   requireJustification,
@@ -170,13 +191,31 @@ function SubjectPicker({
   const [chosen, setChosen] = useState<Subject | null>(null);
   const [justification, setJustification] = useState("");
   const [showUnavailable, setShowUnavailable] = useState(false);
+  const [query, setQuery] = useState("");
+  const [groupId, setGroupId] = useState<string>(defaultGroupId ?? "all");
 
-  const available = subjects.filter(isEligible);
-  const unavailable = subjects.filter((s) => !isEligible(s));
+  const pool = useMemo(() => {
+    if (!groups) return subjects ?? [];
+    if (groupId === "all") return groups.flatMap((g) => g.subjects);
+    return groups.find((g) => g.id === groupId)?.subjects ?? [];
+  }, [groups, subjects, groupId]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return pool;
+    return pool.filter(
+      (s) => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q),
+    );
+  }, [pool, query]);
+
+  const available = filtered.filter(isEligible);
+  const unavailable = filtered.filter((s) => !isEligible(s));
 
   const close = () => {
     setChosen(null);
     setJustification("");
+    setQuery("");
+    setGroupId(defaultGroupId ?? "all");
     onOpenChange(false);
   };
 
@@ -197,7 +236,34 @@ function SubjectPicker({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[55vh] overflow-y-auto -mx-1 px-1 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by subject name or code"
+              className="pl-8"
+            />
+          </div>
+          {groups && groups.length > 0 && (
+            <Select value={groupId} onValueChange={setGroupId}>
+              <SelectTrigger className="sm:w-56">
+                <SelectValue placeholder="All groups" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All groups</SelectItem>
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        <div className="max-h-[50vh] overflow-y-auto -mx-1 px-1 space-y-4">
           <div className="space-y-2">
             {available.map((s) => {
               const overload = s.ects > remainingEcts;
@@ -237,7 +303,7 @@ function SubjectPicker({
             })}
             {available.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No subjects are currently available for this requirement.
+                No subjects match your search for this requirement.
               </p>
             )}
           </div>
@@ -307,6 +373,7 @@ function SubjectPicker({
   );
 }
 
+
 /* --------------------------------- section ----------------------------------- */
 
 function Section({
@@ -346,7 +413,42 @@ interface AdditionalEntry {
   justification?: string;
 }
 
+function ConfirmGroup({
+  title,
+  items,
+  muted,
+}: {
+  title: string;
+  items: { subject: Subject; note?: string }[];
+  muted?: boolean;
+}) {
+  if (items.length === 0) return null;
+  const total = items.reduce((a, i) => a + i.subject.ects, 0);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </p>
+        <span className="text-xs text-muted-foreground">{total} ECTS</span>
+      </div>
+      <div className={cn("rounded-lg border divide-y", muted && "border-dashed bg-muted/30")}>
+        {items.map((i) => (
+          <div key={i.subject.id} className="flex items-start justify-between gap-3 p-3">
+            <div className="min-w-0">
+              <SubjectLine subject={i.subject} />
+              {i.note && <p className="mt-1 text-xs text-muted-foreground">{i.note}</p>}
+            </div>
+            <span className="text-xs text-muted-foreground shrink-0">{i.subject.ects} ECTS</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function StudentEnrolment() {
+
   const { id } = useParams<{ id: string }>();
   const student = id ? getStudentProfile(id) : undefined;
 
@@ -360,6 +462,8 @@ export default function StudentEnrolment() {
   const [replaceSlot, setReplaceSlot] = useState<string | null>(null);
   const [additionalOpen, setAdditionalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
 
   const reenrolled = enrolmentSlots.filter((s) => s.kind === "reenrolled");
   const mandatory = enrolmentSlots.filter((s) => s.kind === "mandatory");
@@ -397,6 +501,16 @@ export default function StudentEnrolment() {
 
   const activePicker = electives.find((s) => s.id === pickerSlot);
   const activeReplace = reenrolled.find((s) => s.id === replaceSlot);
+
+  const confirmedList: Subject[] = [
+    ...reenrolled.map((s) => s.subject!),
+    ...mandatory.filter((s) => !s.blocked).map((s) => s.subject!),
+    ...Object.values(electiveChoices),
+    ...additional
+      .filter((a) => a.status === "added" || a.status === "approved")
+      .map((a) => a.subject),
+  ];
+
 
   return (
     <div className="space-y-6">
@@ -818,17 +932,12 @@ export default function StudentEnrolment() {
             <Button
               className="w-full"
               disabled={!canSubmit}
-              onClick={() => {
-                setSubmitted(true);
-                toast({
-                  title: "Enrolment submitted",
-                  description: `${confirmedEcts} ECTS confirmed for ${enrolmentContext.semesterLabel}.`,
-                });
-              }}
+              onClick={() => setConfirmOpen(true)}
             >
-              Submit enrolment
+              Review & submit
               <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
+
             {!canSubmit && (
               <p className="text-xs text-muted-foreground text-center">
                 Complete all elective choices first.
@@ -850,9 +959,14 @@ export default function StudentEnrolment() {
           onOpenChange={(v) => !v && setPickerSlot(null)}
           title={activePicker.title}
           description="Choose one subject that fulfils this programme requirement."
-          subjects={(activePicker.groupSubjects ?? []).filter(
-            (s) => !takenIds.has(s.name) || electiveChoices[activePicker.id]?.name === s.name,
-          )}
+          groups={electives.map((slot) => ({
+            id: slot.id,
+            label: slot.title,
+            subjects: (slot.groupSubjects ?? []).filter(
+              (s) => !takenIds.has(s.name) || electiveChoices[activePicker.id]?.name === s.name,
+            ),
+          }))}
+          defaultGroupId={activePicker.id}
           remainingEcts={remaining + (electiveChoices[activePicker.id]?.ects ?? 0)}
           onSelect={(s) => {
             setElectiveChoices((p) => ({ ...p, [activePicker.id]: s }));
@@ -860,6 +974,7 @@ export default function StudentEnrolment() {
           }}
         />
       )}
+
 
       {activeReplace && (
         <SubjectPicker
@@ -903,6 +1018,110 @@ export default function StudentEnrolment() {
           ])
         }
       />
+
+      {/* --------------------------- confirmation step --------------------------- */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Confirm your enrolment</DialogTitle>
+            <DialogDescription>
+              Review everything below before submitting your enrolment for{" "}
+              {enrolmentContext.semesterLabel}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[55vh] overflow-y-auto -mx-1 px-1 space-y-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Confirmed workload
+                </p>
+                <p className="text-lg font-semibold">
+                  {confirmedEcts} / {MAX_SEMESTER_ECTS} ECTS
+                </p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Subjects
+                </p>
+                <p className="text-lg font-semibold">{confirmedList.length}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Study programme
+                </p>
+                <p className="text-sm font-medium">
+                  {student?.programme ?? enrolmentContext.programme}
+                </p>
+              </div>
+            </div>
+
+            <ConfirmGroup
+              title="Repeated subjects"
+              items={reenrolled.map((s) => ({
+                subject: s.subject!,
+                note: replacements[s.id]
+                  ? `Replacement if passed: ${replacements[s.id].name}`
+                  : undefined,
+              }))}
+            />
+            <ConfirmGroup
+              title="Mandatory subjects"
+              items={mandatory
+                .filter((s) => !s.blocked)
+                .map((s) => ({ subject: s.subject! }))}
+            />
+            <ConfirmGroup
+              title="Electives"
+              items={electives
+                .filter((s) => electiveChoices[s.id])
+                .map((s) => ({ subject: electiveChoices[s.id], note: s.title }))}
+            />
+            <ConfirmGroup
+              title="Additional subjects"
+              items={additional
+                .filter((a) => a.status === "added" || a.status === "approved")
+                .map((a) => ({ subject: a.subject, note: a.justification }))}
+            />
+            <ConfirmGroup
+              title="Awaiting Vice Dean approval"
+              items={additional
+                .filter((a) => a.status === "pending")
+                .map((a) => ({ subject: a.subject, note: a.justification }))}
+              muted
+            />
+            {mandatory.some((s) => s.blocked) && (
+              <div className="flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs">
+                <AlertCircle className="h-4 w-4 mt-0.5 text-warning shrink-0" />
+                <p>
+                  {mandatory.filter((s) => s.blocked).length} mandatory subject(s) cannot be
+                  enrolled this semester and are not included in this submission.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Back to editing
+            </Button>
+            <Button
+              onClick={() => {
+                setSubmitted(true);
+                setConfirmOpen(false);
+                toast({
+                  title: "Enrolment submitted",
+                  description: `${confirmedEcts} ECTS confirmed for ${enrolmentContext.semesterLabel}.`,
+                });
+              }}
+            >
+              Confirm & submit
+              <Check className="h-4 w-4 ml-1.5" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

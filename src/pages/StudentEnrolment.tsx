@@ -750,11 +750,15 @@ export default function StudentEnrolment() {
                 return (
                   <Card key={slot.id} className={cn(!chosen && "border-dashed")}>
                     <CardContent className="p-4">
+                      <div className="mb-2">
+                        <SemesterTag semester={slot.semester} />
+                      </div>
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <div className="min-w-0">
                           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                             {slot.title}
                           </p>
+
                           {chosen ? (
                             <div className="mt-1">
                               <SubjectLine subject={chosen} />

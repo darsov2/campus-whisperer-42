@@ -885,17 +885,12 @@ export default function StudentEnrolment() {
             <Button
               className="w-full"
               disabled={!canSubmit}
-              onClick={() => {
-                setSubmitted(true);
-                toast({
-                  title: "Enrolment submitted",
-                  description: `${confirmedEcts} ECTS confirmed for ${enrolmentContext.semesterLabel}.`,
-                });
-              }}
+              onClick={() => setConfirmOpen(true)}
             >
-              Submit enrolment
+              Review & submit
               <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
+
             {!canSubmit && (
               <p className="text-xs text-muted-foreground text-center">
                 Complete all elective choices first.

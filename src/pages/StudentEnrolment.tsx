@@ -473,73 +473,59 @@ export default function StudentEnrolment() {
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <SubjectLine subject={slot.subject!} />
                         <div className="flex items-center gap-1.5">
-                          {slot.gradePending ? (
-                            <StatusBadge tone="warning" icon={Clock}>
-                              Grade pending
-                            </StatusBadge>
-                          ) : (
-                            <StatusBadge tone="muted" icon={Repeat2}>
-                              Re-enrolled
-                            </StatusBadge>
-                          )}
+                          <StatusBadge tone="muted" icon={Repeat2}>
+                            Re-enrolled
+                          </StatusBadge>
                         </div>
                       </div>
 
-                      {slot.gradePending ? (
-                        <>
-                          <p className="text-xs text-muted-foreground">
-                            Temporarily re-enrolled — the final grade has not been entered yet. If a
-                            passing grade is entered later, the replacement subject will take the
-                            place of this re-enrolment. If the subject remains failed, the original
-                            re-enrolment stays and the replacement is cancelled.
-                          </p>
-                          {rep ? (
-                            <div className="relative ml-3 border-l-2 border-dashed pl-4 pt-1">
-                              <div className="flex items-start justify-between gap-3 rounded-lg border border-dashed bg-muted/30 p-3">
-                                <div>
-                                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                                    Replacement
-                                  </p>
-                                  <SubjectLine subject={rep} />
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <StatusBadge tone="accent">Replacement selected</StatusBadge>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 px-2 text-xs"
-                                    onClick={() =>
-                                      setReplacements((p) => {
-                                        const n = { ...p };
-                                        delete n[slot.id];
-                                        return n;
-                                      })
-                                    }
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
-                              </div>
-                              <p className="mt-2 text-xs text-muted-foreground">
-                                These two subjects are conditional alternatives — only one of them
-                                will be active.
+                      {rep ? (
+                        <div className="relative ml-3 border-l-2 border-dashed pl-4 pt-1">
+                          <div className="flex items-start justify-between gap-3 rounded-lg border border-dashed bg-muted/30 p-3">
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                                Replacement
                               </p>
+                              <SubjectLine subject={rep} />
                             </div>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setReplaceSlot(slot.id)}
-                            >
-                              <Plus className="h-3.5 w-3.5 mr-1.5" /> Choose replacement subject
-                            </Button>
-                          )}
-                        </>
+                            <div className="flex items-center gap-1.5">
+                              <StatusBadge tone="accent">Replacement selected</StatusBadge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs"
+                                onClick={() =>
+                                  setReplacements((p) => {
+                                    const n = { ...p };
+                                    delete n[slot.id];
+                                    return n;
+                                  })
+                                }
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            These two subjects are conditional alternatives — only one of them
+                            will be active.
+                          </p>
+                        </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Previously failed mandatory subject. It cannot be removed from this
-                          semester.
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            Previously failed mandatory subject. It cannot be removed from this
+                            semester.
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 -mr-2 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => setReplaceSlot(slot.id)}
+                          >
+                            <Repeat2 className="h-3.5 w-3.5 mr-1.5" /> Pick replacement
+                          </Button>
+                        </div>
                       )}
                     </CardContent>
                   </Card>

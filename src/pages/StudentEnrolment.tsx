@@ -973,6 +973,110 @@ export default function StudentEnrolment() {
           ])
         }
       />
+
+      {/* --------------------------- confirmation step --------------------------- */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Confirm your enrolment</DialogTitle>
+            <DialogDescription>
+              Review everything below before submitting your enrolment for{" "}
+              {enrolmentContext.semesterLabel}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[55vh] overflow-y-auto -mx-1 px-1 space-y-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Confirmed workload
+                </p>
+                <p className="text-lg font-semibold">
+                  {confirmedEcts} / {MAX_SEMESTER_ECTS} ECTS
+                </p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Subjects
+                </p>
+                <p className="text-lg font-semibold">{confirmedList.length}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Study programme
+                </p>
+                <p className="text-sm font-medium">
+                  {student?.programme ?? enrolmentContext.programme}
+                </p>
+              </div>
+            </div>
+
+            <ConfirmGroup
+              title="Repeated subjects"
+              items={reenrolled.map((s) => ({
+                subject: s.subject!,
+                note: replacements[s.id]
+                  ? `Replacement if passed: ${replacements[s.id].name}`
+                  : undefined,
+              }))}
+            />
+            <ConfirmGroup
+              title="Mandatory subjects"
+              items={mandatory
+                .filter((s) => !s.blocked)
+                .map((s) => ({ subject: s.subject! }))}
+            />
+            <ConfirmGroup
+              title="Electives"
+              items={electives
+                .filter((s) => electiveChoices[s.id])
+                .map((s) => ({ subject: electiveChoices[s.id], note: s.title }))}
+            />
+            <ConfirmGroup
+              title="Additional subjects"
+              items={additional
+                .filter((a) => a.status === "added" || a.status === "approved")
+                .map((a) => ({ subject: a.subject, note: a.justification }))}
+            />
+            <ConfirmGroup
+              title="Awaiting Vice Dean approval"
+              items={additional
+                .filter((a) => a.status === "pending")
+                .map((a) => ({ subject: a.subject, note: a.justification }))}
+              muted
+            />
+            {mandatory.some((s) => s.blocked) && (
+              <div className="flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs">
+                <AlertCircle className="h-4 w-4 mt-0.5 text-warning shrink-0" />
+                <p>
+                  {mandatory.filter((s) => s.blocked).length} mandatory subject(s) cannot be
+                  enrolled this semester and are not included in this submission.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Back to editing
+            </Button>
+            <Button
+              onClick={() => {
+                setSubmitted(true);
+                setConfirmOpen(false);
+                toast({
+                  title: "Enrolment submitted",
+                  description: `${confirmedEcts} ECTS confirmed for ${enrolmentContext.semesterLabel}.`,
+                });
+              }}
+            >
+              Confirm & submit
+              <Check className="h-4 w-4 ml-1.5" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

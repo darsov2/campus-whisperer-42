@@ -555,6 +555,15 @@ export default function StudentEnrolment() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSlot, detailQuery, electiveChoices, selectedSlotId]);
 
+  const SemesterTag = ({ semester }: { semester: number }) => (
+    <span className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+      Semester {semester}
+      {semester < enrolmentContext.semesterNumber && (
+        <span className="font-normal">· carried over</span>
+      )}
+    </span>
+  );
+
 
   return (
     <div className="space-y-6">

@@ -917,9 +917,14 @@ export default function StudentEnrolment() {
           onOpenChange={(v) => !v && setPickerSlot(null)}
           title={activePicker.title}
           description="Choose one subject that fulfils this programme requirement."
-          subjects={(activePicker.groupSubjects ?? []).filter(
-            (s) => !takenIds.has(s.name) || electiveChoices[activePicker.id]?.name === s.name,
-          )}
+          groups={electives.map((slot) => ({
+            id: slot.id,
+            label: slot.title,
+            subjects: (slot.groupSubjects ?? []).filter(
+              (s) => !takenIds.has(s.name) || electiveChoices[activePicker.id]?.name === s.name,
+            ),
+          }))}
+          defaultGroupId={activePicker.id}
           remainingEcts={remaining + (electiveChoices[activePicker.id]?.ects ?? 0)}
           onSelect={(s) => {
             setElectiveChoices((p) => ({ ...p, [activePicker.id]: s }));
@@ -927,6 +932,7 @@ export default function StudentEnrolment() {
           }}
         />
       )}
+
 
       {activeReplace && (
         <SubjectPicker

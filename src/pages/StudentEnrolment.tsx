@@ -413,7 +413,42 @@ interface AdditionalEntry {
   justification?: string;
 }
 
+function ConfirmGroup({
+  title,
+  items,
+  muted,
+}: {
+  title: string;
+  items: { subject: Subject; note?: string }[];
+  muted?: boolean;
+}) {
+  if (items.length === 0) return null;
+  const total = items.reduce((a, i) => a + i.subject.ects, 0);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </p>
+        <span className="text-xs text-muted-foreground">{total} ECTS</span>
+      </div>
+      <div className={cn("rounded-lg border divide-y", muted && "border-dashed bg-muted/30")}>
+        {items.map((i) => (
+          <div key={i.subject.id} className="flex items-start justify-between gap-3 p-3">
+            <div className="min-w-0">
+              <SubjectLine subject={i.subject} />
+              {i.note && <p className="mt-1 text-xs text-muted-foreground">{i.note}</p>}
+            </div>
+            <span className="text-xs text-muted-foreground shrink-0">{i.subject.ects} ECTS</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function StudentEnrolment() {
+
   const { id } = useParams<{ id: string }>();
   const student = id ? getStudentProfile(id) : undefined;
 

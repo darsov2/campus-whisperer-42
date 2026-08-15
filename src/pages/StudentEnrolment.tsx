@@ -904,13 +904,16 @@ export default function StudentEnrolment() {
             </div>
 
             {/* ------------------------- detail panel ------------------------- */}
-            <Card className="min-h-[420px]">
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-300 ease-out",
+                selectedSlot ? "opacity-100" : "w-0 opacity-0 pointer-events-none",
+              )}
+            >
+            {selectedSlot && (
+            <Card className="min-h-[420px] animate-scale-in">
               <CardContent className="p-5 space-y-4">
-                {!selectedSlot ? (
-                  <p className="text-sm text-muted-foreground">
-                    Select a slot on the left to see its details.
-                  </p>
-                ) : (
+                {(
                   <>
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div>
@@ -923,6 +926,8 @@ export default function StudentEnrolment() {
                             : selectedSlot.subject?.name}
                         </h2>
                       </div>
+                      <div className="flex items-center gap-2">
+
                       <StatusBadge
                         tone={slotStatus(selectedSlot).tone}
                         icon={slotStatus(selectedSlot).icon}

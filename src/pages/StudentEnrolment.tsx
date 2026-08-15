@@ -151,7 +151,7 @@ interface PickerProps {
   description: string;
   subjects: Subject[];
   remainingEcts: number;
-  onSelect: (s: Subject) => void;
+  onSelect: (s: Subject, justification?: string) => void;
   requireJustification?: boolean;
   confirmLabel?: string;
 }
@@ -294,7 +294,7 @@ function SubjectPicker({
             <Button
               disabled={!chosen}
               onClick={() => {
-                if (chosen) onSelect(chosen);
+                if (chosen) onSelect(chosen, justification.trim() || undefined);
                 close();
               }}
             >
@@ -906,10 +906,14 @@ export default function StudentEnrolment() {
         subjects={additionalSubjects.filter((s) => !takenIds.has(s.name))}
         remainingEcts={remaining}
         requireJustification={gpa < enrolmentContext.gpaThreshold}
-        onSelect={(s) =>
+        onSelect={(s, justification) =>
           setAdditional((p) => [
             ...p,
-            { subject: s, status: gpa >= enrolmentContext.gpaThreshold ? "added" : "pending" },
+            {
+              subject: s,
+              status: gpa >= enrolmentContext.gpaThreshold ? "added" : "pending",
+              justification,
+            },
           ])
         }
       />

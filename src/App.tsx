@@ -32,6 +32,7 @@ import StudentProfileInfo from "./pages/StudentProfileInfo";
 import { StudentPlaceholderPage } from "./pages/StudentPlaceholderPage";
 import StudentSemesters from "./pages/StudentSemesters";
 import StudentSemesterDetail from "./pages/StudentSemesterDetail";
+import StudentEnrolment from "./pages/StudentEnrolment";
 import { BookOpen, ClipboardList, Award, FileText, Wallet, FileCheck } from "lucide-react";
 import Quotes from "./pages/Quotes";
 import QuotaPricing from "./pages/QuotaPricing";
@@ -63,6 +64,7 @@ const App = () => (
           <Route path="/students/:id/profile" element={<Portal><StudentProfileInfo /></Portal>} />
           <Route path="/students/:id/semesters" element={<Portal><StudentSemesters /></Portal>} />
           <Route path="/students/:id/semesters/:semesterId" element={<Portal><StudentSemesterDetail /></Portal>} />
+          <Route path="/students/:id/enrolment" element={<Portal><StudentEnrolment /></Portal>} />
           <Route path="/students/:id/courses" element={<Portal><StudentPlaceholderPage title="Courses" description="All courses you are enrolled in across semesters." icon={BookOpen} /></Portal>} />
           <Route path="/students/:id/exams" element={<Portal><StudentPlaceholderPage title="Exams" description="Apply for exams, view schedule and history." icon={ClipboardList} /></Portal>} />
           <Route path="/students/:id/grades" element={<Portal><StudentPlaceholderPage title="Grades" description="Your full grade book and transcripts." icon={Award} /></Portal>} />

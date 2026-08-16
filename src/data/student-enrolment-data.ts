@@ -265,6 +265,25 @@ export const additionalSubjects: Subject[] = [
   },
 ];
 
+export interface FeeBreakdown {
+  quotaId: string;
+  quotaName: string;
+  pricePerEcts: number;
+  facultyFee: number;
+  universityFee: number;
+  currency: string;
+}
+
+/** Placeholder fee values — these will be replaced by backend quota pricing later. */
+export const enrolmentFees: FeeBreakdown = {
+  quotaId: "q1",
+  quotaName: "State-funded",
+  pricePerEcts: 85,
+  facultyFee: 25,
+  universityFee: 15,
+  currency: "EUR",
+};
+
 export const enrolmentContext = {
   studentName: "Aleksandar Petrov",
   programme: "Software Engineering and Information Systems",

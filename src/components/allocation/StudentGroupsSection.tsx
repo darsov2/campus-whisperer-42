@@ -42,9 +42,12 @@ const CLASS_TYPE_LABELS: Record<ClassType, string> = {
   lectures: "Lectures",
   auditory: "Auditory exercises",
 };
-const UNASSIGNED = "__none__";
 
-type GroupAssignment = Partial<Record<ClassType, string>>;
+type GroupAssignment = Partial<Record<ClassType, string[]>>;
+
+/** 1.5 → "1.5", 2 → "2" */
+const fmtLoad = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, ""));
+
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 

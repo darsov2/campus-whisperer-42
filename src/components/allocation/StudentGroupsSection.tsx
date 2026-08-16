@@ -441,35 +441,43 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                     </Badge>
                   </div>
                   {CLASS_TYPES.map((type) => {
-                    const tid = a[type];
-                    const over = tid ? teacherLoad[tid]?.total > maxGroups : false;
+                    const ids = a[type] ?? [];
+                    const share = ids.length ? 1 / ids.length : 0;
                     return (
-                      <div key={type} className="flex items-center gap-2">
-                        <Label className="w-32 shrink-0 text-xs text-muted-foreground">
-                          {CLASS_TYPE_LABELS[type]}
-                        </Label>
-                        <Select
-                          value={tid ?? UNASSIGNED}
-                          onValueChange={(v) => setTeacher(g.id, type, v)}
-                        >
-                          <SelectTrigger
-                            className={cn(
-                              "h-8 flex-1 text-xs",
-                              !tid && "text-muted-foreground",
-                              over && "border-destructive/60"
-                            )}
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={UNASSIGNED}>Not assigned</SelectItem>
-                            {allocTeachers.map((t) => (
-                              <SelectItem key={t.id} value={t.id}>
-                                {t.name} · {teacherLoad[t.id]?.total ?? 0}/{maxGroups} groups
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div key={type} className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <Label className="text-xs text-muted-foreground">
+                            {CLASS_TYPE_LABELS[type]}
+                          </Label>
+                          <span className="text-[11px] text-muted-foreground tabular-nums">
+                            {ids.length
+                              ? `${ids.length} teacher${ids.length > 1 ? "s" : ""} · ${fmtLoad(share)} each`
+                              : "not assigned"}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {allocTeachers.map((t) => {
+                            const on = ids.includes(t.id);
+                            const over = teacherLoad[t.id]?.total > maxGroups;
+                            return (
+                              <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => toggleTeacher(g.id, type, t.id)}
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors",
+                                  on
+                                    ? "bg-accent text-accent-foreground border-transparent"
+                                    : "bg-background hover:bg-muted text-muted-foreground",
+                                  on && over && "border border-destructive/60 text-destructive"
+                                )}
+                              >
+                                {t.name}
+                                {on ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })}
@@ -492,14 +500,16 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[11px] text-muted-foreground tabular-nums">
-                    {load.lectures} lec · {load.auditory} aud
+                    {fmtLoad(load.lectures)} lec · {fmtLoad(load.auditory)} aud
                   </span>
                   <Badge
                     variant={over ? "destructive" : "secondary"}
                     className="text-[11px] tabular-nums"
                   >
-                    {load.total}/{maxGroups} groups
+                    {fmtLoad(load.total)}/{maxGroups} groups
                   </Badge>
+                </div>
+
                 </div>
               </div>
             );

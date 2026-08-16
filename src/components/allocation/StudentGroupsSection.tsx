@@ -35,7 +35,20 @@ interface StudentGroup {
   programmes: ProgrammeSelection[];
 }
 
+type ClassType = "lectures" | "auditory";
+
+const CLASS_TYPES: ClassType[] = ["lectures", "auditory"];
+const CLASS_TYPE_LABELS: Record<ClassType, string> = {
+  lectures: "Lectures",
+  auditory: "Auditory exercises",
+};
+const UNASSIGNED = "__none__";
+
+type GroupAssignment = Partial<Record<ClassType, string>>;
+
 const newId = () => Math.random().toString(36).slice(2, 10);
+
+
 
 const emptyRule = (): SelectionRule => ({
   id: newId(),

@@ -315,7 +315,10 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                   </div>
                   <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
                     {assigned.reduce(
-                      (sum, gid) => sum + countFor(groups.find((g) => g.id === gid)?.rule),
+                      (sum, gid) => {
+                        const g = groups.find((x) => x.id === gid);
+                        return sum + (g ? countFor(g.programmes, g.rule) : 0);
+                      },
                       0
                     )}{" "}
                     students

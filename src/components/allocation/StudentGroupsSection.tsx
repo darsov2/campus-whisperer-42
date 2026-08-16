@@ -154,16 +154,24 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
     });
   };
 
-  const setTeacher = (groupId: string, type: ClassType, teacherId: string) =>
-    setAssignments((a) => ({
-      ...a,
-      [groupId]: {
-        ...(a[groupId] ?? {}),
-        [type]: teacherId === UNASSIGNED ? undefined : teacherId,
-      },
-    }));
+  const toggleTeacher = (groupId: string, type: ClassType, teacherId: string) =>
+    setAssignments((a) => {
+      const cur = a[groupId]?.[type] ?? [];
+      return {
+        ...a,
+        [groupId]: {
+          ...(a[groupId] ?? {}),
+          [type]: cur.includes(teacherId)
+            ? cur.filter((x) => x !== teacherId)
+            : [...cur, teacherId],
+        },
+      };
+    });
 
-  /** How many groups each teacher carries, per class type and in total. */
+  /**
+   * How many groups each teacher carries. When several teachers share a class
+   * type of a group, the group counts as a fraction (1 / number of teachers).
+   */
   const teacherLoad = useMemo(() => {
     const load: Record<string, { lectures: number; auditory: number; total: number }> = {};
     for (const t of allocTeachers) load[t.id] = { lectures: 0, auditory: 0, total: 0 };
@@ -171,10 +179,13 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
       const a = assignments[g.id];
       if (!a) continue;
       for (const type of CLASS_TYPES) {
-        const tid = a[type];
-        if (tid && load[tid]) {
-          load[tid][type] += 1;
-          load[tid].total += 1;
+        const ids = a[type] ?? [];
+        if (!ids.length) continue;
+        const share = 1 / ids.length;
+        for (const tid of ids) {
+          if (!load[tid]) continue;
+          load[tid][type] += share;
+          load[tid].total += share;
         }
       }
     }
@@ -185,17 +196,18 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
     const list: string[] = [];
     for (const g of groups) {
       const a = assignments[g.id] ?? {};
-      const missing = CLASS_TYPES.filter((t) => !a[t]).map((t) => CLASS_TYPE_LABELS[t]);
+      const missing = CLASS_TYPES.filter((t) => !(a[t]?.length)).map((t) => CLASS_TYPE_LABELS[t]);
       if (missing.length) list.push(`${g.name}: no teacher for ${missing.join(" & ")}`);
     }
     for (const t of allocTeachers) {
       const load = teacherLoad[t.id];
       if (load && load.total > maxGroups) {
-        list.push(`${t.name} is assigned ${load.total} groups (limit ${maxGroups})`);
+        list.push(`${t.name} is assigned ${fmtLoad(load.total)} groups (limit ${maxGroups})`);
       }
     }
     return list;
   }, [groups, assignments, teacherLoad, maxGroups]);
+
 
 
   return (

@@ -17,7 +17,6 @@ import {
   Sparkles,
   AlertTriangle,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -233,7 +232,12 @@ function RuleBuilder({
 
 type SortKey = "index" | "firstName" | "lastName";
 
-export default function StudentAllocation() {
+interface StudentAllocationWizardProps {
+  courseLabel?: string;
+  onDone?: () => void;
+}
+
+export default function StudentAllocationWizard({ courseLabel, onDone }: StudentAllocationWizardProps) {
   const [step, setStep] = useState(1);
   const [maxStep, setMaxStep] = useState(1);
 
@@ -396,6 +400,7 @@ export default function StudentAllocation() {
       `${selectedStudents.length} students allocated to ${group?.year} — ${group?.name}`
     );
     reset();
+    onDone?.();
   };
 
   const allVisibleSelected =
@@ -420,15 +425,19 @@ export default function StudentAllocation() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader
-        title="Student Allocation"
-        description="Select students, assign them to a group and distribute them between teachers."
-        actions={
-          <Button variant="outline" onClick={reset}>
-            Start over
-          </Button>
-        }
-      />
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Student Allocation</h2>
+          <p className="text-sm text-muted-foreground">
+            {courseLabel
+              ? `Allocate students for ${courseLabel}.`
+              : "Select students, assign them to a group and distribute them between teachers."}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={reset}>
+          Start over
+        </Button>
+      </div>
 
       <Stepper step={step} maxStep={maxStep} summaries={summaries} onSelect={setStep} />
 
@@ -952,7 +961,7 @@ export default function StudentAllocation() {
             )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={reset}>
+              <Button variant="outline" onClick={() => { reset(); onDone?.(); }}>
                 Cancel
               </Button>
               <Button onClick={confirm}>Confirm allocation</Button>

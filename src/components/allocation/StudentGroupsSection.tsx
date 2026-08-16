@@ -374,61 +374,124 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
         </div>
       </div>
 
-      {/* ── Assign groups to teachers ── */}
+      {/* ── Assign teachers to groups ── */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <UserCog className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Assign groups to teachers
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <UserCog className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Assign teachers to groups
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Max groups per teacher</Label>
+            <Input
+              type="number"
+              min={1}
+              value={maxGroups}
+              onChange={(e) => setMaxGroups(Math.max(1, Number(e.target.value) || 1))}
+              className="h-8 w-16 text-xs"
+            />
+          </div>
         </div>
-        <div className="grid gap-2 md:grid-cols-2">
-          {allocTeachers.map((t) => {
-            const assigned = assignments[t.id] ?? [];
-            return (
-              <div key={t.id} className="rounded-lg border border-border/60 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{t.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{t.title}</p>
+
+        {issues.length > 0 && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {issues.length} issue{issues.length > 1 ? "s" : ""} to resolve
+            </div>
+            <ul className="ml-5 list-disc space-y-0.5 text-xs text-muted-foreground">
+              {issues.map((i) => (
+                <li key={i}>{i}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {groups.length === 0 ? (
+          <p className="rounded-md border border-dashed border-border/60 p-4 text-xs text-muted-foreground text-center">
+            Create a group first
+          </p>
+        ) : (
+          <div className="grid gap-2 md:grid-cols-2">
+            {groups.map((g) => {
+              const a = assignments[g.id] ?? {};
+              return (
+                <div key={g.id} className="rounded-lg border border-border/60 p-3 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium truncate">{g.name}</span>
+                    <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
+                      {groupTotal(g)} students
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-                    {assigned.reduce((sum, gid) => {
-                      const g = groups.find((x) => x.id === gid);
-                      return sum + (g ? groupTotal(g) : 0);
-                    }, 0)}{" "}
-                    students
-                  </Badge>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {groups.map((g) => {
-                    const on = assigned.includes(g.id);
+                  {CLASS_TYPES.map((type) => {
+                    const tid = a[type];
+                    const over = tid ? teacherLoad[tid]?.total > maxGroups : false;
                     return (
-                      <button
-                        key={g.id}
-                        type="button"
-                        onClick={() => toggleAssignment(t.id, g.id)}
-                        className={cn(
-                          "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors",
-                          on
-                            ? "bg-accent text-accent-foreground border-transparent"
-                            : "bg-background hover:bg-muted text-muted-foreground"
-                        )}
-                      >
-                        {g.name}
-                        {on ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                      </button>
+                      <div key={type} className="flex items-center gap-2">
+                        <Label className="w-32 shrink-0 text-xs text-muted-foreground">
+                          {CLASS_TYPE_LABELS[type]}
+                        </Label>
+                        <Select
+                          value={tid ?? UNASSIGNED}
+                          onValueChange={(v) => setTeacher(g.id, type, v)}
+                        >
+                          <SelectTrigger
+                            className={cn(
+                              "h-8 flex-1 text-xs",
+                              !tid && "text-muted-foreground",
+                              over && "border-destructive/60"
+                            )}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={UNASSIGNED}>Not assigned</SelectItem>
+                            {allocTeachers.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                {t.name} · {teacherLoad[t.id]?.total ?? 0}/{maxGroups} groups
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     );
                   })}
-                  {groups.length === 0 && (
-                    <span className="text-xs text-muted-foreground">Create a group first</span>
-                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Teacher load overview */}
+        <div className="rounded-lg border border-border/60 divide-y">
+          {allocTeachers.map((t) => {
+            const load = teacherLoad[t.id];
+            const over = load.total > maxGroups;
+            return (
+              <div key={t.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium truncate">{t.name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{t.title}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    {load.lectures} lec · {load.auditory} aud
+                  </span>
+                  <Badge
+                    variant={over ? "destructive" : "secondary"}
+                    className="text-[11px] tabular-nums"
+                  >
+                    {load.total}/{maxGroups} groups
+                  </Badge>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
     </div>
   );
 }

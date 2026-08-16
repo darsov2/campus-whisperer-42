@@ -52,9 +52,11 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getStudentProfile } from "@/data/students-data";
+import { formatEUR } from "@/data/quotas-data";
 import {
   additionalSubjects,
   enrolmentContext,
+  enrolmentFees,
   enrolmentSlots,
   isEligible,
   MAX_SEMESTER_ECTS,

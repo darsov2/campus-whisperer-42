@@ -41,6 +41,7 @@ import RuleEngine from "./pages/RuleEngine";
 import Accreditations from "./pages/Accreditations";
 import Settings from "./pages/Settings";
 import Allocation from "./pages/Allocation";
+import StudentAllocation from "./pages/StudentAllocation";
 import CourseAllocation from "./pages/CourseAllocation";
 import Equivalences from "./pages/Equivalences";
 import EquivalenceDetail from "./pages/EquivalenceDetail";
@@ -100,7 +101,8 @@ const App = () => (
           <Route path="/courses/:courseId/teachers" element={<Admin><CourseTeachers /></Admin>} />
           <Route path="/master-courses" element={<Admin><MasterCourses /></Admin>} />
           <Route path="/course-programmes" element={<Admin><CourseProgrammes /></Admin>} />
-          <Route path="/allocation" element={<Admin><Allocation /></Admin>} />
+          <Route path="/allocation" element={<Admin><StudentAllocation /></Admin>} />
+          <Route path="/allocation/teachers" element={<Admin><Allocation /></Admin>} />
           <Route path="/allocation/:courseId" element={<Admin><CourseAllocation /></Admin>} />
           <Route path="/teachers" element={<Admin><Teachers /></Admin>} />
           <Route path="/students" element={<Admin><Students /></Admin>} />

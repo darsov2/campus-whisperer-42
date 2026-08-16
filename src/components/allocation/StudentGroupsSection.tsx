@@ -258,13 +258,28 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{g.name}</span>
                   <Badge variant="secondary" className="text-xs tabular-nums">
-                    {countFor(g.rule)} students
+                    {countFor(g.programmes, g.rule)} students
                   </Badge>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   <Badge variant="outline" className="text-[11px] font-normal">
                     {describeRule(g.rule)}
                   </Badge>
+                  {g.programmes.map((p) => (
+                    <Badge key={p} variant="outline" className="text-[11px] font-normal">
+                      {p}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="mt-1.5 space-y-0.5">
+                  {perProgramme(g.programmes, g.rule).map((p) => (
+                    <div key={p.programme} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span className="truncate">{p.programme}</span>
+                      <span className="tabular-nums shrink-0">
+                        {p.matched} / {p.enrolled} enrolled
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
               <Button

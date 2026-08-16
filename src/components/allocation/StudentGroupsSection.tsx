@@ -158,19 +158,14 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
     });
   };
 
-  const toggleTeacher = (groupId: string, type: ClassType, teacherId: string) =>
-    setAssignments((a) => {
-      const cur = a[groupId]?.[type] ?? [];
-      return {
-        ...a,
-        [groupId]: {
-          ...(a[groupId] ?? {}),
-          [type]: cur.includes(teacherId)
-            ? cur.filter((x) => x !== teacherId)
-            : [...cur, teacherId],
-        },
-      };
-    });
+  const setTeachers = (groupId: string, type: ClassType, teacherIds: string[]) =>
+    setAssignments((a) => ({
+      ...a,
+      [groupId]: {
+        ...(a[groupId] ?? {}),
+        [type]: teacherIds,
+      },
+    }));
 
   /**
    * How many groups each teacher carries. When several teachers share a class

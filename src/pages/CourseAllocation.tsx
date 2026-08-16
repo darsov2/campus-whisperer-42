@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { StudentAllocationDialog } from "@/components/dialogs/StudentAllocationDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -78,6 +79,7 @@ export default function CourseAllocation() {
   const [newAllocType, setNewAllocType] = useState<ClassType>("lecture");
   const [newAllocGroups, setNewAllocGroups] = useState(1);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [studentAllocOpen, setStudentAllocOpen] = useState(false);
   const [prefOpen, setPrefOpen] = useState(true);
   const [prevOpen, setPrevOpen] = useState(true);
 
@@ -186,6 +188,10 @@ export default function CourseAllocation() {
                 <Button variant="outline" size="sm" onClick={() => setCopyDialogOpen(true)} disabled={prevCourseAllocations.length === 0}>
                   <Copy className="h-3.5 w-3.5 mr-1.5" />
                   Copy Previous
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setStudentAllocOpen(true)}>
+                  <Users className="h-3.5 w-3.5 mr-1.5" />
+                  Allocate Students
                 </Button>
                 <Button size="sm" onClick={openAllocate}>
                   <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -708,5 +714,10 @@ export default function CourseAllocation() {
         </DialogContent>
       </Dialog>
     </div>
+      <StudentAllocationDialog
+        open={studentAllocOpen}
+        onOpenChange={setStudentAllocOpen}
+        courseLabel={`${course.code} – ${course.name}`}
+      />
   );
 }

@@ -162,7 +162,32 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs">Student matching rule</Label>
+            <Label className="text-xs">Programmes</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {allocProgrammes.map((p) => {
+                const on = draftProgrammes.includes(p);
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => toggleDraftProgramme(p)}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors",
+                      on
+                        ? "bg-accent text-accent-foreground border-transparent"
+                        : "bg-background hover:bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {p}
+                    {on ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Student matching rule (within selected programmes)</Label>
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={draftRule.property}
@@ -191,6 +216,24 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                 className="h-8 w-24 text-xs"
               />
             </div>
+          </div>
+
+          {/* Per-programme preview */}
+          <div className="rounded-md border border-border/60 divide-y">
+            {draftPreview.length === 0 ? (
+              <p className="p-3 text-xs text-muted-foreground text-center">
+                Select programmes to preview matched students
+              </p>
+            ) : (
+              draftPreview.map((p) => (
+                <div key={p.programme} className="flex items-center justify-between px-3 py-2">
+                  <span className="text-xs truncate">{p.programme}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                    <span className="font-semibold text-foreground">{p.matched}</span> / {p.enrolled} enrolled
+                  </span>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="flex items-center justify-between border-t pt-3">

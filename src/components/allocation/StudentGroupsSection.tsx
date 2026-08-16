@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import {
   allocStudents,
   allocTeachers,
+  allocProgrammes,
   matchesRule,
   describeRule,
   PROPERTY_LABELS,
@@ -26,6 +27,7 @@ import {
 interface StudentGroup {
   id: string;
   name: string;
+  programmes: string[];
   rule: SelectionRule;
 }
 
@@ -40,19 +42,52 @@ const emptyRule = (): SelectionRule => ({
 
 export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) {
   const [groups, setGroups] = useState<StudentGroup[]>([
-    { id: "sg1", name: "Group 1", rule: { id: newId(), property: "lastName", from: "A", to: "K" } },
-    { id: "sg2", name: "Group 2", rule: { id: newId(), property: "lastName", from: "L", to: "Z" } },
+    {
+      id: "sg1",
+      name: "Group 1",
+      programmes: [allocProgrammes[0]],
+      rule: { id: newId(), property: "lastName", from: "A", to: "K" },
+    },
+    {
+      id: "sg2",
+      name: "Group 2",
+      programmes: [allocProgrammes[0]],
+      rule: { id: newId(), property: "lastName", from: "L", to: "Z" },
+    },
   ]);
   const [draftName, setDraftName] = useState("");
+  const [draftProgrammes, setDraftProgrammes] = useState<string[]>([]);
   const [draftRule, setDraftRule] = useState<SelectionRule>(emptyRule());
   const [assignments, setAssignments] = useState<Record<string, string[]>>({});
 
-  const countFor = (rule?: SelectionRule) =>
-    rule && (rule.from || rule.to)
-      ? allocStudents.filter((s) => matchesRule(s, rule)).length
-      : 0;
+  /** Students matched by a rule, restricted to the given programmes. */
+  const matchedStudents = (programmes: string[], rule?: SelectionRule) => {
+    if (!programmes.length) return [];
+    const pool = allocStudents.filter((s) => programmes.includes(s.programme));
+    if (!rule || (!rule.from && !rule.to)) return pool;
+    return pool.filter((s) => matchesRule(s, rule));
+  };
 
-  const draftCount = useMemo(() => countFor(draftRule), [draftRule]);
+  const countFor = (programmes: string[], rule?: SelectionRule) =>
+    matchedStudents(programmes, rule).length;
+
+  const perProgramme = (programmes: string[], rule?: SelectionRule) =>
+    programmes.map((p) => ({
+      programme: p,
+      enrolled: allocStudents.filter((s) => s.programme === p).length,
+      matched: matchedStudents([p], rule).length,
+    }));
+
+  const draftPreview = useMemo(
+    () => perProgramme(draftProgrammes, draftRule),
+    [draftProgrammes, draftRule]
+  );
+  const draftCount = draftPreview.reduce((s, p) => s + p.matched, 0);
+
+  const toggleDraftProgramme = (p: string) =>
+    setDraftProgrammes((cur) =>
+      cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]
+    );
 
   const updateDraftRule = (patch: Partial<SelectionRule>) =>
     setDraftRule((r) => ({ ...r, ...patch }));
@@ -62,15 +97,20 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
       toast.error("Enter a group name");
       return;
     }
+    if (!draftProgrammes.length) {
+      toast.error("Select at least one programme");
+      return;
+    }
     if (!draftRule.from && !draftRule.to) {
       toast.error("Enter a matching rule");
       return;
     }
     setGroups((g) => [
       ...g,
-      { id: newId(), name: draftName.trim(), rule: draftRule },
+      { id: newId(), name: draftName.trim(), programmes: draftProgrammes, rule: draftRule },
     ]);
     setDraftName("");
+    setDraftProgrammes([]);
     setDraftRule(emptyRule());
     toast.success("Group created");
   };

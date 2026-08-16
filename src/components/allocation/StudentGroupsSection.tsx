@@ -509,9 +509,8 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                     {fmtLoad(load.total)}/{maxGroups} groups
                   </Badge>
                 </div>
-
-                </div>
               </div>
+
             );
           })}
         </div>

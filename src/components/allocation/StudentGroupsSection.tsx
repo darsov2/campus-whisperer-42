@@ -42,9 +42,12 @@ const CLASS_TYPE_LABELS: Record<ClassType, string> = {
   lectures: "Lectures",
   auditory: "Auditory exercises",
 };
-const UNASSIGNED = "__none__";
 
-type GroupAssignment = Partial<Record<ClassType, string>>;
+type GroupAssignment = Partial<Record<ClassType, string[]>>;
+
+/** 1.5 → "1.5", 2 → "2" */
+const fmtLoad = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, ""));
+
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
@@ -154,16 +157,24 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
     });
   };
 
-  const setTeacher = (groupId: string, type: ClassType, teacherId: string) =>
-    setAssignments((a) => ({
-      ...a,
-      [groupId]: {
-        ...(a[groupId] ?? {}),
-        [type]: teacherId === UNASSIGNED ? undefined : teacherId,
-      },
-    }));
+  const toggleTeacher = (groupId: string, type: ClassType, teacherId: string) =>
+    setAssignments((a) => {
+      const cur = a[groupId]?.[type] ?? [];
+      return {
+        ...a,
+        [groupId]: {
+          ...(a[groupId] ?? {}),
+          [type]: cur.includes(teacherId)
+            ? cur.filter((x) => x !== teacherId)
+            : [...cur, teacherId],
+        },
+      };
+    });
 
-  /** How many groups each teacher carries, per class type and in total. */
+  /**
+   * How many groups each teacher carries. When several teachers share a class
+   * type of a group, the group counts as a fraction (1 / number of teachers).
+   */
   const teacherLoad = useMemo(() => {
     const load: Record<string, { lectures: number; auditory: number; total: number }> = {};
     for (const t of allocTeachers) load[t.id] = { lectures: 0, auditory: 0, total: 0 };
@@ -171,10 +182,13 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
       const a = assignments[g.id];
       if (!a) continue;
       for (const type of CLASS_TYPES) {
-        const tid = a[type];
-        if (tid && load[tid]) {
-          load[tid][type] += 1;
-          load[tid].total += 1;
+        const ids = a[type] ?? [];
+        if (!ids.length) continue;
+        const share = 1 / ids.length;
+        for (const tid of ids) {
+          if (!load[tid]) continue;
+          load[tid][type] += share;
+          load[tid].total += share;
         }
       }
     }
@@ -185,17 +199,18 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
     const list: string[] = [];
     for (const g of groups) {
       const a = assignments[g.id] ?? {};
-      const missing = CLASS_TYPES.filter((t) => !a[t]).map((t) => CLASS_TYPE_LABELS[t]);
+      const missing = CLASS_TYPES.filter((t) => !(a[t]?.length)).map((t) => CLASS_TYPE_LABELS[t]);
       if (missing.length) list.push(`${g.name}: no teacher for ${missing.join(" & ")}`);
     }
     for (const t of allocTeachers) {
       const load = teacherLoad[t.id];
       if (load && load.total > maxGroups) {
-        list.push(`${t.name} is assigned ${load.total} groups (limit ${maxGroups})`);
+        list.push(`${t.name} is assigned ${fmtLoad(load.total)} groups (limit ${maxGroups})`);
       }
     }
     return list;
   }, [groups, assignments, teacherLoad, maxGroups]);
+
 
 
   return (
@@ -426,35 +441,43 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                     </Badge>
                   </div>
                   {CLASS_TYPES.map((type) => {
-                    const tid = a[type];
-                    const over = tid ? teacherLoad[tid]?.total > maxGroups : false;
+                    const ids = a[type] ?? [];
+                    const share = ids.length ? 1 / ids.length : 0;
                     return (
-                      <div key={type} className="flex items-center gap-2">
-                        <Label className="w-32 shrink-0 text-xs text-muted-foreground">
-                          {CLASS_TYPE_LABELS[type]}
-                        </Label>
-                        <Select
-                          value={tid ?? UNASSIGNED}
-                          onValueChange={(v) => setTeacher(g.id, type, v)}
-                        >
-                          <SelectTrigger
-                            className={cn(
-                              "h-8 flex-1 text-xs",
-                              !tid && "text-muted-foreground",
-                              over && "border-destructive/60"
-                            )}
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={UNASSIGNED}>Not assigned</SelectItem>
-                            {allocTeachers.map((t) => (
-                              <SelectItem key={t.id} value={t.id}>
-                                {t.name} · {teacherLoad[t.id]?.total ?? 0}/{maxGroups} groups
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div key={type} className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <Label className="text-xs text-muted-foreground">
+                            {CLASS_TYPE_LABELS[type]}
+                          </Label>
+                          <span className="text-[11px] text-muted-foreground tabular-nums">
+                            {ids.length
+                              ? `${ids.length} teacher${ids.length > 1 ? "s" : ""} · ${fmtLoad(share)} each`
+                              : "not assigned"}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {allocTeachers.map((t) => {
+                            const on = ids.includes(t.id);
+                            const over = teacherLoad[t.id]?.total > maxGroups;
+                            return (
+                              <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => toggleTeacher(g.id, type, t.id)}
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors",
+                                  on
+                                    ? "bg-accent text-accent-foreground border-transparent"
+                                    : "bg-background hover:bg-muted text-muted-foreground",
+                                  on && over && "border border-destructive/60 text-destructive"
+                                )}
+                              >
+                                {t.name}
+                                {on ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })}
@@ -477,16 +500,17 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[11px] text-muted-foreground tabular-nums">
-                    {load.lectures} lec · {load.auditory} aud
+                    {fmtLoad(load.lectures)} lec · {fmtLoad(load.auditory)} aud
                   </span>
                   <Badge
                     variant={over ? "destructive" : "secondary"}
                     className="text-[11px] tabular-nums"
                   >
-                    {load.total}/{maxGroups} groups
+                    {fmtLoad(load.total)}/{maxGroups} groups
                   </Badge>
                 </div>
               </div>
+
             );
           })}
         </div>

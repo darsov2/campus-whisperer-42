@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import {
   allocStudents,
   allocTeachers,
+  allocProgrammes,
   matchesRule,
   describeRule,
   PROPERTY_LABELS,
@@ -26,6 +27,7 @@ import {
 interface StudentGroup {
   id: string;
   name: string;
+  programmes: string[];
   rule: SelectionRule;
 }
 
@@ -40,19 +42,52 @@ const emptyRule = (): SelectionRule => ({
 
 export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) {
   const [groups, setGroups] = useState<StudentGroup[]>([
-    { id: "sg1", name: "Group 1", rule: { id: newId(), property: "lastName", from: "A", to: "K" } },
-    { id: "sg2", name: "Group 2", rule: { id: newId(), property: "lastName", from: "L", to: "Z" } },
+    {
+      id: "sg1",
+      name: "Group 1",
+      programmes: [allocProgrammes[0]],
+      rule: { id: newId(), property: "lastName", from: "A", to: "K" },
+    },
+    {
+      id: "sg2",
+      name: "Group 2",
+      programmes: [allocProgrammes[0]],
+      rule: { id: newId(), property: "lastName", from: "L", to: "Z" },
+    },
   ]);
   const [draftName, setDraftName] = useState("");
+  const [draftProgrammes, setDraftProgrammes] = useState<string[]>([]);
   const [draftRule, setDraftRule] = useState<SelectionRule>(emptyRule());
   const [assignments, setAssignments] = useState<Record<string, string[]>>({});
 
-  const countFor = (rule?: SelectionRule) =>
-    rule && (rule.from || rule.to)
-      ? allocStudents.filter((s) => matchesRule(s, rule)).length
-      : 0;
+  /** Students matched by a rule, restricted to the given programmes. */
+  const matchedStudents = (programmes: string[], rule?: SelectionRule) => {
+    if (!programmes.length) return [];
+    const pool = allocStudents.filter((s) => programmes.includes(s.programme));
+    if (!rule || (!rule.from && !rule.to)) return pool;
+    return pool.filter((s) => matchesRule(s, rule));
+  };
 
-  const draftCount = useMemo(() => countFor(draftRule), [draftRule]);
+  const countFor = (programmes: string[], rule?: SelectionRule) =>
+    matchedStudents(programmes, rule).length;
+
+  const perProgramme = (programmes: string[], rule?: SelectionRule) =>
+    programmes.map((p) => ({
+      programme: p,
+      enrolled: allocStudents.filter((s) => s.programme === p).length,
+      matched: matchedStudents([p], rule).length,
+    }));
+
+  const draftPreview = useMemo(
+    () => perProgramme(draftProgrammes, draftRule),
+    [draftProgrammes, draftRule]
+  );
+  const draftCount = draftPreview.reduce((s, p) => s + p.matched, 0);
+
+  const toggleDraftProgramme = (p: string) =>
+    setDraftProgrammes((cur) =>
+      cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]
+    );
 
   const updateDraftRule = (patch: Partial<SelectionRule>) =>
     setDraftRule((r) => ({ ...r, ...patch }));
@@ -62,15 +97,20 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
       toast.error("Enter a group name");
       return;
     }
+    if (!draftProgrammes.length) {
+      toast.error("Select at least one programme");
+      return;
+    }
     if (!draftRule.from && !draftRule.to) {
       toast.error("Enter a matching rule");
       return;
     }
     setGroups((g) => [
       ...g,
-      { id: newId(), name: draftName.trim(), rule: draftRule },
+      { id: newId(), name: draftName.trim(), programmes: draftProgrammes, rule: draftRule },
     ]);
     setDraftName("");
+    setDraftProgrammes([]);
     setDraftRule(emptyRule());
     toast.success("Group created");
   };
@@ -122,7 +162,32 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs">Student matching rule</Label>
+            <Label className="text-xs">Programmes</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {allocProgrammes.map((p) => {
+                const on = draftProgrammes.includes(p);
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => toggleDraftProgramme(p)}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors",
+                      on
+                        ? "bg-accent text-accent-foreground border-transparent"
+                        : "bg-background hover:bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {p}
+                    {on ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Student matching rule (within selected programmes)</Label>
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={draftRule.property}
@@ -153,6 +218,24 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
             </div>
           </div>
 
+          {/* Per-programme preview */}
+          <div className="rounded-md border border-border/60 divide-y">
+            {draftPreview.length === 0 ? (
+              <p className="p-3 text-xs text-muted-foreground text-center">
+                Select programmes to preview matched students
+              </p>
+            ) : (
+              draftPreview.map((p) => (
+                <div key={p.programme} className="flex items-center justify-between px-3 py-2">
+                  <span className="text-xs truncate">{p.programme}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                    <span className="font-semibold text-foreground">{p.matched}</span> / {p.enrolled} enrolled
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+
           <div className="flex items-center justify-between border-t pt-3">
             <span className="text-xs text-muted-foreground">
               <span className="font-semibold text-foreground tabular-nums">{draftCount}</span> students matched
@@ -175,13 +258,28 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{g.name}</span>
                   <Badge variant="secondary" className="text-xs tabular-nums">
-                    {countFor(g.rule)} students
+                    {countFor(g.programmes, g.rule)} students
                   </Badge>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   <Badge variant="outline" className="text-[11px] font-normal">
                     {describeRule(g.rule)}
                   </Badge>
+                  {g.programmes.map((p) => (
+                    <Badge key={p} variant="outline" className="text-[11px] font-normal">
+                      {p}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="mt-1.5 space-y-0.5">
+                  {perProgramme(g.programmes, g.rule).map((p) => (
+                    <div key={p.programme} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span className="truncate">{p.programme}</span>
+                      <span className="tabular-nums shrink-0">
+                        {p.matched} / {p.enrolled} enrolled
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
               <Button
@@ -217,7 +315,10 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                   </div>
                   <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
                     {assigned.reduce(
-                      (sum, gid) => sum + countFor(groups.find((g) => g.id === gid)?.rule),
+                      (sum, gid) => {
+                        const g = groups.find((x) => x.id === gid);
+                        return sum + (g ? countFor(g.programmes, g.rule) : 0);
+                      },
                       0
                     )}{" "}
                     students

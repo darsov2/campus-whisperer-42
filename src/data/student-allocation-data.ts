@@ -44,6 +44,8 @@ const lastNames = [
 
 const programmes = ["Computer Science", "Mathematics", "Physics"];
 
+export const allocProgrammes = programmes;
+
 export const allocStudents: AllocStudent[] = Array.from({ length: 60 }, (_, i) => {
   const fn = firstNames[i % firstNames.length];
   const ln = lastNames[(i * 7 + 3) % lastNames.length];

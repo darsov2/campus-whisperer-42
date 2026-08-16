@@ -1487,6 +1487,8 @@ export default function StudentEnrolment() {
               </div>
             </div>
 
+            <PaymentSummary ects={confirmedEcts} />
+
             <ConfirmGroup
               title="Repeated subjects"
               items={reenrolled.map((s) => ({

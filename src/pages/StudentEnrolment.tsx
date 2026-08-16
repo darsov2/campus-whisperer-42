@@ -450,6 +450,46 @@ function ConfirmGroup({
   );
 }
 
+/* ----------------------------- payment summary ----------------------------- */
+
+function PaymentSummary({ ects, compact }: { ects: number; compact?: boolean }) {
+  const tuition = ects * enrolmentFees.pricePerEcts;
+  const total = tuition + enrolmentFees.facultyFee + enrolmentFees.universityFee;
+
+  return (
+    <div className={cn("rounded-lg border bg-muted/30 p-4 space-y-3", compact && "p-3")}>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Payment summary
+        </p>
+        <span className="text-[11px] text-muted-foreground">{enrolmentFees.quotaName}</span>
+      </div>
+      <div className="space-y-1.5 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">Tuition ({ects} ECTS × {formatEUR(enrolmentFees.pricePerEcts)})</span>
+          <span className="font-medium">{formatEUR(tuition)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">Faculty fee</span>
+          <span className="font-medium">{formatEUR(enrolmentFees.facultyFee)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">University fee</span>
+          <span className="font-medium">{formatEUR(enrolmentFees.universityFee)}</span>
+        </div>
+      </div>
+      <Separator />
+      <div className="flex items-center justify-between">
+        <span className="font-medium">Total</span>
+        <span className="text-lg font-semibold">{formatEUR(total)}</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Faculty and university fees are placeholder values; quota price will be linked to the backend.
+      </p>
+    </div>
+  );
+}
+
 export default function StudentEnrolment() {
 
   const { id } = useParams<{ id: string }>();

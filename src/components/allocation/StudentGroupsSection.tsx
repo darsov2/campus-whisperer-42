@@ -94,7 +94,9 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
   ]);
   const [draftName, setDraftName] = useState("");
   const [draftProgrammes, setDraftProgrammes] = useState<ProgrammeSelection[]>([]);
-  const [assignments, setAssignments] = useState<Record<string, string[]>>({});
+  const [assignments, setAssignments] = useState<Record<string, GroupAssignment>>({});
+  const [maxGroups, setMaxGroups] = useState(3);
+
 
   const programmeStats = useMemo(
     () =>

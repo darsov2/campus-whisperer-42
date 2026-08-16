@@ -1,10 +1,17 @@
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Users, Filter, UserCog, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Users, Filter, UserCog, X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/ui/multi-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {

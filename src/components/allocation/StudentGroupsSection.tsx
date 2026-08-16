@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import {
   allocStudents,
   allocTeachers,
-  studentsMatchingRules,
+  matchesRule,
   describeRule,
   PROPERTY_LABELS,
   type SelectionRule,
@@ -26,7 +26,7 @@ import {
 interface StudentGroup {
   id: string;
   name: string;
-  rules: SelectionRule[];
+  rule: SelectionRule;
 }
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -40,32 +40,38 @@ const emptyRule = (): SelectionRule => ({
 
 export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) {
   const [groups, setGroups] = useState<StudentGroup[]>([
-    { id: "sg1", name: "Group 1", rules: [{ id: newId(), property: "lastName", from: "A", to: "K" }] },
-    { id: "sg2", name: "Group 2", rules: [{ id: newId(), property: "lastName", from: "L", to: "Z" }] },
+    { id: "sg1", name: "Group 1", rule: { id: newId(), property: "lastName", from: "A", to: "K" } },
+    { id: "sg2", name: "Group 2", rule: { id: newId(), property: "lastName", from: "L", to: "Z" } },
   ]);
   const [draftName, setDraftName] = useState("");
-  const [draftRules, setDraftRules] = useState<SelectionRule[]>([emptyRule()]);
+  const [draftRule, setDraftRule] = useState<SelectionRule>(emptyRule());
   const [assignments, setAssignments] = useState<Record<string, string[]>>({});
 
-  const countFor = (rules: SelectionRule[]) =>
-    studentsMatchingRules(allocStudents, rules.filter((r) => r.from || r.to)).length;
+  const countFor = (rule?: SelectionRule) =>
+    rule && (rule.from || rule.to)
+      ? allocStudents.filter((s) => matchesRule(s, rule)).length
+      : 0;
 
-  const draftCount = useMemo(() => countFor(draftRules), [draftRules]);
+  const draftCount = useMemo(() => countFor(draftRule), [draftRule]);
 
-  const updateDraftRule = (id: string, patch: Partial<SelectionRule>) =>
-    setDraftRules((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const updateDraftRule = (patch: Partial<SelectionRule>) =>
+    setDraftRule((r) => ({ ...r, ...patch }));
 
   const addGroup = () => {
     if (!draftName.trim()) {
       toast.error("Enter a group name");
       return;
     }
+    if (!draftRule.from && !draftRule.to) {
+      toast.error("Enter a matching rule");
+      return;
+    }
     setGroups((g) => [
       ...g,
-      { id: newId(), name: draftName.trim(), rules: draftRules.filter((r) => r.from || r.to) },
+      { id: newId(), name: draftName.trim(), rule: draftRule },
     ]);
     setDraftName("");
-    setDraftRules([emptyRule()]);
+    setDraftRule(emptyRule());
     toast.success("Group created");
   };
 
@@ -95,7 +101,7 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
         )}
       </div>
 
-      {/* ── Define groups ── */}
+      {/* ── Define group ── */}
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg border border-border/60 p-3 space-y-3">
           <div className="flex items-center gap-2">
@@ -116,54 +122,35 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs">Student matching rules</Label>
-            {draftRules.map((rule) => (
-              <div key={rule.id} className="flex flex-wrap items-center gap-2">
-                <Select
-                  value={rule.property}
-                  onValueChange={(v: StudentProperty) => updateDraftRule(rule.id, { property: v })}
-                >
-                  <SelectTrigger className="h-8 w-[130px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PROPERTY_LABELS).map(([k, label]) => (
-                      <SelectItem key={k} value={k}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  value={rule.from}
-                  onChange={(e) => updateDraftRule(rule.id, { from: e.target.value })}
-                  placeholder="From"
-                  className="h-8 w-24 text-xs"
-                />
-                <span className="text-xs text-muted-foreground">→</span>
-                <Input
-                  value={rule.to}
-                  onChange={(e) => updateDraftRule(rule.id, { to: e.target.value })}
-                  placeholder="To"
-                  className="h-8 w-24 text-xs"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-destructive"
-                  onClick={() => setDraftRules((rs) => (rs.length > 1 ? rs.filter((r) => r.id !== rule.id) : rs))}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8"
-              onClick={() => setDraftRules((rs) => [...rs, emptyRule()])}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Add rule
-            </Button>
+            <Label className="text-xs">Student matching rule</Label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={draftRule.property}
+                onValueChange={(v: StudentProperty) => updateDraftRule({ property: v })}
+              >
+                <SelectTrigger className="h-8 w-[130px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PROPERTY_LABELS).map(([k, label]) => (
+                    <SelectItem key={k} value={k}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                value={draftRule.from}
+                onChange={(e) => updateDraftRule({ from: e.target.value })}
+                placeholder="From"
+                className="h-8 w-24 text-xs"
+              />
+              <span className="text-xs text-muted-foreground">→</span>
+              <Input
+                value={draftRule.to}
+                onChange={(e) => updateDraftRule({ to: e.target.value })}
+                placeholder="To"
+                className="h-8 w-24 text-xs"
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-between border-t pt-3">
@@ -188,19 +175,13 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{g.name}</span>
                   <Badge variant="secondary" className="text-xs tabular-nums">
-                    {countFor(g.rules)} students
+                    {countFor(g.rule)} students
                   </Badge>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {g.rules.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">No rules</span>
-                  ) : (
-                    g.rules.map((r) => (
-                      <Badge key={r.id} variant="outline" className="text-[11px] font-normal">
-                        {describeRule(r)}
-                      </Badge>
-                    ))
-                  )}
+                  <Badge variant="outline" className="text-[11px] font-normal">
+                    {describeRule(g.rule)}
+                  </Badge>
                 </div>
               </div>
               <Button
@@ -236,7 +217,7 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                   </div>
                   <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
                     {assigned.reduce(
-                      (sum, gid) => sum + countFor(groups.find((g) => g.id === gid)?.rules ?? []),
+                      (sum, gid) => sum + countFor(groups.find((g) => g.id === gid)?.rule),
                       0
                     )}{" "}
                     students

@@ -157,8 +157,8 @@ function RuleBuilder({
 
   return (
     <div className="space-y-3">
-      <div className={cn("grid gap-3", compact ? "sm:grid-cols-4" : "sm:grid-cols-4")}>
-        <div className="space-y-1.5">
+      <div className={cn("grid gap-3", compact ? "sm:grid-cols-4" : "grid-cols-2")}>
+        <div className={cn("space-y-1.5", !compact && "col-span-2")}>
           <Label className="text-xs text-muted-foreground">Student property</Label>
           <Select value={property} onValueChange={(v) => setProperty(v as StudentProperty)}>
             <SelectTrigger>
@@ -190,7 +190,7 @@ function RuleBuilder({
             onKeyDown={(e) => e.key === "Enter" && apply()}
           />
         </div>
-        <div className="flex items-end">
+        <div className={cn("flex items-end", !compact && "col-span-2")}>
           <Button className="w-full" onClick={apply}>
             <Wand2 className="h-4 w-4 mr-2" /> Apply rule
           </Button>
@@ -335,7 +335,9 @@ export default function StudentAllocation() {
         ? `${selectedTeachers.length} teachers`
         : ""
       : "No teachers",
-    4: !assignTeachers
+    4: maxStep < 4
+      ? ""
+      : !assignTeachers
       ? "Not applicable"
       : distMode === "auto"
       ? "Automatic"

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { MultiSelect } from "@/components/ui/multi-select";
 import {
   Select,
   SelectContent,
@@ -157,19 +158,14 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
     });
   };
 
-  const toggleTeacher = (groupId: string, type: ClassType, teacherId: string) =>
-    setAssignments((a) => {
-      const cur = a[groupId]?.[type] ?? [];
-      return {
-        ...a,
-        [groupId]: {
-          ...(a[groupId] ?? {}),
-          [type]: cur.includes(teacherId)
-            ? cur.filter((x) => x !== teacherId)
-            : [...cur, teacherId],
-        },
-      };
-    });
+  const setTeachers = (groupId: string, type: ClassType, teacherIds: string[]) =>
+    setAssignments((a) => ({
+      ...a,
+      [groupId]: {
+        ...(a[groupId] ?? {}),
+        [type]: teacherIds,
+      },
+    }));
 
   /**
    * How many groups each teacher carries. When several teachers share a class
@@ -455,29 +451,18 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                               : "not assigned"}
                           </span>
                         </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {allocTeachers.map((t) => {
-                            const on = ids.includes(t.id);
-                            const over = teacherLoad[t.id]?.total > maxGroups;
-                            return (
-                              <button
-                                key={t.id}
-                                type="button"
-                                onClick={() => toggleTeacher(g.id, type, t.id)}
-                                className={cn(
-                                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors",
-                                  on
-                                    ? "bg-accent text-accent-foreground border-transparent"
-                                    : "bg-background hover:bg-muted text-muted-foreground",
-                                  on && over && "border border-destructive/60 text-destructive"
-                                )}
-                              >
-                                {t.name}
-                                {on ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <MultiSelect
+                          options={allocTeachers.map((t) => ({
+                            value: t.id,
+                            label: t.name,
+                            secondary: t.title,
+                          }))}
+                          selected={ids}
+                          onChange={(values) => setTeachers(g.id, type, values)}
+                          placeholder="Select teachers..."
+                          searchPlaceholder="Search teachers..."
+                          badgeLimit={2}
+                        />
                       </div>
                     );
                   })}

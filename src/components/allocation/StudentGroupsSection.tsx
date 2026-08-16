@@ -132,19 +132,56 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
 
   const removeGroup = (id: string) => {
     setGroups((g) => g.filter((x) => x.id !== id));
-    setAssignments((a) =>
-      Object.fromEntries(Object.entries(a).map(([t, ids]) => [t, ids.filter((x) => x !== id)]))
-    );
+    setAssignments((a) => {
+      const next = { ...a };
+      delete next[id];
+      return next;
+    });
   };
 
-  const toggleAssignment = (teacherId: string, groupId: string) =>
-    setAssignments((a) => {
-      const cur = a[teacherId] ?? [];
-      return {
-        ...a,
-        [teacherId]: cur.includes(groupId) ? cur.filter((g) => g !== groupId) : [...cur, groupId],
-      };
-    });
+  const setTeacher = (groupId: string, type: ClassType, teacherId: string) =>
+    setAssignments((a) => ({
+      ...a,
+      [groupId]: {
+        ...(a[groupId] ?? {}),
+        [type]: teacherId === UNASSIGNED ? undefined : teacherId,
+      },
+    }));
+
+  /** How many groups each teacher carries, per class type and in total. */
+  const teacherLoad = useMemo(() => {
+    const load: Record<string, { lectures: number; auditory: number; total: number }> = {};
+    for (const t of allocTeachers) load[t.id] = { lectures: 0, auditory: 0, total: 0 };
+    for (const g of groups) {
+      const a = assignments[g.id];
+      if (!a) continue;
+      for (const type of CLASS_TYPES) {
+        const tid = a[type];
+        if (tid && load[tid]) {
+          load[tid][type] += 1;
+          load[tid].total += 1;
+        }
+      }
+    }
+    return load;
+  }, [groups, assignments]);
+
+  const issues = useMemo(() => {
+    const list: string[] = [];
+    for (const g of groups) {
+      const a = assignments[g.id] ?? {};
+      const missing = CLASS_TYPES.filter((t) => !a[t]).map((t) => CLASS_TYPE_LABELS[t]);
+      if (missing.length) list.push(`${g.name}: no teacher for ${missing.join(" & ")}`);
+    }
+    for (const t of allocTeachers) {
+      const load = teacherLoad[t.id];
+      if (load && load.total > maxGroups) {
+        list.push(`${t.name} is assigned ${load.total} groups (limit ${maxGroups})`);
+      }
+    }
+    return list;
+  }, [groups, assignments, teacherLoad, maxGroups]);
+
 
   return (
     <div className="data-card p-4 space-y-6">

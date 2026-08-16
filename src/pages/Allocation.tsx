@@ -906,11 +906,12 @@ export default function Allocation() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+
       <StudentAllocationDialog
         open={!!studentAllocCourse}
         onOpenChange={(o) => !o && setStudentAllocCourse(null)}
         courseLabel={studentAllocCourse ? `${studentAllocCourse.code} – ${studentAllocCourse.name}` : undefined}
       />
+    </div>
   );
 }

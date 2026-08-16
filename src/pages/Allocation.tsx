@@ -31,7 +31,6 @@ import {
   CheckCheck,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { StudentAllocationDialog } from "@/components/dialogs/StudentAllocationDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,7 +99,6 @@ export default function Allocation() {
 
   // Copy previous semester dialog
   const [copyAllDialogOpen, setCopyAllDialogOpen] = useState(false);
-  const [studentAllocCourse, setStudentAllocCourse] = useState<{ code: string; name: string } | null>(null);
 
   // Stats tab state
   const [statsView, setStatsView] = useState<"teacher" | "course">("teacher");
@@ -554,10 +552,6 @@ export default function Allocation() {
                           <Plus className="h-3.5 w-3.5 mr-1.5" />
                           Assign Teacher
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => setStudentAllocCourse({ code: course.code, name: course.name })}>
-                          <Users className="h-3.5 w-3.5 mr-1.5" />
-                          Allocate Students
-                        </Button>
                         <Button size="sm" variant="ghost" onClick={() => navigate(`/allocation/${course.id}`)}>
                           <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                           Open Full View
@@ -907,11 +901,6 @@ export default function Allocation() {
         </DialogContent>
       </Dialog>
 
-      <StudentAllocationDialog
-        open={!!studentAllocCourse}
-        onOpenChange={(o) => !o && setStudentAllocCourse(null)}
-        courseLabel={studentAllocCourse ? `${studentAllocCourse.code} – ${studentAllocCourse.name}` : undefined}
-      />
     </div>
   );
 }

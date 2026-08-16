@@ -24,11 +24,15 @@ import {
   type StudentProperty,
 } from "@/data/student-allocation-data";
 
+interface ProgrammeSelection {
+  programme: string;
+  rule: SelectionRule;
+}
+
 interface StudentGroup {
   id: string;
   name: string;
-  programmes: string[];
-  rule: SelectionRule;
+  programmes: ProgrammeSelection[];
 }
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -40,57 +44,69 @@ const emptyRule = (): SelectionRule => ({
   to: "",
 });
 
+const enrolledIn = (programme: string) =>
+  allocStudents.filter((s) => s.programme === programme).length;
+
+const matchedIn = (programme: string, rule: SelectionRule) => {
+  const pool = allocStudents.filter((s) => s.programme === programme);
+  if (!rule.from && !rule.to) return pool.length;
+  return pool.filter((s) => matchesRule(s, rule)).length;
+};
+
+const groupTotal = (g: StudentGroup) =>
+  g.programmes.reduce((sum, p) => sum + matchedIn(p.programme, p.rule), 0);
+
 export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) {
   const [groups, setGroups] = useState<StudentGroup[]>([
     {
       id: "sg1",
       name: "Group 1",
-      programmes: [allocProgrammes[0]],
-      rule: { id: newId(), property: "lastName", from: "A", to: "K" },
+      programmes: [
+        {
+          programme: allocProgrammes[0],
+          rule: { id: newId(), property: "lastName", from: "A", to: "K" },
+        },
+      ],
     },
     {
       id: "sg2",
       name: "Group 2",
-      programmes: [allocProgrammes[0]],
-      rule: { id: newId(), property: "lastName", from: "L", to: "Z" },
+      programmes: [
+        {
+          programme: allocProgrammes[0],
+          rule: { id: newId(), property: "lastName", from: "L", to: "Z" },
+        },
+      ],
     },
   ]);
   const [draftName, setDraftName] = useState("");
-  const [draftProgrammes, setDraftProgrammes] = useState<string[]>([]);
-  const [draftRule, setDraftRule] = useState<SelectionRule>(emptyRule());
+  const [draftProgrammes, setDraftProgrammes] = useState<ProgrammeSelection[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string[]>>({});
 
-  /** Students matched by a rule, restricted to the given programmes. */
-  const matchedStudents = (programmes: string[], rule?: SelectionRule) => {
-    if (!programmes.length) return [];
-    const pool = allocStudents.filter((s) => programmes.includes(s.programme));
-    if (!rule || (!rule.from && !rule.to)) return pool;
-    return pool.filter((s) => matchesRule(s, rule));
-  };
-
-  const countFor = (programmes: string[], rule?: SelectionRule) =>
-    matchedStudents(programmes, rule).length;
-
-  const perProgramme = (programmes: string[], rule?: SelectionRule) =>
-    programmes.map((p) => ({
-      programme: p,
-      enrolled: allocStudents.filter((s) => s.programme === p).length,
-      matched: matchedStudents([p], rule).length,
-    }));
-
-  const draftPreview = useMemo(
-    () => perProgramme(draftProgrammes, draftRule),
-    [draftProgrammes, draftRule]
+  const programmeStats = useMemo(
+    () =>
+      allocProgrammes.map((p) => ({ programme: p, enrolled: enrolledIn(p) })),
+    []
   );
-  const draftCount = draftPreview.reduce((s, p) => s + p.matched, 0);
 
-  const toggleDraftProgramme = (p: string) =>
+  const draftCount = draftProgrammes.reduce(
+    (sum, p) => sum + matchedIn(p.programme, p.rule),
+    0
+  );
+
+  const toggleDraftProgramme = (programme: string) =>
     setDraftProgrammes((cur) =>
-      cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]
+      cur.some((p) => p.programme === programme)
+        ? cur.filter((p) => p.programme !== programme)
+        : [...cur, { programme, rule: emptyRule() }]
     );
 
-  const updateDraftRule = (patch: Partial<SelectionRule>) =>
-    setDraftRule((r) => ({ ...r, ...patch }));
+  const updateDraftRule = (programme: string, patch: Partial<SelectionRule>) =>
+    setDraftProgrammes((cur) =>
+      cur.map((p) =>
+        p.programme === programme ? { ...p, rule: { ...p.rule, ...patch } } : p
+      )
+    );
 
   const addGroup = () => {
     if (!draftName.trim()) {
@@ -101,17 +117,16 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
       toast.error("Select at least one programme");
       return;
     }
-    if (!draftRule.from && !draftRule.to) {
-      toast.error("Enter a matching rule");
+    if (draftProgrammes.some((p) => !p.rule.from && !p.rule.to)) {
+      toast.error("Enter a matching rule for every selected programme");
       return;
     }
     setGroups((g) => [
       ...g,
-      { id: newId(), name: draftName.trim(), programmes: draftProgrammes, rule: draftRule },
+      { id: newId(), name: draftName.trim(), programmes: draftProgrammes },
     ]);
     setDraftName("");
     setDraftProgrammes([]);
-    setDraftRule(emptyRule());
     toast.success("Group created");
   };
 
@@ -161,78 +176,95 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
             />
           </div>
 
-          <div className="space-y-2">
+          {/* Programme multi-select with enrolled counts */}
+          <div className="space-y-1.5">
             <Label className="text-xs">Programmes</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {allocProgrammes.map((p) => {
-                const on = draftProgrammes.includes(p);
+            <div className="rounded-md border border-border/60 divide-y">
+              {programmeStats.map((p) => {
+                const on = draftProgrammes.some((d) => d.programme === p.programme);
                 return (
                   <button
-                    key={p}
+                    key={p.programme}
                     type="button"
-                    onClick={() => toggleDraftProgramme(p)}
+                    onClick={() => toggleDraftProgramme(p.programme)}
                     className={cn(
-                      "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors",
-                      on
-                        ? "bg-accent text-accent-foreground border-transparent"
-                        : "bg-background hover:bg-muted text-muted-foreground"
+                      "w-full flex items-center justify-between gap-2 px-3 py-2 text-left transition-colors",
+                      on ? "bg-accent/50" : "hover:bg-muted/60"
                     )}
                   >
-                    {p}
-                    {on ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                    <span className="flex items-center gap-2 min-w-0">
+                      <span
+                        className={cn(
+                          "flex h-4 w-4 items-center justify-center rounded border shrink-0",
+                          on ? "bg-primary border-primary text-primary-foreground" : "bg-background"
+                        )}
+                      >
+                        {on && <X className="h-3 w-3" />}
+                      </span>
+                      <span className="text-xs truncate">{p.programme}</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                      {p.enrolled} enrolled
+                    </span>
                   </button>
                 );
               })}
             </div>
           </div>
 
+          {/* Per-programme rules + preview */}
           <div className="space-y-2">
-            <Label className="text-xs">Student matching rule (within selected programmes)</Label>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select
-                value={draftRule.property}
-                onValueChange={(v: StudentProperty) => updateDraftRule({ property: v })}
-              >
-                <SelectTrigger className="h-8 w-[130px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(PROPERTY_LABELS).map(([k, label]) => (
-                    <SelectItem key={k} value={k}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                value={draftRule.from}
-                onChange={(e) => updateDraftRule({ from: e.target.value })}
-                placeholder="From"
-                className="h-8 w-24 text-xs"
-              />
-              <span className="text-xs text-muted-foreground">→</span>
-              <Input
-                value={draftRule.to}
-                onChange={(e) => updateDraftRule({ to: e.target.value })}
-                placeholder="To"
-                className="h-8 w-24 text-xs"
-              />
-            </div>
-          </div>
-
-          {/* Per-programme preview */}
-          <div className="rounded-md border border-border/60 divide-y">
-            {draftPreview.length === 0 ? (
-              <p className="p-3 text-xs text-muted-foreground text-center">
-                Select programmes to preview matched students
+            <Label className="text-xs">Matching rule per programme</Label>
+            {draftProgrammes.length === 0 ? (
+              <p className="rounded-md border border-dashed border-border/60 p-3 text-xs text-muted-foreground text-center">
+                Select a programme to set its rule
               </p>
             ) : (
-              draftPreview.map((p) => (
-                <div key={p.programme} className="flex items-center justify-between px-3 py-2">
-                  <span className="text-xs truncate">{p.programme}</span>
-                  <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-                    <span className="font-semibold text-foreground">{p.matched}</span> / {p.enrolled} enrolled
-                  </span>
-                </div>
-              ))
+              <div className="space-y-2">
+                {draftProgrammes.map((p) => (
+                  <div key={p.programme} className="rounded-md border border-border/60 p-2.5 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium truncate">{p.programme}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                        <span className="font-semibold text-foreground">
+                          {matchedIn(p.programme, p.rule)}
+                        </span>{" "}
+                        / {enrolledIn(p.programme)} matched
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Select
+                        value={p.rule.property}
+                        onValueChange={(v: StudentProperty) =>
+                          updateDraftRule(p.programme, { property: v })
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-[130px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(PROPERTY_LABELS).map(([k, label]) => (
+                            <SelectItem key={k} value={k}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        value={p.rule.from}
+                        onChange={(e) => updateDraftRule(p.programme, { from: e.target.value })}
+                        placeholder="From"
+                        className="h-8 w-24 text-xs"
+                      />
+                      <span className="text-xs text-muted-foreground">→</span>
+                      <Input
+                        value={p.rule.to}
+                        onChange={(e) => updateDraftRule(p.programme, { to: e.target.value })}
+                        placeholder="To"
+                        className="h-8 w-24 text-xs"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
@@ -248,35 +280,30 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
         </div>
 
         {/* ── Existing groups ── */}
-        <div className="rounded-lg border border-border/60 divide-y">
+        <div className="rounded-lg border border-border/60 divide-y self-start">
           {groups.length === 0 && (
             <p className="p-4 text-xs text-muted-foreground text-center">No groups defined yet</p>
           )}
           {groups.map((g) => (
             <div key={g.id} className="p-3 flex items-start justify-between gap-3">
-              <div className="min-w-0">
+              <div className="min-w-0 space-y-1.5">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{g.name}</span>
                   <Badge variant="secondary" className="text-xs tabular-nums">
-                    {countFor(g.programmes, g.rule)} students
+                    {groupTotal(g)} students
                   </Badge>
                 </div>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  <Badge variant="outline" className="text-[11px] font-normal">
-                    {describeRule(g.rule)}
-                  </Badge>
+                <div className="space-y-1">
                   {g.programmes.map((p) => (
-                    <Badge key={p} variant="outline" className="text-[11px] font-normal">
-                      {p}
-                    </Badge>
-                  ))}
-                </div>
-                <div className="mt-1.5 space-y-0.5">
-                  {perProgramme(g.programmes, g.rule).map((p) => (
-                    <div key={p.programme} className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <span className="truncate">{p.programme}</span>
-                      <span className="tabular-nums shrink-0">
-                        {p.matched} / {p.enrolled} enrolled
+                    <div key={p.programme} className="flex flex-wrap items-center gap-1.5">
+                      <Badge variant="outline" className="text-[11px] font-normal">
+                        {p.programme}
+                      </Badge>
+                      <span className="text-[11px] text-muted-foreground">
+                        {describeRule(p.rule)}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        · {matchedIn(p.programme, p.rule)} / {enrolledIn(p.programme)}
                       </span>
                     </div>
                   ))}
@@ -314,13 +341,10 @@ export function StudentGroupsSection({ courseLabel }: { courseLabel?: string }) 
                     <p className="text-xs text-muted-foreground truncate">{t.title}</p>
                   </div>
                   <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-                    {assigned.reduce(
-                      (sum, gid) => {
-                        const g = groups.find((x) => x.id === gid);
-                        return sum + (g ? countFor(g.programmes, g.rule) : 0);
-                      },
-                      0
-                    )}{" "}
+                    {assigned.reduce((sum, gid) => {
+                      const g = groups.find((x) => x.id === gid);
+                      return sum + (g ? groupTotal(g) : 0);
+                    }, 0)}{" "}
                     students
                   </Badge>
                 </div>

@@ -713,11 +713,12 @@ export default function CourseAllocation() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+
       <StudentAllocationDialog
         open={studentAllocOpen}
         onOpenChange={setStudentAllocOpen}
         courseLabel={`${course.code} – ${course.name}`}
       />
+    </div>
   );
 }

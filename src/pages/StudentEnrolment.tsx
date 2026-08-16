@@ -1307,6 +1307,10 @@ export default function StudentEnrolment() {
 
             <Separator />
 
+            <PaymentSummary ects={confirmedEcts} />
+
+            <Separator />
+
             <div className="space-y-1.5 text-xs">
               <p className="font-medium text-foreground">Confirmed enrolments</p>
               <ul className="space-y-1 text-muted-foreground">

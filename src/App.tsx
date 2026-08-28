@@ -33,6 +33,7 @@ import { StudentPlaceholderPage } from "./pages/StudentPlaceholderPage";
 import StudentSemesters from "./pages/StudentSemesters";
 import StudentSemesterDetail from "./pages/StudentSemesterDetail";
 import StudentEnrolment from "./pages/StudentEnrolment";
+import StudentExams from "./pages/StudentExams";
 import { BookOpen, ClipboardList, Award, FileText, Wallet, FileCheck } from "lucide-react";
 import Quotes from "./pages/Quotes";
 import QuotaPricing from "./pages/QuotaPricing";

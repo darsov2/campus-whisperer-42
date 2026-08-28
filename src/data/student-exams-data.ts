@@ -5,11 +5,16 @@ export interface ExamSession {
   id: string;
   label: string;
   period: string;
+  /** Academic year the session belongs to, e.g. "2026/27". */
+  academicYear: string;
   /** Currently open session — no late fee. */
   isCurrent: boolean;
+  /** Whether late applications are still accepted for this (closed) session. */
+  applicationsAllowed: boolean;
   /** Application deadline (display only). */
   deadline: string;
 }
+
 
 export interface ExamProfessor {
   id: string;

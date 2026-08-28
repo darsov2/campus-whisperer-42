@@ -390,49 +390,84 @@ export default function StudentExams() {
           </div>
         </div>
 
-        {/* session switcher */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {examSessions.map((s) => {
-            const active = s.id === sessionId;
-            return (
-              <button
-                key={s.id}
-                onClick={() => setSessionId(s.id)}
-                className={cn(
-                  "rounded-lg border px-3.5 py-2 text-left transition-colors",
-                  active
-                    ? "border-accent/50 bg-accent/10"
-                    : "bg-card hover:bg-muted/60"
-                )}
-              >
-                <span className="flex items-center gap-2 text-sm font-medium">
-                  {s.label}
-                  {s.isCurrent ? (
-                    <StatusBadge tone="success">Open</StatusBadge>
-                  ) : (
-                    <StatusBadge tone="warning">
-                      Late · {formatEUR(examFees.lateFeePerExam)}/exam
-                    </StatusBadge>
-                  )}
-                </span>
-                <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                  {s.period} · {s.isCurrent ? `apply until ${s.deadline}` : s.deadline}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {isLate && (
-          <p className="mt-3 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            This session is closed for regular applications. You may still apply, but a late
-            application fee of {formatEUR(examFees.lateFeePerExam)} is charged for each exam.
-          </p>
-        )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="apply">Apply for exams</TabsTrigger>
+          <TabsTrigger value="history">
+            Application history
+            <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              {applications.length}
+            </span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="apply" className="mt-6 space-y-6">
+          {/* session picker */}
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Exam session</span>
+            </div>
+            <Select value={sessionId} onValueChange={setSessionId}>
+              <SelectTrigger className="h-9 w-[260px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {academicYears
+                  .filter((y) => applySessions.some((s) => s.academicYear === y))
+                  .map((year) => (
+                    <SelectGroup key={year}>
+                      <SelectLabel>{year}</SelectLabel>
+                      {applySessions
+                        .filter((s) => s.academicYear === year)
+                        .map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.label}
+                            {s.isCurrent ? " — open" : " — late application"}
+                          </SelectItem>
+                        ))}
+                    </SelectGroup>
+                  ))}
+              </SelectContent>
+            </Select>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              {session.isCurrent ? (
+                <StatusBadge tone="success">Open</StatusBadge>
+              ) : (
+                <StatusBadge tone="warning">
+                  Late · {formatEUR(examFees.lateFeePerExam)}/exam
+                </StatusBadge>
+              )}
+              <span>
+                {session.period} ·{" "}
+                {session.isCurrent ? `apply until ${session.deadline}` : session.deadline}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto"
+              onClick={() => {
+                setHistSession(sessionId);
+                setTab("history");
+              }}
+            >
+              View history for this session
+            </Button>
+          </div>
+
+          {isLate && (
+            <p className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              This session is closed for regular applications. You may still apply, but a late
+              application fee of {formatEUR(examFees.lateFeePerExam)} is charged for each exam.
+            </p>
+          )}
+
+          <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+
         {/* left: courses */}
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">

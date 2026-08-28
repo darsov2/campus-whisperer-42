@@ -292,7 +292,13 @@ export default function StudentExams() {
   const { id } = useParams<{ id: string }>();
   const student = id ? getStudentProfile(id) : undefined;
 
-  const [sessionId, setSessionId] = useState(examSessions[0].id);
+  const applySessions = examSessions.filter((s) => s.applicationsAllowed);
+  const academicYears = Array.from(new Set(examSessions.map((s) => s.academicYear)));
+
+  const [tab, setTab] = useState("apply");
+  const [sessionId, setSessionId] = useState(
+    (examSessions.find((s) => s.isCurrent) ?? examSessions[0]).id
+  );
   const [applications, setApplications] = useState<ExamApplication[]>(existingApplications);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [professors, setProfessors] = useState<Record<string, string>>(() =>
@@ -302,6 +308,10 @@ export default function StudentExams() {
   const [filter, setFilter] = useState<Filter>("all");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(true);
+  const [histQuery, setHistQuery] = useState("");
+  const [histSession, setHistSession] = useState("all");
+  const [histStatus, setHistStatus] = useState("all");
+
 
   const session = examSessions.find((s) => s.id === sessionId)!;
   const isLate = !session.isCurrent;

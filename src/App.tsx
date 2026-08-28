@@ -67,7 +67,7 @@ const App = () => (
           <Route path="/students/:id/semesters/:semesterId" element={<Portal><StudentSemesterDetail /></Portal>} />
           <Route path="/students/:id/enrolment" element={<Portal><StudentEnrolment /></Portal>} />
           <Route path="/students/:id/courses" element={<Portal><StudentPlaceholderPage title="Courses" description="All courses you are enrolled in across semesters." icon={BookOpen} /></Portal>} />
-          <Route path="/students/:id/exams" element={<Portal><StudentPlaceholderPage title="Exams" description="Apply for exams, view schedule and history." icon={ClipboardList} /></Portal>} />
+          <Route path="/students/:id/exams" element={<Portal><StudentExams /></Portal>} />
           <Route path="/students/:id/grades" element={<Portal><StudentPlaceholderPage title="Grades" description="Your full grade book and transcripts." icon={Award} /></Portal>} />
           <Route path="/students/:id/finance" element={<Portal><StudentPlaceholderPage title="Finance" description="Tuition, payments and balances." icon={Wallet} /></Portal>} />
           <Route path="/students/:id/documents" element={<Portal><StudentPlaceholderPage title="Documents" description="Uploaded documents and submissions." icon={FileText} /></Portal>} />

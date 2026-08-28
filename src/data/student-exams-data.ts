@@ -5,11 +5,16 @@ export interface ExamSession {
   id: string;
   label: string;
   period: string;
+  /** Academic year the session belongs to, e.g. "2026/27". */
+  academicYear: string;
   /** Currently open session — no late fee. */
   isCurrent: boolean;
+  /** Whether late applications are still accepted for this (closed) session. */
+  applicationsAllowed: boolean;
   /** Application deadline (display only). */
   deadline: string;
 }
+
 
 export interface ExamProfessor {
   id: string;
@@ -71,24 +76,76 @@ export const examSessions: ExamSession[] = [
     id: "sess-sep-2026",
     label: "September 2026",
     period: "1 – 20 Sep 2026",
+    academicYear: "2025/26",
     isCurrent: true,
+    applicationsAllowed: true,
     deadline: "12 Sep 2026",
   },
   {
     id: "sess-jun-2026",
     label: "June 2026",
     period: "5 – 28 Jun 2026",
+    academicYear: "2025/26",
     isCurrent: false,
+    applicationsAllowed: true,
     deadline: "closed 20 Jun 2026",
   },
   {
     id: "sess-jan-2026",
     label: "January 2026",
     period: "12 Jan – 5 Feb 2026",
+    academicYear: "2025/26",
     isCurrent: false,
+    applicationsAllowed: true,
     deadline: "closed 28 Jan 2026",
   },
+  {
+    id: "sess-sep-2025",
+    label: "September 2025",
+    period: "1 – 20 Sep 2025",
+    academicYear: "2024/25",
+    isCurrent: false,
+    applicationsAllowed: false,
+    deadline: "closed 12 Sep 2025",
+  },
+  {
+    id: "sess-jun-2025",
+    label: "June 2025",
+    period: "5 – 28 Jun 2025",
+    academicYear: "2024/25",
+    isCurrent: false,
+    applicationsAllowed: false,
+    deadline: "closed 20 Jun 2025",
+  },
+  {
+    id: "sess-jan-2025",
+    label: "January 2025",
+    period: "12 Jan – 5 Feb 2025",
+    academicYear: "2024/25",
+    isCurrent: false,
+    applicationsAllowed: false,
+    deadline: "closed 28 Jan 2025",
+  },
+  {
+    id: "sess-jun-2024",
+    label: "June 2024",
+    period: "5 – 28 Jun 2024",
+    academicYear: "2023/24",
+    isCurrent: false,
+    applicationsAllowed: false,
+    deadline: "closed 20 Jun 2024",
+  },
+  {
+    id: "sess-jan-2024",
+    label: "January 2024",
+    period: "12 Jan – 5 Feb 2024",
+    academicYear: "2023/24",
+    isCurrent: false,
+    applicationsAllowed: false,
+    deadline: "closed 28 Jan 2024",
+  },
 ];
+
 
 const prof = (id: string, name: string, title: string): ExamProfessor => ({ id, name, title });
 
@@ -208,7 +265,70 @@ export const existingApplications: ExamApplication[] = [
     status: "withdrawn",
     submittedOn: "14 Jan 2026",
   },
+  {
+    id: "app-4",
+    sessionId: "sess-jan-2026",
+    courseId: "c-web",
+    professorId: nikolova.id,
+    status: "graded",
+    submittedOn: "10 Jan 2026",
+    grade: 9,
+  },
+  {
+    id: "app-5",
+    sessionId: "sess-sep-2025",
+    courseId: "c-os",
+    professorId: stojanov.id,
+    status: "graded",
+    submittedOn: "1 Sep 2025",
+    grade: 5,
+  },
+  {
+    id: "app-6",
+    sessionId: "sess-jun-2025",
+    courseId: "c-db",
+    professorId: nikolova.id,
+    status: "graded",
+    submittedOn: "3 Jun 2025",
+    grade: 5,
+  },
+  {
+    id: "app-7",
+    sessionId: "sess-jun-2025",
+    courseId: "c-web",
+    professorId: petrovska.id,
+    status: "withdrawn",
+    submittedOn: "3 Jun 2025",
+  },
+  {
+    id: "app-8",
+    sessionId: "sess-jan-2025",
+    courseId: "c-sa",
+    professorId: kostadinov.id,
+    status: "graded",
+    submittedOn: "11 Jan 2025",
+    grade: 8,
+  },
+  {
+    id: "app-9",
+    sessionId: "sess-jun-2024",
+    courseId: "c-ds",
+    professorId: stojanov.id,
+    status: "graded",
+    submittedOn: "4 Jun 2024",
+    grade: 7,
+  },
+  {
+    id: "app-10",
+    sessionId: "sess-jan-2024",
+    courseId: "c-db",
+    professorId: kostadinov.id,
+    status: "graded",
+    submittedOn: "10 Jan 2024",
+    grade: 6,
+  },
 ];
+
 
 export const getCourse = (id: string) => examCourses.find((c) => c.id === id);
 export const getProfessor = (course: ExamCourse | undefined, id: string) =>

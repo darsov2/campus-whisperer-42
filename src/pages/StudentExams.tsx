@@ -640,7 +640,196 @@ export default function StudentExams() {
             </CardContent>
           </Card>
         </div>
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6 space-y-4">
+          {/* summary */}
+          <div className="grid gap-3 sm:grid-cols-4">
+            {[
+              { label: "Total applications", value: applications.length },
+              {
+                label: "Graded",
+                value: applications.filter((a) => a.status === "graded").length,
+              },
+              {
+                label: "Awaiting result",
+                value: applications.filter((a) => a.status === "submitted").length,
+              },
+              {
+                label: "Withdrawn",
+                value: applications.filter((a) => a.status === "withdrawn").length,
+              },
+            ].map((s) => (
+              <Card key={s.label}>
+                <CardContent className="p-4">
+                  <p className="text-2xl font-semibold">{s.value}</p>
+                  <p className="text-xs text-muted-foreground">{s.label}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search courses or professors..."
+                value={histQuery}
+                onChange={(e) => setHistQuery(e.target.value)}
+                className="h-9 pl-9"
+              />
+            </div>
+            <Select value={histSession} onValueChange={setHistSession}>
+              <SelectTrigger className="h-9 w-[220px]">
+                <SelectValue placeholder="All sessions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All sessions</SelectItem>
+                {academicYears.map((year) => (
+                  <SelectGroup key={year}>
+                    <SelectLabel>{year}</SelectLabel>
+                    {examSessions
+                      .filter((s) => s.academicYear === year)
+                      .map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={histStatus} onValueChange={setHistStatus}>
+              <SelectTrigger className="h-9 w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="submitted">Submitted</SelectItem>
+                <SelectItem value="graded">Graded</SelectItem>
+                <SelectItem value="withdrawn">Withdrawn</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* grouped by academic year → session */}
+          {(() => {
+            const q = histQuery.trim().toLowerCase();
+            const matches = (a: ExamApplication) => {
+              if (histStatus !== "all" && a.status !== histStatus) return false;
+              if (histSession !== "all" && a.sessionId !== histSession) return false;
+              if (!q) return true;
+              const course = getCourse(a.courseId);
+              const professor = course?.professors.find((p) => p.id === a.professorId);
+              return (
+                !!course &&
+                (course.name.toLowerCase().includes(q) ||
+                  course.code.toLowerCase().includes(q) ||
+                  (professor?.name.toLowerCase().includes(q) ?? false))
+              );
+            };
+            const rows = applications.filter(matches);
+
+            if (rows.length === 0) {
+              return (
+                <p className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
+                  No exam applications match your filters.
+                </p>
+              );
+            }
+
+            return academicYears.map((year) => {
+              const yearSessions = examSessions.filter(
+                (s) => s.academicYear === year && rows.some((a) => a.sessionId === s.id)
+              );
+              if (yearSessions.length === 0) return null;
+              return (
+                <div key={year} className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Academic year {year}
+                    </p>
+                    <Separator className="flex-1" />
+                  </div>
+                  {yearSessions.map((s) => {
+                    const items = rows.filter((a) => a.sessionId === s.id);
+                    return (
+                      <Card key={s.id}>
+                        <CardContent className="p-0">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b p-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-medium">{s.label}</p>
+                              {s.isCurrent && <StatusBadge tone="success">Open</StatusBadge>}
+                              <span className="text-xs text-muted-foreground">{s.period}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {items.length} application{items.length === 1 ? "" : "s"}
+                            </span>
+                          </div>
+                          <div className="divide-y">
+                            {items.map((a) => {
+                              const course = getCourse(a.courseId);
+                              const professor = course?.professors.find(
+                                (p) => p.id === a.professorId
+                              );
+                              return (
+                                <div
+                                  key={a.id}
+                                  className="flex flex-wrap items-center justify-between gap-3 p-4"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="text-sm font-medium">{course?.name}</p>
+                                      <span className="font-mono text-[11px] text-muted-foreground">
+                                        {course?.code}
+                                      </span>
+                                      {a.status === "submitted" && (
+                                        <StatusBadge tone="muted">Submitted</StatusBadge>
+                                      )}
+                                      {a.status === "withdrawn" && (
+                                        <StatusBadge tone="danger">Withdrawn</StatusBadge>
+                                      )}
+                                      {a.status === "graded" && (
+                                        <StatusBadge tone="success">
+                                          Graded · {a.grade}
+                                        </StatusBadge>
+                                      )}
+                                    </div>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      {professor?.name}
+                                      {course?.schedule[a.sessionId]?.date
+                                        ? ` · ${course.schedule[a.sessionId].date}`
+                                        : ""}{" "}
+                                      · applied {a.submittedOn}
+                                    </p>
+                                  </div>
+                                  {a.status === "submitted" && s.isCurrent && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => withdraw(a.id)}
+                                    >
+                                      Withdraw
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              );
+            });
+          })()}
+        </TabsContent>
+      </Tabs>
+
+
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>

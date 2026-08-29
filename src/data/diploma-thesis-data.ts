@@ -1,5 +1,36 @@
 export type ThesisStatus = "draft" | "applied" | "in-progress" | "submitted" | "defended" | "discarded";
 
+export interface DiplomaFee {
+  id: string;
+  label: string;
+  description: string;
+  amount: number;
+  currency: string;
+  paid: boolean;
+}
+
+// Placeholder fees — to be linked to the backend payment module.
+export function getDiplomaFees(studentId: string): DiplomaFee[] {
+  return [
+    {
+      id: "diploma-pack",
+      label: "Diploma pack",
+      description: "Printed diploma, cover and diploma supplement",
+      amount: 45,
+      currency: "EUR",
+      paid: false,
+    },
+    {
+      id: "diploma-document",
+      label: "Diploma document",
+      description: "Official certified copy of the diploma document",
+      amount: 15,
+      currency: "EUR",
+      paid: false,
+    },
+  ];
+}
+
 export interface DiplomaThesis {
   thesisNo: string;
   name: string;

@@ -1,17 +1,21 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   GraduationCap,
   FileText,
   Users,
-  CalendarRange,
-  Stamp,
-  Printer,
   CheckCircle2,
   Circle,
   XCircle,
+  Wallet,
+  Package,
+  FileCheck,
+  Loader2,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getStudentProfile } from "@/data/students-data";
 import { getDiplomaThesis, getThesisStatus, ThesisStatus } from "@/data/diploma-thesis-data";

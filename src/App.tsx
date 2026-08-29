@@ -34,6 +34,7 @@ import StudentSemesters from "./pages/StudentSemesters";
 import StudentSemesterDetail from "./pages/StudentSemesterDetail";
 import StudentEnrolment from "./pages/StudentEnrolment";
 import StudentExams from "./pages/StudentExams";
+import StudentDiploma from "./pages/StudentDiploma";
 import { BookOpen, ClipboardList, Award, FileText, Wallet, FileCheck } from "lucide-react";
 import Quotes from "./pages/Quotes";
 import QuotaPricing from "./pages/QuotaPricing";
@@ -69,6 +70,7 @@ const App = () => (
           <Route path="/students/:id/courses" element={<Portal><StudentPlaceholderPage title="Courses" description="All courses you are enrolled in across semesters." icon={BookOpen} /></Portal>} />
           <Route path="/students/:id/exams" element={<Portal><StudentExams /></Portal>} />
           <Route path="/students/:id/grades" element={<Portal><StudentPlaceholderPage title="Grades" description="Your full grade book and transcripts." icon={Award} /></Portal>} />
+          <Route path="/students/:id/diploma" element={<Portal><StudentDiploma /></Portal>} />
           <Route path="/students/:id/finance" element={<Portal><StudentPlaceholderPage title="Finance" description="Tuition, payments and balances." icon={Wallet} /></Portal>} />
           <Route path="/students/:id/documents" element={<Portal><StudentPlaceholderPage title="Documents" description="Uploaded documents and submissions." icon={FileText} /></Portal>} />
           <Route path="/students/:id/e-documents" element={<Portal><StudentPlaceholderPage title="E-Documents" description="Official digital transcripts and certificates." icon={FileCheck} /></Portal>} />

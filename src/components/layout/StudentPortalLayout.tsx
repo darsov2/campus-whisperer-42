@@ -15,6 +15,7 @@ import {
   GraduationCap as GradIcon,
   Wallet,
   FileText,
+  ScrollText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -52,6 +53,7 @@ function PortalSidebar({ studentId }: { studentId?: string }) {
     { label: "Courses", to: `/students/${studentId}/courses`, icon: BookOpen },
     { label: "Exams", to: `/students/${studentId}/exams`, icon: ClipboardList },
     { label: "Grades", to: `/students/${studentId}/grades`, icon: GradIcon },
+    { label: "Diploma Thesis", to: `/students/${studentId}/diploma`, icon: ScrollText },
     { label: "Finance", to: `/students/${studentId}/finance`, icon: Wallet },
     { label: "Documents", to: `/students/${studentId}/documents`, icon: FileText },
   ];

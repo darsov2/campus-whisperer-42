@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getStudentProfile } from "@/data/students-data";
-import { getDiplomaThesis, getThesisStatus, ThesisStatus } from "@/data/diploma-thesis-data";
+import { getDiplomaThesis, getThesisStatus, getDiplomaFees, ThesisStatus } from "@/data/diploma-thesis-data";
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -90,6 +90,20 @@ export default function StudentDiploma() {
 
   const status = getThesisStatus(thesis);
   const cfg = statusConfig[status];
+  const defended = status === "defended";
+  const [fees, setFees] = useState(() => getDiplomaFees(id!));
+  const [paying, setPaying] = useState(false);
+  const totalDue = fees.filter((f) => !f.paid).reduce((s, f) => s + f.amount, 0);
+
+  const handlePayAll = () => {
+    setPaying(true);
+    // Placeholder — to be wired to the payment backend.
+    setTimeout(() => {
+      setFees((prev) => prev.map((f) => ({ ...f, paid: true })));
+      setPaying(false);
+      toast.success("Payment successful", { description: "Your diploma fees have been paid." });
+    }, 1200);
+  };
 
   return (
     <div className="space-y-6">

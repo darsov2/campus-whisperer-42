@@ -35,6 +35,7 @@ import StudentSemesterDetail from "./pages/StudentSemesterDetail";
 import StudentEnrolment from "./pages/StudentEnrolment";
 import StudentExams from "./pages/StudentExams";
 import StudentDiploma from "./pages/StudentDiploma";
+import StudentGrades from "./pages/StudentGrades";
 import { BookOpen, ClipboardList, Award, FileText, Wallet, FileCheck } from "lucide-react";
 import Quotes from "./pages/Quotes";
 import QuotaPricing from "./pages/QuotaPricing";

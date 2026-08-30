@@ -354,6 +354,7 @@ export default function StudentExams() {
       professorId: professors[cid],
       status: "submitted",
       submittedOn: "today",
+      paperApplication: false,
     }));
     setApplications((prev) => [...created, ...prev]);
     setSelected((prev) => {

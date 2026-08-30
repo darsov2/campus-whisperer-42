@@ -35,6 +35,8 @@ export interface ExamCourse {
   ects: number;
   /** Programme semester the course belongs to. */
   semester: number;
+  /** Whether the course is mandatory or elective in the programme. */
+  courseType: "mandatory" | "elective";
   signatureObtained: boolean;
   /** Previous failed attempts on this exam. */
   attempts: number;
@@ -54,6 +56,10 @@ export interface ExamApplication {
   status: ApplicationStatus;
   submittedOn: string;
   grade?: number;
+  /** Date the exam was taken (display only). */
+  examDate?: string;
+  /** Whether a paper-form application was also submitted at student services. */
+  paperApplication: boolean;
 }
 
 export interface ExamFeeBreakdown {
@@ -159,6 +165,7 @@ const sched = (date: string, time: string, hall: string): ExamSchedule => ({ dat
 export const examCourses: ExamCourse[] = [
   {
     id: "c-db",
+    courseType: "mandatory",
     code: "FINKI-DB",
     name: "Databases",
     ects: 6,
@@ -175,6 +182,7 @@ export const examCourses: ExamCourse[] = [
   },
   {
     id: "c-os",
+    courseType: "mandatory",
     code: "FINKI-OS",
     name: "Operating Systems",
     ects: 6,
@@ -191,6 +199,7 @@ export const examCourses: ExamCourse[] = [
   },
   {
     id: "c-web",
+    courseType: "elective",
     code: "FINKI-WP",
     name: "Web Programming",
     ects: 6,
@@ -207,6 +216,7 @@ export const examCourses: ExamCourse[] = [
   },
   {
     id: "c-sa",
+    courseType: "mandatory",
     code: "FINKI-SA",
     name: "Software Architecture",
     ects: 6,
@@ -223,6 +233,7 @@ export const examCourses: ExamCourse[] = [
   },
   {
     id: "c-ds",
+    courseType: "elective",
     code: "FINKI-DS",
     name: "Distributed Systems",
     ects: 6,
@@ -242,6 +253,8 @@ export const examCourses: ExamCourse[] = [
 export const existingApplications: ExamApplication[] = [
   {
     id: "app-1",
+    examDate: "17 Sep 2026",
+    paperApplication: false,
     sessionId: "sess-sep-2026",
     courseId: "c-sa",
     professorId: kostadinov.id,
@@ -250,6 +263,8 @@ export const existingApplications: ExamApplication[] = [
   },
   {
     id: "app-2",
+    examDate: "11 Jun 2026",
+    paperApplication: true,
     sessionId: "sess-jun-2026",
     courseId: "c-db",
     professorId: kostadinov.id,
@@ -259,6 +274,8 @@ export const existingApplications: ExamApplication[] = [
   },
   {
     id: "app-3",
+    examDate: "20 Jan 2026",
+    paperApplication: true,
     sessionId: "sess-jan-2026",
     courseId: "c-os",
     professorId: stojanov.id,
@@ -267,6 +284,8 @@ export const existingApplications: ExamApplication[] = [
   },
   {
     id: "app-4",
+    examDate: "22 Jan 2026",
+    paperApplication: true,
     sessionId: "sess-jan-2026",
     courseId: "c-web",
     professorId: nikolova.id,
@@ -276,6 +295,8 @@ export const existingApplications: ExamApplication[] = [
   },
   {
     id: "app-5",
+    examDate: "3 Sep 2025",
+    paperApplication: false,
     sessionId: "sess-sep-2025",
     courseId: "c-os",
     professorId: stojanov.id,
@@ -285,6 +306,8 @@ export const existingApplications: ExamApplication[] = [
   },
   {
     id: "app-6",
+    examDate: "5 Jun 2025",
+    paperApplication: true,
     sessionId: "sess-jun-2025",
     courseId: "c-db",
     professorId: nikolova.id,
@@ -294,6 +317,8 @@ export const existingApplications: ExamApplication[] = [
   },
   {
     id: "app-7",
+    examDate: "14 Jun 2025",
+    paperApplication: false,
     sessionId: "sess-jun-2025",
     courseId: "c-web",
     professorId: petrovska.id,
@@ -302,6 +327,8 @@ export const existingApplications: ExamApplication[] = [
   },
   {
     id: "app-8",
+    examDate: "14 Jan 2025",
+    paperApplication: true,
     sessionId: "sess-jan-2025",
     courseId: "c-sa",
     professorId: kostadinov.id,
@@ -311,6 +338,8 @@ export const existingApplications: ExamApplication[] = [
   },
   {
     id: "app-9",
+    examDate: "6 Jun 2024",
+    paperApplication: true,
     sessionId: "sess-jun-2024",
     courseId: "c-ds",
     professorId: stojanov.id,
@@ -320,6 +349,8 @@ export const existingApplications: ExamApplication[] = [
   },
   {
     id: "app-10",
+    examDate: "12 Jan 2024",
+    paperApplication: false,
     sessionId: "sess-jan-2024",
     courseId: "c-db",
     professorId: kostadinov.id,

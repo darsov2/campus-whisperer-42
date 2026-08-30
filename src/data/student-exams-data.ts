@@ -35,6 +35,8 @@ export interface ExamCourse {
   ects: number;
   /** Programme semester the course belongs to. */
   semester: number;
+  /** Whether the course is mandatory or elective in the programme. */
+  courseType: "mandatory" | "elective";
   signatureObtained: boolean;
   /** Previous failed attempts on this exam. */
   attempts: number;
@@ -54,6 +56,10 @@ export interface ExamApplication {
   status: ApplicationStatus;
   submittedOn: string;
   grade?: number;
+  /** Date the exam was taken (display only). */
+  examDate?: string;
+  /** Whether a paper-form application was also submitted at student services. */
+  paperApplication: boolean;
 }
 
 export interface ExamFeeBreakdown {

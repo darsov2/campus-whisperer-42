@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { User, Calendar, GraduationCap, Award, Mail, Phone, MapPin, Pencil } from "lucide-react";
+import { User, Calendar, GraduationCap, Award, Mail, Phone, MapPin, Pencil, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { z } from "zod";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,17 +31,45 @@ const editSchema = z.object({
 });
 type EditForm = z.infer<typeof editSchema>;
 
-const editableFields: { key: keyof EditForm; label: string; group: string }[] = [
-  { key: "email", label: "Email", group: "Contact" },
-  { key: "phone", label: "Phone", group: "Contact" },
-  { key: "permanentAddress", label: "Permanent address", group: "Contact" },
-  { key: "currentAddress", label: "Current address", group: "Contact" },
-  { key: "emergencyContactName", label: "Emergency contact", group: "Contact" },
-  { key: "emergencyContactPhone", label: "Emergency phone", group: "Contact" },
-  { key: "placeOfBirth", label: "Place of birth", group: "Birth" },
-  { key: "countryOfBirth", label: "Country of birth", group: "Birth" },
-  { key: "nationality", label: "Nationality", group: "Birth" },
-  { key: "citizenship", label: "Citizenship", group: "Birth" },
+interface StepDef {
+  id: string;
+  title: string;
+  description: string;
+  fields: { key: keyof EditForm; label: string; span?: boolean }[];
+}
+
+const steps: StepDef[] = [
+  {
+    id: "contact",
+    title: "Contact details",
+    description: "How the university can reach you.",
+    fields: [
+      { key: "email", label: "Email" },
+      { key: "phone", label: "Phone" },
+      { key: "permanentAddress", label: "Permanent address", span: true },
+      { key: "currentAddress", label: "Current address", span: true },
+    ],
+  },
+  {
+    id: "emergency",
+    title: "Emergency contact",
+    description: "Person to contact in case of emergency.",
+    fields: [
+      { key: "emergencyContactName", label: "Contact name" },
+      { key: "emergencyContactPhone", label: "Contact phone" },
+    ],
+  },
+  {
+    id: "birth",
+    title: "Birth & nationality",
+    description: "Personal details as stated in your documents.",
+    fields: [
+      { key: "placeOfBirth", label: "Place of birth" },
+      { key: "countryOfBirth", label: "Country of birth" },
+      { key: "nationality", label: "Nationality" },
+      { key: "citizenship", label: "Citizenship" },
+    ],
+  },
 ];
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
@@ -72,6 +100,7 @@ export default function StudentProfileInfo() {
   const { id } = useParams<{ id: string }>();
   const [version, setVersion] = useState(0);
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState(0);
   const [form, setForm] = useState<EditForm | null>(null);
   const [errors, setErrors] = useState<Partial<Record<keyof EditForm, string>>>({});
 
@@ -93,28 +122,50 @@ export default function StudentProfileInfo() {
       citizenship: student.citizenship,
     });
     setErrors({});
+    setStep(0);
     setOpen(true);
+  };
+
+  const validateStep = (stepIndex: number): boolean => {
+    if (!form) return false;
+    const keys = steps[stepIndex].fields.map((f) => f.key);
+    const subset = Object.fromEntries(keys.map((k) => [k, form[k]]));
+    const shape = Object.fromEntries(keys.map((k) => [k, editSchema.shape[k]]));
+    const result = z.object(shape).safeParse(subset);
+    if (result.success) {
+      setErrors({});
+      return true;
+    }
+    const fieldErrors: Partial<Record<keyof EditForm, string>> = {};
+    for (const issue of result.error.issues) {
+      const key = issue.path[0] as keyof EditForm;
+      if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+    }
+    setErrors(fieldErrors);
+    return false;
+  };
+
+  const next = () => {
+    if (validateStep(step)) setStep((s) => Math.min(s + 1, steps.length - 1));
+  };
+
+  const back = () => {
+    setErrors({});
+    setStep((s) => Math.max(s - 1, 0));
   };
 
   const save = () => {
     if (!form) return;
+    if (!validateStep(step)) return;
     const result = editSchema.safeParse(form);
-    if (!result.success) {
-      const fieldErrors: Partial<Record<keyof EditForm, string>> = {};
-      for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof EditForm;
-        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
+    if (!result.success) return;
     updateStudentProfile(student.id, result.data);
     setVersion((v) => v + 1);
     setOpen(false);
     toast.success("Profile updated", { description: "Your personal information has been saved." });
   };
 
-  const groups = ["Contact", "Birth"];
+  const isLast = step === steps.length - 1;
 
   return (
     <div className="space-y-6">
@@ -179,46 +230,83 @@ export default function StudentProfileInfo() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit personal info</DialogTitle>
             <DialogDescription>
-              Update your contact and birth details. Academic records are managed by student services.
+              {steps[step].description} Academic records are managed by student services.
             </DialogDescription>
           </DialogHeader>
-          {form && (
-            <div className="space-y-6 py-2">
-              {groups.map((group) => (
-                <div key={group} className="space-y-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold border-b pb-1.5">
-                    {group}
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {editableFields.filter((f) => f.group === group).map((f) => (
-                      <div key={f.key} className="space-y-1.5">
-                        <Label htmlFor={`edit-${f.key}`}>{f.label}</Label>
-                        <Input
-                          id={`edit-${f.key}`}
-                          value={form[f.key]}
-                          onChange={(e) => {
-                            setForm({ ...form, [f.key]: e.target.value });
-                            setErrors((prev) => ({ ...prev, [f.key]: undefined }));
-                          }}
-                          className={errors[f.key] ? "border-destructive" : undefined}
-                        />
-                        {errors[f.key] && <p className="text-xs text-destructive">{errors[f.key]}</p>}
-                      </div>
-                    ))}
+
+          {/* Stepper */}
+          <div className="flex items-center gap-1 py-1">
+            {steps.map((s, i) => (
+              <div key={s.id} className="flex items-center gap-1 flex-1 last:flex-none">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 transition-colors ${
+                      i < step
+                        ? "bg-success text-success-foreground"
+                        : i === step
+                          ? "bg-accent text-accent-foreground"
+                          : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {i < step ? <Check className="h-3 w-3" /> : i + 1}
                   </div>
+                  <span
+                    className={`text-xs font-medium whitespace-nowrap ${
+                      i === step ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {s.title}
+                  </span>
+                </div>
+                {i < steps.length - 1 && <div className={`flex-1 h-px mx-2 ${i < step ? "bg-success" : "bg-border"}`} />}
+              </div>
+            ))}
+          </div>
+
+          {form && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2 min-h-[180px] content-start">
+              {steps[step].fields.map((f) => (
+                <div key={f.key} className={`space-y-1.5 ${f.span ? "sm:col-span-2" : ""}`}>
+                  <Label htmlFor={`edit-${f.key}`}>{f.label}</Label>
+                  <Input
+                    id={`edit-${f.key}`}
+                    value={form[f.key]}
+                    onChange={(e) => {
+                      setForm({ ...form, [f.key]: e.target.value });
+                      setErrors((prev) => ({ ...prev, [f.key]: undefined }));
+                    }}
+                    className={errors[f.key] ? "border-destructive" : undefined}
+                  />
+                  {errors[f.key] && <p className="text-xs text-destructive">{errors[f.key]}</p>}
                 </div>
               ))}
             </div>
           )}
-          <DialogFooter>
+
+          <DialogFooter className="sm:justify-between">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" onClick={save}>
-              Save changes
-            </Button>
+            <div className="flex gap-2">
+              {step > 0 && (
+                <Button variant="outline" className="gap-1.5" onClick={back}>
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Back
+                </Button>
+              )}
+              {isLast ? (
+                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" onClick={save}>
+                  Save changes
+                </Button>
+              ) : (
+                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground gap-1.5" onClick={next}>
+                  Next
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

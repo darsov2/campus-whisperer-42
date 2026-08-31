@@ -70,14 +70,63 @@ function Section({ title, icon: Icon, children }: { title: string; icon: any; ch
 
 export default function StudentProfileInfo() {
   const { id } = useParams<{ id: string }>();
+  const [version, setVersion] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<EditForm | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<keyof EditForm, string>>>({});
+
   const student = id ? getStudentProfile(id) : undefined;
   if (!student) return <p className="text-muted-foreground">Student not found.</p>;
+  void version;
+
+  const openEdit = () => {
+    setForm({
+      email: student.email,
+      phone: student.phone,
+      permanentAddress: student.permanentAddress,
+      currentAddress: student.currentAddress,
+      emergencyContactName: student.emergencyContactName,
+      emergencyContactPhone: student.emergencyContactPhone,
+      placeOfBirth: student.placeOfBirth,
+      countryOfBirth: student.countryOfBirth,
+      nationality: student.nationality,
+      citizenship: student.citizenship,
+    });
+    setErrors({});
+    setOpen(true);
+  };
+
+  const save = () => {
+    if (!form) return;
+    const result = editSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof EditForm, string>> = {};
+      for (const issue of result.error.issues) {
+        const key = issue.path[0] as keyof EditForm;
+        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    updateStudentProfile(student.id, result.data);
+    setVersion((v) => v + 1);
+    setOpen(false);
+    toast.success("Profile updated", { description: "Your personal information has been saved." });
+  };
+
+  const groups = ["Contact", "Birth"];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
-        <p className="text-sm text-muted-foreground mt-1">Personal, academic and contact information on file.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+          <p className="text-sm text-muted-foreground mt-1">Personal, academic and contact information on file.</p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={openEdit}>
+          <Pencil className="h-3.5 w-3.5" />
+          Edit personal info
+        </Button>
       </div>
 
       <Card className="border-0 shadow-[var(--shadow-card)]">

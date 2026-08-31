@@ -14,10 +14,6 @@ import {
 } from "@/data/student-exams-data";
 import { cn } from "@/lib/utils";
 
-const gradeBadge = (grade: number) =>
-  grade >= 6
-    ? "bg-success/10 text-success border-success/30"
-    : "bg-destructive/10 text-destructive border-destructive/30";
 
 export default function StudentGrades() {
   const [search, setSearch] = useState("");

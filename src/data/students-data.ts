@@ -178,3 +178,26 @@ export const studentProfiles: StudentProfile[] = [
 export function getStudentProfile(id: string) {
   return studentProfiles.find((s) => s.id === id);
 }
+
+export type StudentProfileUpdate = Partial<
+  Pick<
+    StudentProfile,
+    | "email"
+    | "phone"
+    | "permanentAddress"
+    | "currentAddress"
+    | "emergencyContactName"
+    | "emergencyContactPhone"
+    | "placeOfBirth"
+    | "countryOfBirth"
+    | "nationality"
+    | "citizenship"
+  >
+>;
+
+export function updateStudentProfile(id: string, patch: StudentProfileUpdate) {
+  const s = studentProfiles.find((s) => s.id === id);
+  if (!s) return undefined;
+  Object.assign(s, patch);
+  return s;
+}

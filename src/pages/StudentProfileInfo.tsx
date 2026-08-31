@@ -177,6 +177,51 @@ export default function StudentProfileInfo() {
           </Section>
         </CardContent>
       </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit personal info</DialogTitle>
+            <DialogDescription>
+              Update your contact and birth details. Academic records are managed by student services.
+            </DialogDescription>
+          </DialogHeader>
+          {form && (
+            <div className="space-y-6 py-2">
+              {groups.map((group) => (
+                <div key={group} className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold border-b pb-1.5">
+                    {group}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {editableFields.filter((f) => f.group === group).map((f) => (
+                      <div key={f.key} className="space-y-1.5">
+                        <Label htmlFor={`edit-${f.key}`}>{f.label}</Label>
+                        <Input
+                          id={`edit-${f.key}`}
+                          value={form[f.key]}
+                          onChange={(e) => {
+                            setForm({ ...form, [f.key]: e.target.value });
+                            setErrors((prev) => ({ ...prev, [f.key]: undefined }));
+                          }}
+                          className={errors[f.key] ? "border-destructive" : undefined}
+                        />
+                        {errors[f.key] && <p className="text-xs text-destructive">{errors[f.key]}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" onClick={save}>
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

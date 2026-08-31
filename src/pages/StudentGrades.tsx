@@ -14,10 +14,6 @@ import {
 } from "@/data/student-exams-data";
 import { cn } from "@/lib/utils";
 
-const gradeBadge = (grade: number) =>
-  grade >= 6
-    ? "bg-success/10 text-success border-success/30"
-    : "bg-destructive/10 text-destructive border-destructive/30";
 
 export default function StudentGrades() {
   const [search, setSearch] = useState("");
@@ -231,10 +227,16 @@ export default function StudentGrades() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Badge variant="outline" className={gradeBadge(app.grade!)}>
+                      <span
+                        className={cn(
+                          "font-bold text-base",
+                          app.grade! >= 6 ? "text-success" : "text-destructive"
+                        )}
+                      >
                         {app.grade}
-                      </Badge>
+                      </span>
                     </TableCell>
+
                   </TableRow>
                 );
               })}

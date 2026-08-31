@@ -1,7 +1,48 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { User, Calendar, GraduationCap, Award, Mail, Phone, MapPin } from "lucide-react";
+import { User, Calendar, GraduationCap, Award, Mail, Phone, MapPin, Pencil } from "lucide-react";
+import { z } from "zod";
 import { Card, CardContent } from "@/components/ui/card";
-import { getStudentProfile } from "@/data/students-data";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { getStudentProfile, updateStudentProfile, StudentProfile } from "@/data/students-data";
+
+const editSchema = z.object({
+  email: z.string().trim().email("Invalid email address").max(255),
+  phone: z.string().trim().min(5, "Phone is too short").max(30),
+  permanentAddress: z.string().trim().min(3, "Address is required").max(200),
+  currentAddress: z.string().trim().min(3, "Address is required").max(200),
+  emergencyContactName: z.string().trim().min(2, "Contact name is required").max(100),
+  emergencyContactPhone: z.string().trim().min(5, "Phone is too short").max(30),
+  placeOfBirth: z.string().trim().min(2, "Place of birth is required").max(100),
+  countryOfBirth: z.string().trim().min(2, "Country is required").max(100),
+  nationality: z.string().trim().min(2, "Nationality is required").max(100),
+  citizenship: z.string().trim().min(2, "Citizenship is required").max(100),
+});
+type EditForm = z.infer<typeof editSchema>;
+
+const editableFields: { key: keyof EditForm; label: string; group: string }[] = [
+  { key: "email", label: "Email", group: "Contact" },
+  { key: "phone", label: "Phone", group: "Contact" },
+  { key: "permanentAddress", label: "Permanent address", group: "Contact" },
+  { key: "currentAddress", label: "Current address", group: "Contact" },
+  { key: "emergencyContactName", label: "Emergency contact", group: "Contact" },
+  { key: "emergencyContactPhone", label: "Emergency phone", group: "Contact" },
+  { key: "placeOfBirth", label: "Place of birth", group: "Birth" },
+  { key: "countryOfBirth", label: "Country of birth", group: "Birth" },
+  { key: "nationality", label: "Nationality", group: "Birth" },
+  { key: "citizenship", label: "Citizenship", group: "Birth" },
+];
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
   return (

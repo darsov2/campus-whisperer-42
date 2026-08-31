@@ -1,7 +1,48 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { User, Calendar, GraduationCap, Award, Mail, Phone, MapPin } from "lucide-react";
+import { User, Calendar, GraduationCap, Award, Mail, Phone, MapPin, Pencil } from "lucide-react";
+import { z } from "zod";
 import { Card, CardContent } from "@/components/ui/card";
-import { getStudentProfile } from "@/data/students-data";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { getStudentProfile, updateStudentProfile } from "@/data/students-data";
+
+const editSchema = z.object({
+  email: z.string().trim().email("Invalid email address").max(255),
+  phone: z.string().trim().min(5, "Phone is too short").max(30),
+  permanentAddress: z.string().trim().min(3, "Address is required").max(200),
+  currentAddress: z.string().trim().min(3, "Address is required").max(200),
+  emergencyContactName: z.string().trim().min(2, "Contact name is required").max(100),
+  emergencyContactPhone: z.string().trim().min(5, "Phone is too short").max(30),
+  placeOfBirth: z.string().trim().min(2, "Place of birth is required").max(100),
+  countryOfBirth: z.string().trim().min(2, "Country is required").max(100),
+  nationality: z.string().trim().min(2, "Nationality is required").max(100),
+  citizenship: z.string().trim().min(2, "Citizenship is required").max(100),
+});
+type EditForm = z.infer<typeof editSchema>;
+
+const editableFields: { key: keyof EditForm; label: string; group: string }[] = [
+  { key: "email", label: "Email", group: "Contact" },
+  { key: "phone", label: "Phone", group: "Contact" },
+  { key: "permanentAddress", label: "Permanent address", group: "Contact" },
+  { key: "currentAddress", label: "Current address", group: "Contact" },
+  { key: "emergencyContactName", label: "Emergency contact", group: "Contact" },
+  { key: "emergencyContactPhone", label: "Emergency phone", group: "Contact" },
+  { key: "placeOfBirth", label: "Place of birth", group: "Birth" },
+  { key: "countryOfBirth", label: "Country of birth", group: "Birth" },
+  { key: "nationality", label: "Nationality", group: "Birth" },
+  { key: "citizenship", label: "Citizenship", group: "Birth" },
+];
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -29,14 +70,63 @@ function Section({ title, icon: Icon, children }: { title: string; icon: any; ch
 
 export default function StudentProfileInfo() {
   const { id } = useParams<{ id: string }>();
+  const [version, setVersion] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<EditForm | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<keyof EditForm, string>>>({});
+
   const student = id ? getStudentProfile(id) : undefined;
   if (!student) return <p className="text-muted-foreground">Student not found.</p>;
+  void version;
+
+  const openEdit = () => {
+    setForm({
+      email: student.email,
+      phone: student.phone,
+      permanentAddress: student.permanentAddress,
+      currentAddress: student.currentAddress,
+      emergencyContactName: student.emergencyContactName,
+      emergencyContactPhone: student.emergencyContactPhone,
+      placeOfBirth: student.placeOfBirth,
+      countryOfBirth: student.countryOfBirth,
+      nationality: student.nationality,
+      citizenship: student.citizenship,
+    });
+    setErrors({});
+    setOpen(true);
+  };
+
+  const save = () => {
+    if (!form) return;
+    const result = editSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof EditForm, string>> = {};
+      for (const issue of result.error.issues) {
+        const key = issue.path[0] as keyof EditForm;
+        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    updateStudentProfile(student.id, result.data);
+    setVersion((v) => v + 1);
+    setOpen(false);
+    toast.success("Profile updated", { description: "Your personal information has been saved." });
+  };
+
+  const groups = ["Contact", "Birth"];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
-        <p className="text-sm text-muted-foreground mt-1">Personal, academic and contact information on file.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+          <p className="text-sm text-muted-foreground mt-1">Personal, academic and contact information on file.</p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={openEdit}>
+          <Pencil className="h-3.5 w-3.5" />
+          Edit personal info
+        </Button>
       </div>
 
       <Card className="border-0 shadow-[var(--shadow-card)]">
@@ -87,6 +177,51 @@ export default function StudentProfileInfo() {
           </Section>
         </CardContent>
       </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit personal info</DialogTitle>
+            <DialogDescription>
+              Update your contact and birth details. Academic records are managed by student services.
+            </DialogDescription>
+          </DialogHeader>
+          {form && (
+            <div className="space-y-6 py-2">
+              {groups.map((group) => (
+                <div key={group} className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold border-b pb-1.5">
+                    {group}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {editableFields.filter((f) => f.group === group).map((f) => (
+                      <div key={f.key} className="space-y-1.5">
+                        <Label htmlFor={`edit-${f.key}`}>{f.label}</Label>
+                        <Input
+                          id={`edit-${f.key}`}
+                          value={form[f.key]}
+                          onChange={(e) => {
+                            setForm({ ...form, [f.key]: e.target.value });
+                            setErrors((prev) => ({ ...prev, [f.key]: undefined }));
+                          }}
+                          className={errors[f.key] ? "border-destructive" : undefined}
+                        />
+                        {errors[f.key] && <p className="text-xs text-destructive">{errors[f.key]}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" onClick={save}>
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

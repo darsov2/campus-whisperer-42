@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { getStudentProfile, updateStudentProfile, StudentProfile } from "@/data/students-data";
+import { getStudentProfile, updateStudentProfile } from "@/data/students-data";
 
 const editSchema = z.object({
   email: z.string().trim().email("Invalid email address").max(255),
